@@ -18,103 +18,84 @@
     },
     "brightColor": true,
     "constants": [
-        "╭──────────── Software ────────────",  "├──────────── Hardware ────────────","├───────────── Uptime ─────────────","╰──────────────────────────────────"
+      "╭──────────── Software ────────────",
+      "├──────────── Hardware ────────────",
+      "├───────────── Uptime ─────────────",
+      "╰──────────────────────────────────"
     ]
   },
   "modules": [
-  
-{
-      "type": 
-    "title",
-     
+    {
+      "type": "title",
       "type": "separator"
     },
     {
       "type": "custom",
-       
-        "format": "╭──────────── Software ────────────"
-      },
-      {
-        "type": "os",
-         
-          "keyIcon": "󰣇 "
-        },
-        {
-          "type": "de",
-           
-            "keyIcon": "󰔃 "
-          },
-          {
-            "type": "wm",
-             
-              "keyIcon": " "
-            },
-            {
-              "type": "kernel",
-               
-                "keyIcon": " "
-              },
-              {
-                "type": "packages",
-                 
-                  "keyIcon": " "
-                },
-                {
-                  "type": "shell",
-                   
-                    "keyIcon": " "
-                  },
-                  {
-                    "type": "terminal",
-                     
-                      "keyIcon": " "
-                    },
-                    {
-                      "type": "custom",
-                       
-                        "format": "├──────────── Hardware ────────────"
-                      },
-                      {
-                        "type": "host",
-                         
-                          "keyIcon": " "
-                        },
-                        {
-                          "type": "cpu",
-                           
-                            "keyIcon": " "
-                          },
-                          {
-                            "type": "gpu",
-                             
-                              "keyIcon": " "
-                            },
-                            {
-                              "type": "memory",
-                               
-                                "keyIcon": "󰍛 "
-                              },
-                              {
-                                "type": "disk",
-                                 
-                                  "keyIcon": " "
-                                },
-                                {
-                                  "type": "custom",
-                                   
-                                    "format": "├───────────── Uptime ─────────────"
-                                  },
-                                  {
-                                    "type": "uptime",
-                                     
-                                      "keyIcon": "󰥔 "
-                                    },
-                                    {
-                                      "type": "custom",
-                                       
-                                        "format": "╰──────────────────────────────────"
-                                      }
-                                    ]
-                                  }
-                                
-                              
+      "format": "╭──────────── Software ────────────"
+    },
+    {
+      "type": "os",
+      "keyIcon": " "
+    },
+    {
+      "type": "de",
+      "keyIcon": "󰔃 "
+    },
+    {
+      "type": "wm",
+      "keyIcon": " "
+    },
+    {
+      "type": "kernel",
+      "keyIcon": " "
+    },
+    {
+      "type": "packages",
+      "keyIcon": " "
+    },
+    {
+      "type": "shell",
+      "keyIcon": " "
+    },
+    {
+      "type": "terminal",
+      "keyIcon": " "
+    },
+    {
+      "type": "custom",
+      "format": "├──────────── Hardware ────────────"
+    },
+    {
+      "type": "host",
+      "keyIcon": " "
+    },
+    {
+      "type": "cpu",
+      "keyIcon": " "
+    },
+    {
+      "type": "gpu",
+      "keyIcon": " "
+    },
+    {
+      "type": "memory",
+      "keyIcon": "󰍛 "
+    },
+    {
+      "type": "disk",
+      "keyIcon": " "
+    },
+    {
+      "type": "custom",
+      "format": "├───────────── Uptime ─────────────"
+    },
+    {
+      "type": "uptime",
+      "keyIcon": "󰥔 "
+    },
+    {
+      "type": "custom",
+      "format": "╰──────────────────────────────────"
+    }
+  ]
+}
