@@ -1,2 +1,1 @@
-# dotfiles-stow
-My dots only
+# My Dotfiles
