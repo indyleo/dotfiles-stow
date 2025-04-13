@@ -7,9 +7,9 @@ function on_directory_change() {
     fi
 
     # 🐍 Auto-activate Python virtual environment
-    if [[ -f ".venv/bin/activate" ]]; then
+    if [[ -f "./bin/activate" ]]; then
         echo "🐍 Activating virtual environment"
-        source .venv/bin/activate
+        source ./bin/activate
     fi
 }
 
