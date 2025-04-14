@@ -1,0 +1,49 @@
+matches:
+  # NOTE: espanso uses YAML to define matches, so pay attention to the indentation!
+
+  # But matches can also be dynamic:
+
+  # Print the current date
+  - trigger: ":date"
+    replace: "{{output}}"
+    vars:
+      - name: mydate
+        type: date
+        params:
+          format: "%m/%d/%Y"
+
+  # Print the current time
+  - trigger: ":time"
+    replace: "{{output}}"
+    vars:
+      - name: mytime
+        type: date
+        params:
+          format: "%I:%M %p"
+
+  # Print the current date
+  - trigger: ":fulldate"
+    replace: "{{output}}"
+    vars:
+      - name: output
+        type: date
+        params:
+          format: "%A, %B %d, %Y"
+
+  - trigger: ":pubip"
+    replace: "{{output}}"
+    vars:
+      - name: output
+        type: shell
+        params:
+          cmd: "curl ipinfo.io/ip"
+
+  - trigger: ":privip"
+    replace: "{{output}}"
+    vars:
+      - name: output
+        type: shell
+        params:
+          cmd: "hostname -I | awk '{print $1}'"
+
+          # And much more! For more information, visit the docs: https://espanso.org/docs/
