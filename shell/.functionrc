@@ -37,7 +37,7 @@ mvg() {
 }
 
 # Create and go to the directory
-mkdirg() {
+mkcd() {
     mkdir -p "$1"
     cd "$1"
 }
