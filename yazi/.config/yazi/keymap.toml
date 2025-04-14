@@ -227,7 +227,7 @@ keymap = [
   ], run = "cd ~/.config", desc = "Go ~/.config" },
   { on = [
     "g",
-    "g",
+    "G",
   ], run = "cd ~/Github", desc = "Go ~/Github" },
   { on = [
     "g",
