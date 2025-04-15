@@ -125,7 +125,7 @@ dynamic_padding = false
 opacity = 0.85
 title = "Alacritty"
 decorations = "none"
-startup_mode = "Windowed"
+startup_mode = "Maximized"
 dynamic_title = true
 
 [window.class]
