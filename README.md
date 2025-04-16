@@ -21,6 +21,11 @@
 - Set Krunner to be in the center of the screen
 - Import my window rules, and shortcuts
 
+## Kwin Scripts
+
+- Set and get Sticky Window Snapping
+- Set and get Virtual Desktops only on Primary Display
+
 # Preview
 
 ![Peek 2025-04-12 19-33](https://github.com/user-attachments/assets/eedcb1fd-15a6-4579-a5a0-c68d296aa79e)
