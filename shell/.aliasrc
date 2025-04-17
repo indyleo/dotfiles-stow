@@ -38,6 +38,8 @@ alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo
 alias userx='pkill -u $USER'
 alias sizedirs="du -sh * | sort -hr"
 alias sizefiles="find . -type f -exec du -h {} + | sort -hr | head -n 10"
+alias cpc="sudo cp config.def.h config.h"
+alias clin="sudo make clean install"
 
 # find dirs and files
 alias ff="find . | grep "

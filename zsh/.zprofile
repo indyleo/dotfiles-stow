@@ -48,5 +48,9 @@ export TERM="xterm-256color"
 export COLORTERM="truecolor"
 export OPENER="xdg-open"
 
+if [[ "$(tty)" = /dev/tty1 ]];then
+    pgrep dwm || startx dwm
+fi
+
 # RustUp
 [[ -f "$HOME/.cargo/env" ]] || . "$HOME/.cargo/env"

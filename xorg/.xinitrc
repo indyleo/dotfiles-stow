@@ -1,11 +1,17 @@
-#!/bin/env sh
+#!/bin/env bash
 
-# Get window manager choice and username
+# Vars
 WNC="$1"
-ACC="$(whoami)"
 
-# Start necessary services
-udiskie &
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+xset s off
+xset s noblank
+xset -dpms
+dbus-update-activation-environment --systemd --all
+xrandr --output "Virtual-1" --mode "1920x1080"
 
 # Configure NVIDIA settings
 nvidia-settings --assign CurrentMetaMode="nvidia-auto-select +0+0 {ForceFullCompositionPipeline=On}"
@@ -18,7 +24,30 @@ else
     xrandr --auto
 fi
 
-# Start WM of choice
+
+
+picom -b
+xwalr "$HOME/Pictures/Wallpapers"
+xrdb -load ~/.Xresources
+systemctl --user import-environment DISPLAY
+
+PROCS=(
+    clipmenud
+    flameshot
+    nm-applet
+    dunst
+    lxpolkit
+    udiskie
+    slstatus
+)
+
+StartProc() {
+    for program in "${PROCS[@]}"; do
+        pgrep -x "$program" > /dev/null || "$program" &
+    done
+}
+StartProc
+
 # Launch the selected window manager
 case "$WNC" in
     dwm) exec dwm ;;
