@@ -11,6 +11,9 @@ PROCS=(
     udiskie
     slstatus
 )
+FLAT_PROCS=(
+    org.fkoehler.KTailctl
+)
 
 command_exists() {
     command -v "$1" >/dev/null 2>&1
@@ -22,6 +25,21 @@ StartProc() {
         if ! pgrep -x "$program" > /dev/null; then
             # If it's not running, start it in the background
             "$program" &
+        fi
+    done
+}
+
+StartFlat() {
+    # Iterate over each app in the provided array of Flatpak app IDs
+    for app_id in "${FLAT_PROCS[@]}"; do
+        # Check if the Flatpak app is running
+        if flatpak ps | grep -q "$app_id"; then
+            echo "$app_id is already running."
+        else
+            echo "$app_id is not running. Starting it now..."
+
+            # Try to launch the Flatpak application
+            flatpak run "$app_id" &
         fi
     done
 }
@@ -49,5 +67,6 @@ xwalr "$HOME/Pictures/Wallpapers"
 [[ -f "$HOME/.Xresources" ]] || xrdb -load "$HOME/.Xresources"
 systemctl --user import-environment DISPLAY
 StartProc
+StartFlat
 
 exec dwm
