@@ -4,8 +4,8 @@ _launch=Meta+Return
 
 [brave-browser.desktop][Global Shortcuts]
 _launch=Meta+B
-new-private-window=Meta+Shift+B
-new-window=Meta+Ctrl+B
+new-private-window=Meta+Ctrl+B
+new-window=Meta+Shift+B
 
 [com.brave.Browser.desktop][Global Shortcuts]
 _launch=Meta+B
@@ -31,11 +31,13 @@ Cycle Overview Opposite=
 Decrease Opacity=
 Edit Tiles=Meta+T
 Expose=Ctrl+F9
-ExposeAll=Ctrl+F10; Launch (C)
+ExposeAll=Launch (C); Ctrl+F10
 ExposeClass=Ctrl+F7
 ExposeClassCurrentDesktop=
 Grid View=Meta+G
 Increase Opacity=
+KWin Script: Sticky Window Snapping: enable/disable=
+KWin Script: Sticky Window Snapping: enable/disable temporarily=
 KZones: Activate layout 1=Meta+Num+1
 KZones: Activate layout 2=Meta+Num+2
 KZones: Activate layout 3=Meta+Num+3
@@ -189,7 +191,7 @@ Walk Through Windows of Current Application Alternative=
 Walk Through Windows of Current Application Alternative (Reverse)=
 Window Above Other Windows=
 Window Below Other Windows=
-Window Close=Meta+Q; Alt+F4
+Window Close=Alt+F4; Meta+Q
 Window Custom Quick Tile Bottom=
 Window Custom Quick Tile Left=
 Window Custom Quick Tile Right=
@@ -288,7 +290,7 @@ _launch=Meta+R
 _launch=
 
 [org.kde.plasma.emojier.desktop][Global Shortcuts]
-_launch=Meta+Ctrl+Alt+Shift+Space; Meta+.
+_launch=Meta+.; Meta+Ctrl+Alt+Shift+Space
 
 [org.kde.spectacle.desktop][Global Shortcuts]
 ActiveWindowScreenShot=Meta+Print
