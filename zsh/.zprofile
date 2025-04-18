@@ -51,9 +51,9 @@ export BROWSER="brave-browser"
 export WM="$(ps -e -o comm= | grep -E 'dwm|bspwm|xmonad|awesome|kwin')"
 export QT_QPA_PLATFORMTHEME="qt6ct"
 
-if [[ "$(tty)" = /dev/tty1 ]];then
-    pgrep dwm || startx dwm
-fi
-
 # RustUp
 [[ -f "$HOME/.cargo/env" ]] || . "$HOME/.cargo/env"
+
+if [[ "$(tty)" = /dev/tty1 ]];then
+    pgrep dwm || startx
+fi
