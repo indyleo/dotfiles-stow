@@ -47,6 +47,9 @@ export MANPAGER="less"
 export TERM="xterm-256color"
 export COLORTERM="truecolor"
 export OPENER="xdg-open"
+export BROWSER="com.brave.Browser"
+export WM="$(ps -e -o comm= | grep -E 'dwm|bspwm|xmonad|awesome|kwin')"
+export QT_QPA_PLATFORMTHEME="qt6ct"
 
 if [[ "$(tty)" = /dev/tty1 ]];then
     pgrep dwm || startx dwm
