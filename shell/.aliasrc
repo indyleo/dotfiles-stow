@@ -21,16 +21,18 @@ alias psmem='ps auxf | sort -nr -k 4'
 alias pscpu='ps auxf | sort -nr -k 3'
 
 # Confirm Before Doing Something Or The Output Being Verbose Or Both
-alias rm='rm -iv'
+alias rm='trash -iv'
+alias trashl='trash-list'
+alias trashr='trash-restore'
+alias trashrm='trash-rm'
+alias trashe='trash-empty'
 alias cp='cp -irv'
 alias mv='mv -iv'
 alias ln='ln -i'
-alias rmdir='rmdir -v'
 alias mkdir='mkdir -pv'
 
 # Nice Aliases To Have
 alias wq='exit'
-alias lc='lfcd'
 alias ping='ping -c 10'
 alias df='df -h'
 alias mimetype='file --mime-type'
@@ -73,13 +75,6 @@ alias bd='cd "$OLDPWD"'
 # Neovim Aliases
 alias v='nvim'
 alias sv='sudo nvim'
-
-# Trash Aliases
-alias trash='trash -iv'
-alias trashl='trash-list'
-alias trashr='trash-restore'
-alias trashrm='trash-rm'
-alias trashe='trash-empty'
 
 # GPG encryption
 alias gpg-check='gpg --keyserver-options auto-key-retrieve --verify'
