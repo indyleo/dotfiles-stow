@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="starticon.png" type="image/png" />
+    <title>Start Page</title>
+    <style>
+      :root {
+        --nord0: #2e3440;
+        --nord1: #3b4252;
+        --nord2: #434c5e;
+        --nord3: #4c566a;
+        --nord4: #d8dee9;
+        --nord5: #e5e9f0;
+        --nord6: #eceff4;
+        --nord7: #8fbcbb;
+        --nord8: #88c0d0;
+        --nord9: #81a1c1;
+        --nord10: #5e81ac;
+        --nord11: #bf616a;
+        --nord12: #d08770;
+        --nord13: #ebcb8b;
+        --nord14: #a3be8c;
+        --nord15: #b48ead;
+      }
+
+      body {
+        margin: 0;
+        background-color: var(--nord0);
+        font-family: "Segoe UI", sans-serif;
+        color: var(--nord6);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        text-align: center;
+      }
+
+      h1 {
+        font-size: 3rem;
+        color: var(--nord8);
+        margin-bottom: 0.2em;
+      }
+
+      h2 {
+        font-size: 1.3rem;
+        color: var(--nord4);
+        margin-bottom: 2rem;
+      }
+
+      .search-bar input {
+        padding: 0.5em 1em;
+        font-size: 1rem;
+        width: 300px;
+        border: none;
+        border-radius: 8px;
+        background-color: var(--nord1);
+        color: var(--nord5);
+      }
+
+      .search-bar input:focus {
+        outline: none;
+        background-color: var(--nord2);
+      }
+
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2rem;
+        margin-top: 3rem;
+        justify-content: center;
+      }
+
+      .category {
+        text-align: left;
+      }
+
+      .category h3 {
+        color: var(--nord9);
+        margin-bottom: 0.5em;
+      }
+
+      .category a {
+        display: block;
+        color: var(--nord5);
+        text-decoration: none;
+        margin-bottom: 0.3em;
+      }
+
+      .category a:hover {
+        color: var(--nord8);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Home</h1>
+
+    <div class="search-bar">
+      <form action="https://searxng.linuxlab.work/search" method="get">
+        <input type="text" name="q" placeholder="Search with SearXNG..." />
+      </form>
+    </div>
+
+    <div class="links">
+      <div class="category">
+        <h3>Work</h3>
+        <a href="https://github.com">GitHub</a>
+        <a href="https://gitlab.com">GitLab</a>
+        <a href="https://stackoverflow.com">Stack Overflow</a>
+        <a href="https://mail.google.com/mail/u/0/#inbox">Gmail</a>
+        <a href="https://mail.proton.me/u/0/inbox">ProtonMail</a>
+      </div>
+      <div class="category">
+        <h3>Media</h3>
+        <a href="https://youtube.com">YouTube</a>
+        <a href="https://twitch.tv">Twitch</a>
+        <a href="https://www.reddit.com/">Reddit</a>
+      </div>
+      <div class="category">
+        <h3>Tools</h3>
+        <a href="https://chat.openai.com">ChatGPT</a>
+        <a href="https://www.deepl.com/en/translator">DeepL</a>
+        <a href="https://archive.org">Internet Archive</a>
+      </div>
+    </div>
+  </body>
+</html>
