@@ -29,5 +29,7 @@
 # Preview
 ## Dwm
 https://github.com/user-attachments/assets/db3209d4-ec55-412a-b227-b2e77792149d
+
 ## KDE
+https://github.com/user-attachments/assets/5f359124-4d4e-4875-8438-befccb36d0e1
 
