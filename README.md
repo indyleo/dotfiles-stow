@@ -27,7 +27,7 @@
 - Set and get Virtual Desktops only on Primary Display
 
 # Preview
-
+## Dwm
 https://github.com/user-attachments/assets/db3209d4-ec55-412a-b227-b2e77792149d
-
+## KDE
 
