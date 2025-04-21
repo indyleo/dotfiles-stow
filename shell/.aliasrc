@@ -75,6 +75,8 @@ alias bd='cd "$OLDPWD"'
 # Neovim Aliases
 alias v='nvim'
 alias sv='sudo nvim'
+alias nv='neovide'
+alias snv='sudo neovide'
 
 # GPG encryption
 alias gpg-check='gpg --keyserver-options auto-key-retrieve --verify'
