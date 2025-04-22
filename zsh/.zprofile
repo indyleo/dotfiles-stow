@@ -42,8 +42,9 @@ fi
 
 # Some Nice Exports
 export EDITOR="nvim"
-export PAGER="less"
-export MANPAGER="less"
+export VISUAL="nvim"
+export PAGER="moar"
+export MANPAGER="moar"
 export TERM="xterm-256color"
 export COLORTERM="truecolor"
 export OPENER="xdg-open"
@@ -54,6 +55,7 @@ export QT_QPA_PLATFORMTHEME="qt6ct"
 # RustUp
 [[ -f "$HOME/.cargo/env" ]] || . "$HOME/.cargo/env"
 
+# Start WM
 if [[ "$(tty)" = /dev/tty1 ]];then
     pgrep dwm || startx
 fi
