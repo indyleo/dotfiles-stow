@@ -35,11 +35,12 @@ Mod+Ctrl+Shift+1..9 Toggle tag for focused window [1-9]
 
 ## Scratchpads
 
-Mod+T Toggle scratchpad 0
-Mod+Y Toggle scratchpad 1
-Mod+Z Toggle scratchpad 2
-Mod+A Toggle scratchpad 3
-Mod+N Toggle scratchpad 4
+Mod+T Toggle scratchpad 0 (Terminal)
+Mod+Y Toggle scratchpad 1 (Yazi)
+Mod+Z Toggle scratchpad 2 (Qalc)
+Mod+A Toggle scratchpad 3 (Pulsemixer)
+Mod+N Toggle scratchpad 4 (Notes)
+Mod+Shift+N Toggle scratchpad 5 (Keymaps)
 
 ## Media Keys
 
