@@ -5,7 +5,7 @@ matches:
 
   # Print the current date
   - trigger: ":date"
-    replace: "{{output}}"
+    replace: "{{mydate}}"
     vars:
       - name: mydate
         type: date
@@ -14,7 +14,7 @@ matches:
 
   # Print the current time
   - trigger: ":time"
-    replace: "{{output}}"
+    replace: "{{mytime}}"
     vars:
       - name: mytime
         type: date
@@ -23,25 +23,25 @@ matches:
 
   # Print the current date
   - trigger: ":fulldate"
-    replace: "{{output}}"
+    replace: "{{myfulldate}}"
     vars:
-      - name: output
+      - name: myfulldate
         type: date
         params:
           format: "%A, %B %d, %Y"
 
   - trigger: ":pubip"
-    replace: "{{output}}"
+    replace: "{{mypubip}}"
     vars:
-      - name: output
+      - name: mypubip
         type: shell
         params:
           cmd: "curl ipinfo.io/ip"
 
   - trigger: ":privip"
-    replace: "{{output}}"
+    replace: "{{myprivip}}"
     vars:
-      - name: output
+      - name: myprivip
         type: shell
         params:
           cmd: "hostname -I | awk '{print $1}'"
