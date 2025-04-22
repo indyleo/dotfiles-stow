@@ -1,0 +1,79 @@
+# Dwm Keybinds
+
+## Window Management
+
+Mod+Shift+B Toggle bar
+Mod+J Focus next window
+Mod+K Focus previous window
+Mod+H Decrease master area size
+Mod+L Increase master area size
+Mod+Shift+I Increase number of master clients
+Mod+Shift+D Decrease number of master clients
+Mod+Shift+Enter Zoom (promote to master)
+Mod+Tab View previous tag
+Mod+Q Close window
+Mod+Alt+Shift+T Tiling layout
+Mod+Alt+Shift+F Floating layout
+Mod+Alt+Shift+M Monocle layout
+Mod+Shift+F Toggle fullscreen
+Mod+Space Toggle layout
+Mod+Shift+Space Toggle floating
+Mod+0 View all tags
+Mod+Shift+0 Tag to all tags
+Mod+Comma Focus previous monitor
+Mod+Period Focus next monitor
+Mod+Shift+Comma Send to previous monitor
+Mod+Shift+Period Send to next monitor
+Mod+Shift+Q Quit dwm
+
+## Tags
+
+Mod+1..9 View tag [1-9]
+Mod+Ctrl+1..9 Toggle view tag [1-9]
+Mod+Shift+1..9 Move focused window to tag [1-9]
+Mod+Ctrl+Shift+1..9 Toggle tag for focused window [1-9]
+
+## Scratchpads
+
+Mod+T Toggle scratchpad 0
+Mod+Y Toggle scratchpad 1
+Mod+Z Toggle scratchpad 2
+Mod+A Toggle scratchpad 3
+Mod+N Toggle scratchpad 4
+
+## Media Keys
+
+XF86AudioMute Toggle mute
+XF86AudioLowerVolume Decrease volume
+XF86AudioRaiseVolume Increase volume
+Mod+S Play/Pause (Supersonic)
+Mod+Shift+S Next track (Supersonic)
+Mod+Ctrl+S Previous track (Supersonic)
+
+## Brightness
+
+XF86MonBrightnessUp Increase brightness
+XF86MonBrightnessDown Decrease brightness
+
+## Launchers
+
+Mod+Shift+P Power menu (dmenu_power)
+Mod+Shift+C Clipboard manager (dmenu_clip)
+Mod+Shift+E Emoji picker (dmenu_emoji)
+Mod+Shift+L Lock screen (slock)
+Mod+D Launch Discord (Vesktop)
+Mod+M Launch Music Player (Supersonic)
+Mod+F Open File Manager (thunar)
+Mod+B Open Web Browser (brave-browser)
+Print Screenshot (GUI selection)
+Mod+Print Screenshot (screen)
+Mod+Shift+Print Screenshot (fullscreen)
+Mod+E Launch Neovide
+Mod+R Run app (dmenu_run)
+Mod+P Flatpak launcher (dmenu_flatpak)
+Mod+Enter Launch terminal (alacritty)
+Mod+Shift+W Random wallpaper (xwalr)
+
+## Alt Tab
+
+Alt+Tab Alt-tab menu (dmenu_alttab)
