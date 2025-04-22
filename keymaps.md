@@ -40,7 +40,7 @@ Mod+Y Toggle scratchpad 1 (Yazi)
 Mod+Z Toggle scratchpad 2 (Qalc)
 Mod+A Toggle scratchpad 3 (Pulsemixer)
 Mod+N Toggle scratchpad 4 (Notes)
-Mod+Shift+N Toggle scratchpad 5 (Keymaps)
+Mod+Shift+K Toggle scratchpad 5 (Keymaps)
 
 ## Media Keys
 
