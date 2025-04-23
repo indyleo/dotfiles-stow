@@ -28,10 +28,10 @@ Mod+Shift+Q Quit dwm
 
 ## Tags
 
-Mod+1..9 View tag [1-9]
-Mod+Ctrl+1..9 Toggle view tag [1-9]
-Mod+Shift+1..9 Move focused window to tag [1-9]
-Mod+Ctrl+Shift+1..9 Toggle tag for focused window [1-9]
+Mod+1..7 View tag [1-7]
+Mod+Ctrl+1..7 Toggle view tag [1-7]
+Mod+Shift+1..7 Move focused window to tag [1-7]
+Mod+Ctrl+Shift+1..7 Toggle tag for focused window [1-7]
 
 ## Scratchpads
 
