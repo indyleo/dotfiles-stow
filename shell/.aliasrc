@@ -104,6 +104,8 @@ alias srcze='source ~/.zshenv'
 alias src='source'
 alias rs='reset'
 alias cl='clear'
+alais tozsh='chsh -s "$(which zsh)" "$USER"'
+alais tobash='chsh -s "$(which bash)" "$USER"'
 
 # Chmod Aliases
 alias mxp='chmod a+x'
