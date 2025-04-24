@@ -47,6 +47,7 @@ StartFlat() {
 xset s off
 xset s noblank
 xset -dpms
+xsetroot -cursor_name left_ptr
 dbus-update-activation-environment --systemd --all
 
 if command_exists nvidia-settings; then
