@@ -79,15 +79,12 @@ vim.api.nvim_create_user_command("OilDir", OilDir, {
 	complete = "file",
 })
 
--- Create the user command
 vim.api.nvim_create_user_command("EditFile", EditFile, {
 	nargs = "+",
 	complete = "file",
 })
 
--- Create the user command
 vim.api.nvim_create_user_command("AskNewFileName", AskNewFileName, { nargs = 0 })
 
--- Create user commands
 vim.api.nvim_create_user_command("NewHSplit", NewHSplit, { nargs = 0 })
 vim.api.nvim_create_user_command("NewVSplit", NewVSplit, { nargs = 0 })
