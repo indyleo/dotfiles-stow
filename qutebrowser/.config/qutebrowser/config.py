@@ -13,7 +13,7 @@
 # Uncomment this to still load settings configured via autoconfig.yml
 # config.load_autoconfig()
 # Or uncomment this line to load settings from config.py
-config.load_autoconfig(False)
+config.load_autoconfig(True)
 
 # Aliases for commands. The keys of the given dictionary are the
 # aliases, while the values are the commands they map to.
@@ -212,7 +212,7 @@ c.tabs.show = "multiple"
 #   - always: Always show the statusbar.
 #   - never: Always hide the statusbar.
 #   - in-mode: Show the statusbar when a mode is active.
-c.statusbar.show = "never"
+c.statusbar.show = "in-mode"
 
 # Setting default page for when opening new tabs or new windows with
 # commands like :open -t and :open -w .
