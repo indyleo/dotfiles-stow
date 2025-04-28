@@ -42,16 +42,16 @@ end
 -- Ask what file to open then opens it in a horizontal split
 local NewHSplit = function()
 	local current_dir = vim.fn.getcwd()
-	vim.ui.input({ prompt = "Enter file path: " }, function(filename)
-		if filename ~= nil and filename ~= "" then
-			local filepath = current_dir .. "\\" .. filename
+	vim.ui.input({ prompt = "Enter file path: " }, function(input)
+		if input and input ~= "" then
+			local filepath = vim.fs.joinpath(current_dir, input)
 			if vim.fn.filereadable(filepath) == 1 then
-				vim.cmd("split " .. filename)
+				vim.cmd("split " .. vim.fn.fnameescape(filepath))
 			else
-				vim.notify("File does not exist in cwd", vim.log.levels.ERROR)
+				vim.notify("File does not exist: " .. filepath, vim.log.levels.ERROR)
 			end
 		else
-			vim.notify("No file put in", vim.log.levels.WARN)
+			vim.notify("No file provided.", vim.log.levels.WARN)
 		end
 	end)
 end
@@ -59,16 +59,16 @@ end
 -- Ask what file to open then opens it in a vertical split
 local NewVSplit = function()
 	local current_dir = vim.fn.getcwd()
-	vim.ui.input({ prompt = "Enter file path: " }, function(filename)
-		if filename ~= nil and filename ~= "" then
-			local filepath = current_dir .. "\\" .. filename
+	vim.ui.input({ prompt = "Enter file path: " }, function(input)
+		if input and input ~= "" then
+			local filepath = vim.fs.joinpath(current_dir, input)
 			if vim.fn.filereadable(filepath) == 1 then
-				vim.cmd("vsplit " .. filename)
+				vim.cmd("vsplit " .. vim.fn.fnameescape(filepath))
 			else
-				vim.notify("File does not exist in cwd", vim.log.levels.ERROR)
+				vim.notify("File does not exist: " .. filepath, vim.log.levels.ERROR)
 			end
 		else
-			vim.notify("No file put in", vim.log.levels.WARN)
+			vim.notify("No file provided.", vim.log.levels.WARN)
 		end
 	end)
 end
