@@ -1,0 +1,7 @@
+mouse = true
+hide_blocked_users = true
+show_attachment_links = true
+messages_limit = 100
+
+[identify]
+status = "dnd"
