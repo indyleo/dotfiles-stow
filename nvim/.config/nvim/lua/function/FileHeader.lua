@@ -1,5 +1,8 @@
--- Header Function
-function InsertFileHeader()
+-- lua/function/FileHeader.lua
+
+local M = {}
+
+function M.InsertFileHeader()
 	-- Get system username, date/time, and file type
 	local user = os.getenv("USER") or os.getenv("USERNAME") or "unknown"
 	local date_time = os.date("%A %B %d, %Y, %I:%M %p")
@@ -56,3 +59,5 @@ function InsertFileHeader()
 	-- Insert the comment at the top of the file
 	vim.api.nvim_buf_set_lines(0, 0, 0, false, { comment })
 end
+
+return M

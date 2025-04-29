@@ -5,7 +5,8 @@ vim.api.nvim_create_autocmd("BufNewFile", {
 	callback = function()
 		-- Delay execution to ensure filetype is set
 		vim.defer_fn(function()
-			InsertFileHeader()
+			require("function.FileHeader").InsertFileHeader()
+			vim.cmd("startinsert")
 		end, 10) -- Delay of 10ms
 	end,
 })

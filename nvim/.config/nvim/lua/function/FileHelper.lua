@@ -1,5 +1,9 @@
+-- lua/function/FileHelper.lua
+
+local M = {}
+
 -- Cd into dir and open Oil in that dir
-local function OilDir(opts)
+function M.OilDir(opts)
 	local path = opts.args -- Get the path argument
 	local dirpath = path:gsub("\\", "/") .. "/" -- Normalize path
 	vim.cmd("cd " .. vim.fn.fnameescape(dirpath)) -- Change directory
@@ -7,7 +11,7 @@ local function OilDir(opts)
 end
 
 -- Function to cd into a directory and open a file
-local function EditFile(opts)
+function M.EditFile(opts)
 	local args = vim.split(opts.args, " ") -- Split arguments into dirpath and filename
 	if #args < 2 then
 		vim.api.nvim_err_writeln("Usage: :EditFile <dirpath> <filename>")
@@ -27,7 +31,7 @@ local function EditFile(opts)
 end
 
 -- Function to ask for a new file name and open it
-local AskNewFileName = function()
+M.AskNewFileName = function()
 	local current_dir = vim.fn.getcwd() -- Get the current working directory
 	vim.ui.input({ prompt = "Enter new file name: " }, function(filename)
 		if filename ~= nil and filename ~= "" then
@@ -40,7 +44,7 @@ local AskNewFileName = function()
 end
 
 -- Ask what file to open then opens it in a horizontal split
-local NewHSplit = function()
+M.NewHSplit = function()
 	local current_dir = vim.fn.getcwd()
 	vim.ui.input({ prompt = "Enter file path: " }, function(input)
 		if input and input ~= "" then
@@ -57,7 +61,7 @@ local NewHSplit = function()
 end
 
 -- Ask what file to open then opens it in a vertical split
-local NewVSplit = function()
+M.NewVSplit = function()
 	local current_dir = vim.fn.getcwd()
 	vim.ui.input({ prompt = "Enter file path: " }, function(input)
 		if input and input ~= "" then
@@ -73,18 +77,4 @@ local NewVSplit = function()
 	end)
 end
 
--- Create the user command
-vim.api.nvim_create_user_command("OilDir", OilDir, {
-	nargs = 1,
-	complete = "file",
-})
-
-vim.api.nvim_create_user_command("EditFile", EditFile, {
-	nargs = "+",
-	complete = "file",
-})
-
-vim.api.nvim_create_user_command("AskNewFileName", AskNewFileName, { nargs = 0 })
-
-vim.api.nvim_create_user_command("NewHSplit", NewHSplit, { nargs = 0 })
-vim.api.nvim_create_user_command("NewVSplit", NewVSplit, { nargs = 0 })
+return M
