@@ -113,6 +113,9 @@ keymap("t", "<Esc><Esc>", "<C-\\><C-n>", opts("Exit terminal to normal Mode"))
 
 -- Normal --
 
+-- Markdown Code Extration
+keymap("n", "<leader>em", ":MarkdownCode<CR>", opts("Markdown Code Block Extration"))
+
 -- Session Managment
 keymap("n", "<leader>ws", ":SessionSave<CR>", opts("Save Session"))
 keymap("n", "<leader>wr", ":SessionRestore<CR>", opts("Restore Session"))
