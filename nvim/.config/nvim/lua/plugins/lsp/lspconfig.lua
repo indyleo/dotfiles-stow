@@ -72,13 +72,23 @@ return {
 				})
 			end,
 			["lua_ls"] = function()
-				-- configure lua server (with special settings)
 				lspconfig["lua_ls"].setup({
 					capabilities = capabilities,
 					settings = {
 						Lua = {
+							runtime = {
+								version = "LuaJIT", -- Neovim uses LuaJIT
+								path = vim.split(package.path, ";"),
+							},
 							diagnostics = {
-								globals = { "vim" },
+								globals = { "vim" }, -- recognize `vim` as a global
+							},
+							workspace = {
+								library = vim.api.nvim_get_runtime_file("", true), -- include Neovim runtime files
+								checkThirdParty = false, -- avoid annoying prompts
+							},
+							telemetry = {
+								enable = false, -- disable telemetry
 							},
 							completion = {
 								callSnippet = "Replace",
