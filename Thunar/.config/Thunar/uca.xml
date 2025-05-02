@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+<action>
+	<icon>utilities-terminal</icon>
+	<name>Alacritty Open</name>
+	<submenu></submenu>
+	<unique-id>1745284032568733-1</unique-id>
+	<command>alacritty --working-directory %f</command>
+	<description>Open Alacritty in dir</description>
+	<range></range>
+	<patterns>*</patterns>
+	<startup-notify/>
+	<directories/>
+</action>
+<action>
+	<icon>nvim</icon>
+	<name>Neovide Open</name>
+	<submenu></submenu>
+	<unique-id>1746148422893146-1</unique-id>
+	<command>neovide %f</command>
+	<description>Open neovide for files</description>
+	<range>*</range>
+	<patterns>*</patterns>
+	<directories/>
+	<other-files/>
+	<text-files/>
+</action>
+</actions>
