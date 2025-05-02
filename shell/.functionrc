@@ -18,6 +18,11 @@ up() {
     fi
 }
 
+# if command exits
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
 # Copy and go to the directory
 cpg() {
     if [[ -d "$2" ]]; then
@@ -43,7 +48,7 @@ mkcd() {
 }
 
 # Pacman Manager
-if [[ -f /usr/bin/pacman ]]; then
+if command_exists pacman; then
     pac() {
         if [[ -z "$1" ]]; then
             command pacman -h
@@ -56,6 +61,22 @@ if [[ -f /usr/bin/pacman ]]; then
                 ;;
             *)
                 command pacman "$@"
+                ;;
+        esac
+    }
+elif command_exists apt; then
+    apt() {
+        if [[ -z "$1" ]]; then
+            command apt --help
+            return
+        fi
+
+        case "$1" in
+            install|update|upgrade|full-upgrade|dist-upgrade|remove|purge|autoremove|clean|autoclean)
+                command sudo apt "$@"
+                ;;
+            *)
+                command apt "$@"
                 ;;
         esac
     }
