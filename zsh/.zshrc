@@ -4,9 +4,6 @@ clear
 # If not running interactively, don't do anything
 [[ $- != *i* ]] && return
 
-# Tmux Helper
-# tmuxhelper
-
 # Enable colors
 autoload -U colors && colors
 
