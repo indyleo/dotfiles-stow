@@ -22,8 +22,6 @@ return {
 			dashboard.button("e", "  > New File", ":AskNewFileName<CR>"),
 			dashboard.button("SPC ee", "  > File explorer", ":Oil --float<CR>"),
 			dashboard.button("SPC ff", "󰱼  > Find File", ":Telescope find_files<CR>"),
-			dashboard.button("SPC wr", "  > Restore Session", ":SessionRestore<CR>"),
-			dashboard.button("SPC wf", "  > Search Sessions", ":SessionSearch<CR>"),
 			dashboard.button("ce", "  > Config Nvim", ":OilDir $XDG_CONFIG_HOME/nvim<CR>"),
 			dashboard.button("ct", "  > Config Alacritty", ":EditFile ~/.config/alacritty/ alacritty.toml<CR>"),
 			dashboard.button("cs", "  > Config Zsh", ":EditFile ~ .zshrc<CR>"),
