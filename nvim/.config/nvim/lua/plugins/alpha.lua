@@ -22,6 +22,8 @@ return {
 			dashboard.button("e", "  > New File", ":AskNewFileName<CR>"),
 			dashboard.button("SPC ee", "  > File explorer", ":Oil --float<CR>"),
 			dashboard.button("SPC ff", "󰱼  > Find File", ":Telescope find_files<CR>"),
+			dashboard.button("SPC fs", "󰅳  > Find String", ":Telescope live_grep<CR>"),
+			dashboard.button("SPC fh", "󰞋  > Find Help", ":Telescope help_tags<CR>"),
 			dashboard.button("ce", "  > Config Nvim", ":OilDir $XDG_CONFIG_HOME/nvim<CR>"),
 			dashboard.button("ct", "  > Config Alacritty", ":EditFile ~/.config/alacritty/ alacritty.toml<CR>"),
 			dashboard.button("cs", "  > Config Zsh", ":EditFile ~ .zshrc<CR>"),
@@ -30,6 +32,7 @@ return {
 			dashboard.button("cy", "󰇥  > Config Yazi", ":OilDir $XDG_CONFIG_HOME/yazi<CR>"),
 			dashboard.button("md", "  > Opens My Markdown Folder", ":OilDir $HOME/Documents/Markdown<CR>"),
 			dashboard.button("q", "  > Quit Nvim", ":qa!<CR>"),
+			dashboard.button("SPC l", "󰒲  > Lazy", ":Lazy<CR>"),
 		}
 
 		-- Send config to alpha
