@@ -41,6 +41,8 @@ Mod+Z Toggle scratchpad 2 (Qalc)
 Mod+A Toggle scratchpad 3 (Pulsemixer)
 Mod+N Toggle scratchpad 4 (Notes)
 Mod+Shift+K Toggle scratchpad 5 (Keymaps)
+Mod+o Toggle scratchpad 6 (Qutebrowser)
+Mod+d Toggle scratchpad 7 (Discordo)
 
 ## Media Keys
 
@@ -62,7 +64,7 @@ Mod+Shift+P Power menu (dmenu_power)
 Mod+Shift+C Clipboard manager (dmenu_clip)
 Mod+Shift+E Emoji picker (dmenu_emoji)
 Mod+Shift+L Lock screen (slock)
-Mod+D Launch Discord (Vesktop)
+Mod+g Launch Signal (signal-desktop)
 Mod+M Launch Music Player (Supersonic)
 Mod+F Open File Manager (thunar)
 Mod+B Open Web Browser (brave-browser)
