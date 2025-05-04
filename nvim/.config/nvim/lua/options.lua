@@ -2,9 +2,9 @@
 local opt = vim.opt
 
 -- Vim Commands
-vim.cmd([[
+vim.cmd [[
   let g:netrw_liststyle = 3
-]])
+]]
 
 -- Disabling NetRW
 vim.g.loaded_netrw = 1
@@ -51,10 +51,10 @@ opt.wrap = false
 opt.scrolloff = 8
 opt.sidescrolloff = 8
 opt.fillchars = { eob = " ", foldopen = "▾", foldclose = "▸" }
-opt.shortmess:append("c")
-opt.whichwrap:append("<,>,[,],h,l")
-opt.iskeyword:append("-")
-opt.formatoptions:remove({ "c", "r", "o" })
+opt.shortmess:append "c"
+opt.whichwrap:append "<,>,[,],h,l"
+opt.iskeyword:append "-"
+opt.formatoptions:remove { "c", "r", "o" }
 opt.linebreak = true
 opt.spelllang = "en_ca"
 opt.spell = false

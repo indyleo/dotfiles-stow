@@ -1,36 +1,36 @@
 return {
-	"stevearc/conform.nvim",
-	event = { "BufReadPre", "BufNewFile" },
-	config = function()
-		local conform = require("conform")
+  "stevearc/conform.nvim",
+  event = { "BufReadPre", "BufNewFile" },
+  config = function()
+    local conform = require "conform"
 
-		conform.setup({
-			formatters_by_ft = {
-				-- Text
-				json = { "prettier" },
-				yaml = { "prettier" },
-				markdown = { "prettier", "markdownlint-cli2" },
+    conform.setup {
+      formatters_by_ft = {
+        -- Text
+        json = { "prettier" },
+        yaml = { "prettier" },
+        markdown = { "prettier", "markdownlint-cli2" },
 
-				-- Web
-				javascript = { "prettier" },
-				css = { "prettier" },
-				html = { "prettier" },
+        -- Web
+        javascript = { "prettier" },
+        css = { "prettier" },
+        html = { "prettier" },
 
-				-- Langs
-				lua = { "stylua" },
-				python = { "isort", "black" },
-				go = { "crlfmt" },
+        -- Langs
+        lua = { "stylua" },
+        python = { "isort", "black" },
+        go = { "crlfmt" },
 
-				-- Script
-				zsh = { "beautysh" },
-				bash = { "shellharden", "beautysh" },
-				sh = { "beautysh" },
-			},
-			format_on_save = {
-				lsp_fallback = true,
-				async = false,
-				timeout_ms = 1000,
-			},
-		})
-	end,
+        -- Script
+        zsh = { "beautysh" },
+        bash = { "shellharden", "beautysh" },
+        sh = { "beautysh" },
+      },
+      format_on_save = {
+        lsp_fallback = true,
+        async = false,
+        timeout_ms = 1000,
+      },
+    }
+  end,
 }
