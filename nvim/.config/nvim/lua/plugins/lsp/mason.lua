@@ -46,6 +46,7 @@ return {
         "powershell_es",
         "bashls",
       },
+      automatic_enable = false,
     }
 
     mason_tool_installer.setup {
