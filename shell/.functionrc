@@ -247,5 +247,24 @@ function Get-SpotifyContent() {
     esac
 }
 
+# Screenkey
+function scrky() {
+    screenkey --no-systray --opacity 0.85 \
+        --bg-color "#3b4252" --font-color "#d8dee9" \
+        -p fixed -g 627x40+1283+35 &
+
+    SCREENKEY_PID=$!
+
+    if [[ -n $ZSH_VERSION ]]; then
+        echo "Press enter to close screenkey"
+        read
+    else
+        read -p "Press enter to close screenkey"
+    fi
+
+    kill "$SCREENKEY_PID" 2>/dev/null
+}
+
+
 # For Vim Users
 # vim:ft=zsh
