@@ -90,7 +90,7 @@ return {
         "svelte",
       },
     }
-    lspconfig["powershell_es"].setup {
+    lspconfig.powershell_es.setup {
       capabilities = capabilities,
       filetypes = { "ps1" },
       shell = "pwsh",
