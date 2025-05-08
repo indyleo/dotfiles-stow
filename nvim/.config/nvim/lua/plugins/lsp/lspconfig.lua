@@ -15,22 +15,43 @@ return {
     },
   },
   config = function()
+    local config = {
+      signs = {
+        text = {
+          [vim.diagnostic.severity.ERROR] = "",
+          [vim.diagnostic.severity.WARN] = "",
+          [vim.diagnostic.severity.HINT] = "",
+          [vim.diagnostic.severity.INFO] = "",
+        },
+      },
+      update_in_insert = true,
+      underline = true,
+      severity_sort = true,
+      float = {
+        focusable = false,
+        style = "minimal",
+        border = "single",
+        source = "always",
+        header = "",
+        prefix = "",
+        suffix = "",
+      },
+    }
+    vim.diagnostic.config(config)
     -- import lspconfig plugin
     local lspconfig = require "lspconfig"
 
-    -- import cmp-nvim-lsp plugin
-    local cmp_nvim_lsp = require "cmp_nvim_lsp"
-
     -- used to enable autocompletion (assign to every lsp server config)
-    local capabilities = cmp_nvim_lsp.default_capabilities()
+    local capabilities = vim.lsp.protocol.make_client_capabilities()
 
     -- Add custom folding range capabilities
-    capabilities.textDocument = {
-      foldingRange = {
-        dynamicRegistration = false,
-        lineFoldingOnly = true,
-      },
+    capabilities.textDocument.foldingRange = {
+      dynamicRegistration = true,
+      lineFoldingOnly = true,
     }
+
+    capabilities.textDocument.semanticTokens.multilineTokenSupport = true
+    capabilities.textDocument.completion.completionItem.snippetSupport = true
 
     -- Change the Diagnostic symbols in the sign column (gutter)
     local signs = { Error = " ", Warn = " ", Hint = "󰠠 ", Info = " " }
@@ -38,6 +59,16 @@ return {
       local hl = "DiagnosticSign" .. type
       vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = "" })
     end
+
+    vim.lsp.config("*", {
+      capabilities = capabilities,
+      on_attach = function(client, bufnr)
+        local ok, diag = pcall(require, "rj.extras.workspace-diagnostic")
+        if ok then
+          diag.populate_workspace_diagnostics(client, bufnr)
+        end
+      end,
+    })
 
     lspconfig.lua_ls.setup {
       capabilities = capabilities,
