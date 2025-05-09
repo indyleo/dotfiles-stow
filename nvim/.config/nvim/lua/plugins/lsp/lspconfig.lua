@@ -62,17 +62,11 @@ return {
 
     vim.lsp.config("*", {
       capabilities = capabilities,
-      on_attach = function(client, bufnr)
-        local ok, diag = pcall(require, "rj.extras.workspace-diagnostic")
-        if ok then
-          diag.populate_workspace_diagnostics(client, bufnr)
-        end
-      end,
     })
 
-    lspconfig.lua_ls.setup {
-      capabilities = capabilities,
+    vim.lsp.config("lua_ls", {
       settings = {
+        root_markers = { ".luarc.json", ".luarc.jsonc" },
         Lua = {
           runtime = {
             version = "LuaJIT", -- Neovim uses LuaJIT
@@ -96,36 +90,12 @@ return {
           },
         },
       },
-    }
-    lspconfig.svelte.setup {
-      capabilities = capabilities,
-      on_attach = function(client, bufnr)
-        vim.api.nvim_create_autocmd("BufWritePost", {
-          pattern = { "*.js", "*.ts" },
-          callback = function(ctx)
-            client.notify("$/onDidChangeTsOrJsFile", { uri = ctx.match })
-          end,
-        })
-      end,
-    }
-    lspconfig.emmet_ls.setup {
-      capabilities = capabilities,
-      filetypes = {
-        "html",
-        "typescriptreact",
-        "javascriptreact",
-        "css",
-        "sass",
-        "scss",
-        "less",
-        "svelte",
-      },
-    }
-    lspconfig.powershell_es.setup {
-      capabilities = capabilities,
+    })
+
+    vim.lsp.config("powershell_es", {
       filetypes = { "ps1" },
       shell = "pwsh",
       bundle_path = vim.fn.stdpath "data" .. "/mason/packages/powershell-editor-services",
-    }
+    })
   end,
 }

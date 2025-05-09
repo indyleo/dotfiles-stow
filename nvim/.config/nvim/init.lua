@@ -1,8 +1,8 @@
 -- Files
-require("options")
+require "options"
 if vim.g.neovide then
-	require("guioptions")
+  require "guioptions"
 end
-require("keymaps")
-require("autocommand")
-require("config.Lazy")
+require "keymaps"
+require "autocommand"
+require "config.Lazy"
