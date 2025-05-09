@@ -38,8 +38,6 @@ return {
       },
     }
     vim.diagnostic.config(config)
-    -- import lspconfig plugin
-    local lspconfig = require "lspconfig"
 
     -- used to enable autocompletion (assign to every lsp server config)
     local capabilities = vim.lsp.protocol.make_client_capabilities()
