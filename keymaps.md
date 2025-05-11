@@ -40,8 +40,8 @@ Mod+Z Toggle scratchpad 2 (Qalc)
 Mod+A Toggle scratchpad 3 (Pulsemixer)
 Mod+N Toggle scratchpad 4 (Notes)
 Mod+Shift+K Toggle scratchpad 5 (Keymaps)
-Mod+o Toggle scratchpad 6 (Qutebrowser)
-Mod+d Toggle scratchpad 7 (Discordo)
+Mod+d Toggle scratchpad 6 (Discordo)
+Mod+o Toggle scratchpad 7 (Qutebrowser)
 
 ## Media Keys
 
