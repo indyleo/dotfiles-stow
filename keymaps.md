@@ -3,8 +3,10 @@
 ## Window Management
 
 Mod+Shift+B Toggle bar
-Mod+J Focus next window
-Mod+K Focus previous window
+Mod+J Focus next window (visible)
+Mod+K Focus previous window (visible)
+Mod+Shift+J Focus next window (hidden)
+Mod+Shift+K Focus previous window (hidden)
 Mod+H Decrease master area size
 Mod+L Increase master area size
 Mod+Shift+I Increase number of master clients
@@ -23,6 +25,9 @@ Mod+Comma Focus previous monitor
 Mod+Period Focus next monitor
 Mod+Shift+Comma Send to previous monitor
 Mod+Shift+Period Send to next monitor
+Mod+= show hidden window thats focused
+Mod+Shift+= show all hidden windows
+Mod+- hide focused window
 Mod+Shift+Q Quit dwm
 
 ## Tags
