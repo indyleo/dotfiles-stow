@@ -16,7 +16,6 @@ Mod+Alt+Shift+T Tiling layout
 Mod+Alt+Shift+F Floating layout
 Mod+Alt+Shift+M Monocle layout
 Mod+Shift+F Toggle fullscreen
-Mod+Space Toggle layout
 Mod+Shift+Space Toggle floating
 Mod+0 View all tags
 Mod+Shift+0 Tag to all tags
