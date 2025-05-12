@@ -5,6 +5,7 @@
 if [[ -z "$TMUX" ]]; then
     exec tmux
 fi
+
 # Enable colors
 autoload -U colors && colors
 
