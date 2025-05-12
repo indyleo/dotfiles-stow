@@ -32,22 +32,6 @@ vim.g.maplocalleader = " "
 
 ---- Non-Plugin ----
 
--- Lang specific keybinds --
-vim.api.nvim_create_autocmd("BufEnter", {
-  group = vim.api.nvim_create_augroup("LuaMaps", { clear = true }),
-  pattern = "*.lua",
-  callback = function(args)
-    local bufnr = args.buf
-    local langopts = function(desc)
-      return { desc = desc, buffer = bufnr, noremap = true, silent = true }
-    end
-    -- Run current line
-    keymap("n", "<leader>rc", ":.lua<CR>", langopts "Runs line under cursor")
-    -- Run current selection
-    keymap("v", "<leader>rc", ":lua<CR>", langopts "Runs selection")
-  end,
-})
-
 -- Normal --
 
 -- Better window managment
@@ -216,33 +200,33 @@ vim.api.nvim_create_autocmd("LspAttach", {
     end
 
     -- Keymaps for LSP
-    vim.keymap.set("n", "gR", ":Telescope lsp_references<CR>", lspopts "Show definition, references")
-    vim.keymap.set("n", "gD", function()
+    keymap("n", "gR", ":Telescope lsp_references<CR>", lspopts "Show definition, references")
+    keymap("n", "gD", function()
       vim.lsp.buf.declaration()
     end, lspopts "Go to declaration")
-    vim.keymap.set("n", "gd", ":Telescope lsp_definitions<CR>", lspopts "Show LSP definitions")
-    vim.keymap.set("n", "gi", ":Telescope lsp_implementations<CR>", lspopts "Show LSP implementations")
-    vim.keymap.set("n", "gt", ":Telescope lsp_type_definitions<CR>", lspopts "Show LSP type definitions")
-    vim.keymap.set({ "n", "v" }, "<leader>ca", function()
+    keymap("n", "gd", ":Telescope lsp_definitions<CR>", lspopts "Show LSP definitions")
+    keymap("n", "gi", ":Telescope lsp_implementations<CR>", lspopts "Show LSP implementations")
+    keymap("n", "gt", ":Telescope lsp_type_definitions<CR>", lspopts "Show LSP type definitions")
+    keymap({ "n", "v" }, "<leader>ca", function()
       vim.lsp.buf.code_action()
     end, lspopts "See available code actions; applies to selection in visual mode")
-    vim.keymap.set("n", "<leader>rn", function()
+    keymap("n", "<leader>rn", function()
       vim.lsp.buf.rename()
     end, lspopts "Smart rename")
-    vim.keymap.set("n", "<leader>D", ":Telescope diagnostics bufnr=0<CR>", lspopts "Show diagnostics for file")
-    vim.keymap.set("n", "<leader>d", function()
+    keymap("n", "<leader>D", ":Telescope diagnostics bufnr=0<CR>", lspopts "Show diagnostics for file")
+    keymap("n", "<leader>d", function()
       vim.diagnostic.open_float()
     end, lspopts "Show diagnostics for line")
-    vim.keymap.set("n", "[d", function()
+    keymap("n", "[d", function()
       vim.diagnostic.goto_prev()
     end, lspopts "Jump to previous diagnostic in buffer")
-    vim.keymap.set("n", "]d", function()
+    keymap("n", "]d", function()
       vim.diagnostic.goto_next()
     end, lspopts "Jump to next diagnostic in buffer")
-    vim.keymap.set("n", "gK", function()
+    keymap("n", "gK", function()
       vim.lsp.buf.hover()
     end, lspopts "Show documentation for what is under cursor")
-    vim.keymap.set("n", "<leader>rs", ":LspRestart<CR>", lspopts "Restart LSP if necessary")
+    keymap("n", "<leader>rs", ":LspRestart<CR>", lspopts "Restart LSP if necessary")
 
     -- Showing lsp is attached current file
     vim.notify("Lsp Attached to: " .. vim.fn.expand "%:t", vim.log.levels.INFO)
