@@ -13,9 +13,9 @@ return {
     },
   },
   -- { -- Here to test fileutils
-  -- 	dir = "~/Github/fileutils-nvim",
-  -- 	config = function()
-  -- 		require("fileutils").setup()
-  -- 	end,
+  --   dir = "~/Github/fileutils-nvim",
+  --   config = function()
+  --     require("fileutils").setup()
+  --   end,
   -- },
 }
