@@ -20,6 +20,9 @@ return {
         lua = { "stylua" },
         python = { "isort", "black" },
         go = { "crlfmt" },
+        c = { "clang-format" },
+        cpp = { "clang-format" },
+        cmake = { "cmakelang" },
 
         -- Script
         zsh = { "beautysh" },

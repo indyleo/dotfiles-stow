@@ -41,6 +41,7 @@ return {
         "pyright",
         "lua_ls",
         "gopls",
+        "clangd",
 
         -- Script/Shell
         "powershell_es",
@@ -71,6 +72,11 @@ return {
         "selene",
         "crlfmt",
         "staticcheck",
+        "cpplint",
+        "cmakelint",
+        "cmakelang",
+        "checkmake",
+        "clang-format",
 
         -- Script/Shell
         "beautysh",

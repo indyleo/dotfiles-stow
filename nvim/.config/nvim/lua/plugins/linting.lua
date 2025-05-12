@@ -20,6 +20,10 @@ return {
       python = { "pylint" },
       lua = { "luacheck" },
       go = { "staticcheck" },
+      cpp = { "cpplint" },
+      c = { "cpplint" },
+      cmake = { "cmakelint" },
+      make = { "checkmake" },
 
       -- Script
       bash = { "bash" },
