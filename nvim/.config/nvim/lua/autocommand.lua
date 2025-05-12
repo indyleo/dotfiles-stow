@@ -36,3 +36,13 @@ vim.api.nvim_create_autocmd("TermOpen", {
     vim.opt_local.signcolumn = "no"
   end,
 })
+
+-- Auto command for config.def.h
+vim.api.nvim_create_autocmd("BufWritePost", {
+  group = vim.api.nvim_create_augroup("AutoInstall", { clear = true }),
+  pattern = "config.def.h",
+  callback = function()
+    local shellcmd = { "sudo cp config.def.h config.h && sudo make clean install" }
+    vim.cmd.CommandRun(shellcmd)
+  end,
+})
