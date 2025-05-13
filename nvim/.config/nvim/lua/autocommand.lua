@@ -37,12 +37,25 @@ vim.api.nvim_create_autocmd("TermOpen", {
   end,
 })
 
--- Auto command for config.def.h
+local was_modified = {}
+
+-- Save the modified state *before* write
+vim.api.nvim_create_autocmd("BufWritePre", {
+  group = vim.api.nvim_create_augroup("TrackModified", { clear = true }),
+  pattern = "config.def.h",
+  callback = function(args)
+    was_modified[args.buf] = vim.bo.modified
+  end,
+})
+
+-- Auto command for config.def.h (only run if modified)
 vim.api.nvim_create_autocmd("BufWritePost", {
   group = vim.api.nvim_create_augroup("AutoInstall", { clear = true }),
   pattern = "config.def.h",
-  callback = function()
+  callback = function(args)
     local shellcmd = { "sudo cp config.def.h config.h && sudo make clean install" }
-    vim.cmd.CommandRun(shellcmd)
+    if was_modified[args.buf] and vim.bo.filetype ~= "" and vim.fn.expand "%" ~= "" then
+      vim.cmd.CommandRun(shellcmd)
+    end
   end,
 })
