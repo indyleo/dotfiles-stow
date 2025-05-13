@@ -1,11 +1,6 @@
 # If not running interactively, don't do anything
 [[ $- != *i* ]] && return
 
-# Check if in tmux session if not run tmux
-if [[ -z "$TMUX" ]]; then
-    exec tmux
-fi
-
 # Enable colors
 autoload -U colors && colors
 
