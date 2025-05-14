@@ -42,7 +42,7 @@ local was_modified = {}
 -- Save the modified state *before* write
 vim.api.nvim_create_autocmd("BufWritePre", {
   group = vim.api.nvim_create_augroup("TrackModified", { clear = true }),
-  pattern = "config.def.h",
+  pattern = { "config.def.h", "keymaps.lua", "options.lua", "guioptions.lua", "autocommand.lua", "init.lua" },
   callback = function(args)
     was_modified[args.buf] = vim.bo.modified
   end,
@@ -57,5 +57,19 @@ vim.api.nvim_create_autocmd("BufWritePost", {
     if was_modified[args.buf] and vim.bo.filetype ~= "" and vim.fn.expand "%" ~= "" then
       vim.cmd.CommandRun(shellcmd)
     end
+    was_modified[args.buf] = nil -- clear flag
+  end,
+})
+
+-- Auto reload run lua files if changerd and a neovim config file (only run if modified)
+vim.api.nvim_create_autocmd("BufWritePost", {
+  group = vim.api.nvim_create_augroup("AutoReload", { clear = true }),
+  pattern = { "keymaps.lua", "options.lua", "guioptions.lua", "autocommand.lua", "init.lua" },
+  callback = function(args)
+    if was_modified[args.buf] and vim.bo.filetype ~= "" and vim.fn.expand "%" ~= "" then
+      vim.cmd.luafile(vim.fn.expand "%")
+      vim.notify("Reloaded " .. vim.fn.expand "%:t", vim.log.levels.INFO)
+    end
+    was_modified[args.buf] = nil -- clear flag
   end,
 })
