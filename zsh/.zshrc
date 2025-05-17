@@ -19,6 +19,7 @@ _comp_options+=(globdots)		# Include hidden files.
 
 # Completions
 eval "$(gh completion -s zsh)"
+eval "$(syncthing install-completions)"
 fpath=($HOME/Zsh-Plugins/zsh-completions/src $fpath)
 
 # Startup
