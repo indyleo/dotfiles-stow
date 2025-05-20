@@ -5,8 +5,8 @@ XRANDR_OUTPUT=$(xrandr -q)
 PROCS=(
     clipmenud
     flameshot
-    nm-applet
     dunst
+    nm-applet
     lxpolkit
     udiskie
     slstatus
