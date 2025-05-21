@@ -72,6 +72,8 @@ bindkey '^e' edit-command-line
 
 # Bindkeys
 bindkey -s '^x' 'y\n'
+bindkey -s '^f' 'chtsh\n'
+bindkey -s '^g' 'chtsh lang\n'
 
 # OMP prompt
 eval "$(oh-my-posh init zsh --config ${XDG_CONFIG_HOME-$HOME/.config}/ohmyposh/base.toml)"
