@@ -1,0 +1,17 @@
+return {
+  "ellisonleao/gruvbox.nvim",
+  lazy = false,
+  priority = 1000,
+  config = function()
+    if vim.g.neovide then
+      require("gruvbox").setup {
+        transparent_mode = false,
+      }
+    else
+      require("gruvbox").setup {
+        transparent_mode = true,
+      }
+    end
+    vim.cmd.colorscheme "gruvbox"
+  end,
+}
