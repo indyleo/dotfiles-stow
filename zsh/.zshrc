@@ -65,18 +65,16 @@ preexec() { echo -ne '\e[5 q' ;} # Use beam shape cursor for each new prompt.
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^e' edit-command-line
 
-# Load aliases and functions if exists.
+# Load aliases, functions, hooks, and prompt if exists.
 [[ -f "$HOME/.aliasrc" ]] && source "$HOME/.aliasrc"
 [[ -f "$HOME/.functionrc" ]] && source "$HOME/.functionrc"
 [[ -f "$HOME/.hooksrc" ]] && source "$HOME/.hooksrc"
+[[ -f "$HOME/.prmt.zsh" ]] && source "$HOME/.prmt.zsh"
 
 # Bindkeys
 bindkey -s '^x' 'y\n'
 bindkey -s '^f' 'chtsh\n'
 bindkey -s '^g' 'chtsh lang\n'
-
-# Prompt
-[[ -f ${XDG_CACHE_HOME:-$HOME/.cache}/prmt.zsh ]] && source ${XDG_CACHE_HOME:-$HOME/.cache}/prmt.zsh
 
 # Search history
 bindkey '^[[A' history-substring-search-up
