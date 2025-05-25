@@ -90,5 +90,6 @@ ArgStart
 StartFlat
 
 while true; do
-    dwm 2> ${XDG_CACHE_HOME:-$HOME/.cache}/dwm.log
+    # dwm 2> ${XDG_CACHE_HOME:-$HOME/.cache}/dwm.log
+    dwm 2>/dev/null
 done
