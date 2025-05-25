@@ -356,6 +356,6 @@ c.fonts.statusbar = '11pt "SauceCodePro NF"'
 
 # Bindings for normal mode
 config.bind("Mp", "hint links spawn mpv {hint-url}")
-config.bind("Dy", "hint links spawn alacritty -e yt-dlp {hint-url} -q")
+config.bind("Dy", "hint links spawn st -e zsh -c yt-dlp {hint-url}")
 config.bind("tt", "cmd-set-text -s :open -t")
 config.bind("tw", "cmd-set-text -s :open -w")

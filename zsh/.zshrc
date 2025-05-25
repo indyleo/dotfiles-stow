@@ -75,8 +75,8 @@ bindkey -s '^x' 'y\n'
 bindkey -s '^f' 'chtsh\n'
 bindkey -s '^g' 'chtsh lang\n'
 
-# OMP prompt
-eval "$(oh-my-posh init zsh --config ${XDG_CONFIG_HOME-$HOME/.config}/ohmyposh/base.toml)"
+# Prompt
+[[ -f ${XDG_CACHE_HOME:-$HOME/.cache}/prmt.zsh ]] && source ${XDG_CACHE_HOME:-$HOME/.cache}/prmt.zsh
 
 # Search history
 bindkey '^[[A' history-substring-search-up
