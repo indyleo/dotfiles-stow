@@ -1,1 +1,1 @@
-config_gruvbox.py
+/home/indy/.config/qutebrowser/config_gruvbox.py
