@@ -20,7 +20,14 @@ elif [[ "$(uname -s)" == "Linux" ]]; then
 fi
 
 # ---- PROMPT Setup ----
-PROMPT='%B%F{red}[ %F{white}'"$distro_icon"' %F{yellow}%n%F{green}@%F{blue}%m %F{magenta}%~ %F{red}]%f%b '
+SPROMPT='%B%F{red}[ %F{white}'"$distro_icon"' %F{yellow}%n%F{green}@%F{blue}%m %F{magenta}%~ %F{red}]%f%b$ '
+MPROMPT='%B%F{red}[ %F{white}'"$distro_icon"' %F{yellow}%n%F{green}@%F{blue}%m %F{magenta}%~ %F{red}]%f%b'$'\n''$ '
+
+if $USE_MULTILINE_PROMPT; then
+    PROMPT=${MPROMPT}
+else
+    PROMPT=${SPROMPT}
+fi
 
 # ---- Git Info ----
 autoload -Uz vcs_info

@@ -65,6 +65,9 @@ preexec() { echo -ne '\e[5 q' ;} # Use beam shape cursor for each new prompt.
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^e' edit-command-line
 
+# Choose single-line or multiline prompt
+USE_MULTILINE_PROMPT=true
+
 # Load aliases, functions, hooks, and prompt if exists.
 [[ -f "$HOME/.aliasrc" ]] && source "$HOME/.aliasrc"
 [[ -f "$HOME/.functionrc" ]] && source "$HOME/.functionrc"
