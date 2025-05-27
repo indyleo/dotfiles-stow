@@ -52,6 +52,10 @@ export BROWSER="brave-browser"
 export WM="$(ps -e -o comm= | grep -E 'dwm|bspwm|xmonad|awesome|kwin')"
 export QT_QPA_PLATFORMTHEME="qt6ct"
 
+# Bitwarden
+[[ -f "$HOME/Documents/pass/clientid" ]] && export BITWARDEN_CLIENT_ID="$(cat "$HOME/Documents/pass/clientid")"
+[[ -f "$HOME/Documents/pass/clientsec" ]] && export BITWARDEN_CLIENT_SECRET="$(cat "$HOME/Documents/pass/clientsec")"
+
 # RustUp
 [[ -f "$HOME/.cargo/env" ]] || . "$HOME/.cargo/env"
 
