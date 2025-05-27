@@ -55,7 +55,7 @@ export QT_QPA_PLATFORMTHEME="qt6ct"
 # Bitwarden
 [[ -f "$HOME/Documents/pass/clientid" ]] && export BW_CLIENTID="$(cat "$HOME/Documents/pass/clientid")"
 [[ -f "$HOME/Documents/pass/clientsec" ]] && export BW_CLIENTSECRET="$(cat "$HOME/Documents/pass/clientsec")"
-[[ -f "$HOME/Documents/pass/userpass" ]] && export BW_USERPASS="$(cat "$HOME/Documents/pass/userpass")"
+[[ -f "$HOME/Documents/pass/userpass" ]] && export BW_PASSWORD="$(cat "$HOME/Documents/pass/userpass")"
 
 # RustUp
 [[ -f "$HOME/.cargo/env" ]] || . "$HOME/.cargo/env"
