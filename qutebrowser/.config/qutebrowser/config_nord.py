@@ -375,7 +375,9 @@ c.fonts.statusbar = '11pt "SauceCodePro NF"'
 
 # Bindings for normal mode
 config.bind("Px", "hint links spawn --detach mpv {hint-url}")
-config.bind("Dy", "hint links spawn --detach st -e zsh -c yt-dlp {hint-url}")
+config.bind("Pt", "hint links spawn --detach ytdl {hint-url} bth")
+config.bind("Py", "hint links spawn --detach ytdl {hint-url} vid")
+config.bind("Pa", "hint links spawn --detach ytdl {hint-url} aud")
 config.bind("tt", "cmd-set-text -s :open -t")
 config.bind("tw", "cmd-set-text -s :open -w")
 config.bind("Pm", ":spawn --detach dmenu_pass")

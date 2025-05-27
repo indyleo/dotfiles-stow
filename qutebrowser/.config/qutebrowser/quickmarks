@@ -4,7 +4,7 @@ apk https://archlinux.org/packages/
 dpk https://www.debian.org/distrib/packages/
 flh https://flathub.org/
 git https://github.com/indyleo/
-sp file:///home/indy/Github/portfilio/startpage/index.html 
+sp file:///home/indy/Github/portfilio/startpage/index.html
 suck https://suckless.org/
 wiki https://www.wikipedia.org/
 yt https://www.youtube.com/
