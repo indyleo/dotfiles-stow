@@ -156,7 +156,6 @@ archive() {
     fi
 }
 
-
 # Be Lazy With Git
 lazygall() {
     git add .
@@ -180,73 +179,6 @@ function y() {
     command rm -f -- "$tmp"
 }
 
-# YT Downloading
-Get-YoutubeContent() {
-    local url="$1"
-    local type="$2"
-    local output_folder="$HOME/Downloads"
-
-    # Validate input
-    if [[ -z "$url" || -z "$type" ]]; then
-        echo "Usage: get_youtube_content <url> <type: aud|vid|bth>"
-        return 1
-    fi
-
-    # Check if yt-dlp is installed
-    if ! command -v yt-dlp &>/dev/null; then
-        echo "yt-dlp is not installed. Please install yt-dlp and try again."
-        return 1
-    fi
-
-    case "$type" in
-        aud)
-            yt-dlp -x --audio-format mp3 --embed-thumbnail --add-metadata --audio-quality 0 "$url" -o "$output_folder/%(title)s.%(ext)s"
-            echo "Audio download completed. File saved in $output_folder."
-            ;;
-        vid)
-            yt-dlp -f "bestvideo+bestaudio" --merge-output-format mp4 --embed-thumbnail --add-metadata "$url" -o "$output_folder/%(title)s.%(ext)s"
-            echo "Video download completed. File saved in $output_folder."
-            ;;
-        bth)
-            yt-dlp -f "bestvideo+bestaudio" --merge-output-format mp4 --embed-thumbnail --add-metadata "$url" -o "$output_folder/%(title)s.%(ext)s"
-            echo "Combined audio and video download completed as an MP4. File saved in $output_folder."
-            ;;
-        *)
-            echo "Invalid type specified. Use aud, vid, or bth."
-            return 1
-            ;;
-    esac
-}
-
-# Spotdl Downloading
-function Get-SpotifyContent() {
-    local url="$1"
-    local type="$2"
-    local output_folder="$HOME/Downloads"
-
-    if [[ -z "$url" || -z "$type" ]]; then
-        echo "Usage: get_spotify_content <url> <type>"
-        echo "Type options: -trk (track), -alb (album), -pl (playlist)"
-        return 1
-    fi
-
-    if ! command -v spotdl &> /dev/null; then
-        echo "spotdl is not installed. Please install spotdl and try again."
-        return 1
-    fi
-
-    case "$type" in
-        -trk|-alb|-pl)
-            spotdl "$url" --output "$output_folder"
-            echo "Download completed. Files saved in $output_folder."
-            ;;
-        *)
-            echo "Invalid type. Use -trk for track, -alb for album, or -pl for playlist."
-            return 1
-            ;;
-    esac
-}
-
 # Screenkey
 function scrky() {
     screenkey --no-systray --opacity 0.85 \
@@ -264,7 +196,6 @@ function scrky() {
 
     kill "$SCREENKEY_PID" 2>/dev/null
 }
-
 
 # For Vim Users
 # vim:ft=zsh
