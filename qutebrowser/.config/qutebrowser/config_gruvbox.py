@@ -10,6 +10,11 @@
 #   qute://help/configuring.html
 #   qute://help/settings.html
 
+# pylint: disable=C0111
+c = c  # noqa: F821 pylint: disable=E0602,C0103
+config = config  # noqa: F821 pylint: disable=E0602,C0103
+# pylint settings included to disable linting errors
+
 # Uncomment this to still load settings configured via autoconfig.yml
 # config.load_autoconfig()
 # Or uncomment this line to load settings from config.py
@@ -194,6 +199,17 @@ config.set("content.notifications.enabled", True, "https://www.reddit.com")
 #   - ask
 config.set("content.notifications.enabled", True, "https://www.youtube.com")
 
+# Adblocking
+c.content.blocking.method = "both"
+c.content.blocking.adblock.lists = [
+    "https://easylist.to/easylist/easylist.txt",
+    "https://easylist.to/easylist/easyprivacy.txt",
+    "https://easylist-downloads.adblockplus.org/easylistdutch.txt",
+    "https://easylist-downloads.adblockplus.org/abp-filters-anti-cv.txt",
+    "https://www.i-dont-care-about-cookies.eu/abp/",
+    "https://secure.fanboy.co.nz/fanboy-cookiemonster.txt",
+]
+
 # Directory to save downloads to. If unset, a sensible OS-specific
 # default is used.
 # Type: Directory
@@ -356,8 +372,8 @@ c.fonts.prompts = "default_size sans-serif"
 c.fonts.statusbar = '11pt "SauceCodePro NF"'
 
 # Bindings for normal mode
-config.bind("Mp", "hint links spawn mpv {hint-url}")
-config.bind("Dy", "hint links spawn st -e zsh -c yt-dlp {hint-url}")
+config.bind("Px", "hint links spawn --detach mpv {hint-url}")
+config.bind("Dy", "hint links spawn --detach st -e zsh -c yt-dlp {hint-url}")
 config.bind("tt", "cmd-set-text -s :open -t")
 config.bind("tw", "cmd-set-text -s :open -w")
-config.bind("Pm", ":spawn dmenu_pass")
+config.bind("Pm", ":spawn --detach dmenu_pass")
