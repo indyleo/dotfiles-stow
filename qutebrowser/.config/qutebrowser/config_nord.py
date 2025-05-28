@@ -27,6 +27,8 @@ c.aliases = {"q": "quit", "w": "session-save", "wq": "quit --save"}
 
 # Setting dark mode
 config.set("colors.webpage.darkmode.enabled", True)
+c.colors.webpage.darkmode.algorithm = "lightness-cielab"
+c.colors.webpage.darkmode.policy.images = "never"
 config.set("colors.webpage.darkmode.enabled", False, "file://*")
 
 # Which cookies to accept. With QtWebEngine, this setting also controls
@@ -159,45 +161,19 @@ config.set(
     "https://drive.google.com/*",
 )
 
-# Load images automatically in web pages.
-# Type: Bool
+# Web security/privacy settings.
 config.set("content.images", True, "chrome-devtools://*")
-
-# Load images automatically in web pages.
-# Type: Bool
 config.set("content.images", True, "devtools://*")
-
-# Enable JavaScript.
-# Type: Bool
 config.set("content.javascript.enabled", True, "chrome-devtools://*")
-
-# Enable JavaScript.
-# Type: Bool
 config.set("content.javascript.enabled", True, "devtools://*")
-
-# Enable JavaScript.
-# Type: Bool
-config.set("content.javascript.enabled", True, "chrome://*/*")
-
-# Enable JavaScript.
-# Type: Bool
 config.set("content.javascript.enabled", True, "qute://*/*")
-
-# Allow websites to show notifications.
-# Type: BoolAsk
-# Valid values:
-#   - true
-#   - false
-#   - ask
-config.set("content.notifications.enabled", True, "https://www.reddit.com")
-
-# Allow websites to show notifications.
-# Type: BoolAsk
-# Valid values:
-#   - true
-#   - false
-#   - ask
-config.set("content.notifications.enabled", True, "https://www.youtube.com")
+config.set("content.notifications.enabled", False)
+config.set("content.webgl", False, "*")
+config.set("content.canvas_reading", False)
+config.set("content.geolocation", False)
+config.set("content.webrtc_ip_handling_policy", "default-public-interface-only")
+config.set("content.cookies.accept", "all")
+config.set("content.cookies.store", True)
 
 # Adblocking
 c.content.blocking.method = "both"
@@ -223,18 +199,24 @@ c.downloads.location.directory = "~/Downloads"
 #   - multiple: Hide the tab bar if only one tab is open.
 #   - switching: Show the tab bar when switching tabs.
 c.tabs.show = "multiple"
+
 # When to show the statusbar.
 # Type: String
 # Valid values:
 #   - always: Always show the statusbar.
 #   - never: Always hide the statusbar.
-#   - in-mode: Show the statusbar when a mode is active.
-c.statusbar.show = "in-mode"
+#   - in-mode: Show the statusbar when in modes other than normal mode.
+c.statusbar.show = "always"
 
 # Setting default page for when opening new tabs or new windows with
 # commands like :open -t and :open -w .
 c.url.default_page = "file:///home/indy/Github/portfilio/startpage/index.html"
 c.url.start_pages = "file:///home/indy/Github/portfilio/startpage/index.html"
+
+
+# Title of new tabs
+# Type: FormatString
+c.tabs.title.format = "{audio}{current_title}"
 
 # Search engines which can be used via the address bar.  Maps a search
 # engine name (such as `DEFAULT`, or `ddg`) to a URL with a `{}`
@@ -256,14 +238,23 @@ c.url.start_pages = "file:///home/indy/Github/portfilio/startpage/index.html"
 # Type: Dict
 c.url.searchengines = {
     "DEFAULT": "https://searxng.linuxlab.work/search?q={}",
-    "ar": "https://aur.archlinux.org/packages?O=0&K={}",
-    "ah": "https://archlinux.org/packages/?sort=&q={}",
-    "aw": "https://wiki.archlinux.org/?search={}",
-    "dp": "https://packages.debian.org/search?keywords={}&searchon=names&suite=testing&section=all",
-    "fh": "https://flathub.org/apps/search?q={}",
-    "np": "https://search.nixos.org/packages?channel=24.11&from=0&size=50&sort=relevance&type=packages&query={}",
-    "pd": "https://www.protondb.com/search?q={}",
+    "!ar": "https://aur.archlinux.org/packages?O=0&K={}",
+    "!ah": "https://archlinux.org/packages/?sort=&q={}",
+    "!aw": "https://wiki.archlinux.org/?search={}",
+    "!dp": "https://packages.debian.org/search?keywords={}&searchon=names&suite=testing&section=all",
+    "!fh": "https://flathub.org/apps/search?q={}",
+    "!np": "https://search.nixos.org/packages?channel=24.11&from=0&size=50&sort=relevance&type=packages&query={}",
+    "!pd": "https://www.protondb.com/search?q={}",
 }
+
+# Completion Categories
+c.completion.open_categories = [
+    "searchengines",
+    "quickmarks",
+    "bookmarks",
+    "history",
+    "filesystem",
+]
 
 # Nord Theme Colors
 nord = {
@@ -374,11 +365,19 @@ c.fonts.prompts = "default_size sans-serif"
 c.fonts.statusbar = '11pt "SauceCodePro NF"'
 
 # Bindings for normal mode
-config.bind("Px", "hint links spawn --detach mpv {hint-url}")
+config.bind("cs", "cmd-set-text -s :config-source")
+config.bind("Px", "hint links spawn --detach mpv --fs {hint-url}")
 config.bind("Pt", "hint links spawn --detach ytdl {hint-url} bth")
 config.bind("Py", "hint links spawn --detach ytdl {hint-url} vid")
 config.bind("Pa", "hint links spawn --detach ytdl {hint-url} aud")
-config.bind("tt", "cmd-set-text -s :open -t")
-config.bind("tw", "cmd-set-text -s :open -w")
 config.bind("Pm", ":spawn --detach dmenu_pass")
 config.bind("Pb", ":spawn --detach dmenu_bm qutebrowser")
+config.bind("T", "hint links")
+config.bind("tt", "cmd-set-text -s :open -t")
+config.bind("tw", "cmd-set-text -s :open -w")
+config.bind("tP", "open -- {primary}")
+config.bind("tp", "open -- {clipboard}")
+config.bind("tc", "open -t -- {clipboard}")
+config.bind("h", "history")
+config.bind("<", "back")
+config.bind(">", "forward")
