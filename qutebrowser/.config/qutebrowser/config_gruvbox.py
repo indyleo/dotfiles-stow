@@ -162,7 +162,7 @@ config.set("content.geolocation", False)
 config.set("content.webrtc_ip_handling_policy", "default-public-interface-only")
 config.set("content.cookies.accept", "all")
 config.set("content.cookies.store", True)
-config.set("content.javascript.clipboard", "*")
+config.set("content.javascript.clipboard", "access")
 
 # Adblocking
 c.content.blocking.method = "both"
