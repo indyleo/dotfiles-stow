@@ -162,6 +162,7 @@ config.set("content.geolocation", False)
 config.set("content.webrtc_ip_handling_policy", "default-public-interface-only")
 config.set("content.cookies.accept", "all")
 config.set("content.cookies.store", True)
+config.set("content.javascript.clipboard", True)
 
 # Adblocking
 c.content.blocking.method = "both"
@@ -271,7 +272,7 @@ tabs = {
 # styles, cosmetics
 c.tabs.padding = {"top": 5, "bottom": 5, "left": 9, "right": 9}
 c.tabs.indicator.width = 0  # no tab indicators
-c.tabs.width = "5%"
+c.tabs.width = "4%"
 c.window.transparent = True
 
 # Base
@@ -379,3 +380,4 @@ config.bind("tc", "open -t -- {clipboard}")
 config.bind("h", "history")
 config.bind("<", "back")
 config.bind(">", "forward")
+config.bind("g?", "config-cycle tabs.width 12% 4%")

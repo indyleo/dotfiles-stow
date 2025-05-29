@@ -162,6 +162,7 @@ config.set("content.geolocation", False)
 config.set("content.webrtc_ip_handling_policy", "default-public-interface-only")
 config.set("content.cookies.accept", "all")
 config.set("content.cookies.store", True)
+config.set("content.javascript.clipboard", True)
 
 # Adblocking
 c.content.blocking.method = "both"
@@ -382,3 +383,4 @@ config.bind("tc", "open -t -- {clipboard}")
 config.bind("h", "history")
 config.bind("<", "back")
 config.bind(">", "forward")
+config.bind("g?", "config-cycle tabs.width 12% 4%")
