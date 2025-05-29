@@ -48,7 +48,7 @@ export MANPAGER="moar"
 export TERM="xterm-256color"
 export COLORTERM="truecolor"
 export OPENER="xdg-open"
-export BROWSER="brave-browser"
+export BROWSER="qutebrowser"
 export WM="$(ps -e -o comm= | grep -E 'dwm|bspwm|xmonad|awesome|kwin')"
 
 # RustUp
