@@ -156,6 +156,14 @@ archive() {
     fi
 }
 
+massrename() {
+    for f in *.*; do
+        ext="${f##*.}"
+        mv -f -- "$f" "wall${n}.$ext"
+        ((n++))
+    done
+}
+
 # Be Lazy With Git
 lazygall() {
     git add .
