@@ -3,14 +3,10 @@ c = c  # noqa: F821 pylint: disable=E0602,C0103
 config = config  # noqa: F821 pylint: disable=E0602,C0103
 # pylint settings included to disable linting errors
 
-# Uncomment this to still load settings configured via autoconfig.yml
-# config.load_autoconfig()
-# Or uncomment this line to load settings from config.py
+# load settings from config.py
 config.load_autoconfig(True)
 
-# Aliases for commands. The keys of the given dictionary are the
-# aliases, while the values are the commands they map to.
-# Type: Dict
+# Aliases for commands.
 c.aliases = {"q": "quit", "w": "session-save", "wq": "quit --save"}
 
 # Setting dark mode
@@ -18,39 +14,10 @@ config.set("colors.webpage.darkmode.enabled", True)
 c.colors.webpage.darkmode.algorithm = "lightness-cielab"
 c.colors.webpage.darkmode.policy.images = "never"
 config.set("colors.webpage.darkmode.enabled", False, "file://*")
+config.set("colors.webpage.darkmode.enabled", True, "https://*.suckless.org/*")
 
 # Default editor to use
 c.editor.command = ["neovide", "{file}"]
-
-# Which cookies to accept. With QtWebEngine, this setting also controls
-# other features with tracking capabilities similar to those of cookies;
-# including IndexedDB, DOM storage, filesystem API, service workers, and
-# AppCache. Note that with QtWebKit, only `all` and `never` are
-# supported as per-domain values. Setting `no-3rdparty` or `no-
-# unknown-3rdparty` per-domain on QtWebKit will have the same effect as
-# `all`.
-# Type: String
-# Valid values:
-#   - all: Accept all cookies.
-#   - no-3rdparty: Accept cookies from the same origin only. This is known to break some sites, such as GMail.
-#   - no-unknown-3rdparty: Accept cookies from the same origin only, unless a cookie is already set for the domain. On QtWebEngine, this is the same as no-3rdparty.
-#   - never: Don't accept cookies at all.
-config.set("content.cookies.accept", "all", "chrome-devtools://*")
-
-# Which cookies to accept. With QtWebEngine, this setting also controls
-# other features with tracking capabilities similar to those of cookies;
-# including IndexedDB, DOM storage, filesystem API, service workers, and
-# AppCache. Note that with QtWebKit, only `all` and `never` are
-# supported as per-domain values. Setting `no-3rdparty` or `no-
-# unknown-3rdparty` per-domain on QtWebKit will have the same effect as
-# `all`.
-# Type: String
-# Valid values:
-#   - all: Accept all cookies.
-#   - no-3rdparty: Accept cookies from the same origin only. This is known to break some sites, such as GMail.
-#   - no-unknown-3rdparty: Accept cookies from the same origin only, unless a cookie is already set for the domain. On QtWebEngine, this is the same as no-3rdparty.
-#   - never: Don't accept cookies at all.
-config.set("content.cookies.accept", "all", "devtools://*")
 
 # User agent to send.  The following placeholders are defined:  *
 # `{os_info}`: Something like "X11; Linux x86_64". * `{webkit_version}`:
@@ -175,9 +142,7 @@ c.content.blocking.adblock.lists = [
     "https://secure.fanboy.co.nz/fanboy-cookiemonster.txt",
 ]
 
-# Directory to save downloads to. If unset, a sensible OS-specific
-# default is used.
-# Type: Directory
+# Directory to save downloads to.
 c.downloads.location.directory = "~/Downloads"
 
 # When to show the tab bar.
@@ -202,7 +167,6 @@ c.statusbar.show = "in-mode"
 # commands like :open -t and :open -w .
 c.url.default_page = "file:///home/indy/Github/portfilio/startpage/index.html"
 c.url.start_pages = "file:///home/indy/Github/portfilio/startpage/index.html"
-
 
 # Title of new tabs
 # Type: FormatString
@@ -338,7 +302,6 @@ c.colors.completion.scrollbar.bg = nord["polar_night1"]
 c.colors.completion.scrollbar.fg = nord["polar_night3"]
 
 # Default font families to use. Whenever "default_family" is used in a
-# font setting, it's replaced with the fonts listed here. If set to an
 # empty value, a system-specific monospace default is used.
 # Type: List of Font, or Font
 c.fonts.default_family = '"SauceCodePro NF"'
