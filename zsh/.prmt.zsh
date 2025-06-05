@@ -23,6 +23,8 @@ fi
 SPROMPT='%B%F{red}[ %F{white}'"$distro_icon"' %F{yellow}%n%F{green}@%F{blue}%m %F{magenta}%~ %F{red}]%f%b$ '
 MPROMPT='%B%F{red}[ %F{white}'"$distro_icon"' %F{yellow}%n%F{green}@%F{blue}%m %F{magenta}%~ %F{red}]%f%b'$'\n''$ '
 
+PS2="%B%{$fg[red]%}[ %F{white}PS2 %{$fg[red]%}]%{$reset_color%}$%b "
+
 if $USE_MULTILINE_PROMPT; then
     PROMPT=${MPROMPT}
 else
