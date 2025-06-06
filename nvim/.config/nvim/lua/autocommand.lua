@@ -60,7 +60,7 @@ vim.api.nvim_create_autocmd("TermOpen", {
 -- Save the modified state *before* write
 vim.api.nvim_create_autocmd("BufWritePre", {
   group = vim.api.nvim_create_augroup("TrackModified", { clear = true }),
-  pattern = { "config.def.h", "keymaps.lua", "options.lua", "guioptions.lua", "autocommand.lua", "init.lua" },
+  pattern = { "config.def.h", "blocks.def.h", "keymaps.lua", "options.lua", "guioptions.lua", "autocommand.lua", "init.lua" },
   callback = function(args)
     was_modified[args.buf] = vim.bo.modified
   end,
@@ -68,11 +68,28 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 
 -- Auto command for config.def.h (only run if modified)
 vim.api.nvim_create_autocmd("BufWritePost", {
-  group = vim.api.nvim_create_augroup("AutoInstall", { clear = true }),
+  group = vim.api.nvim_create_augroup("AutoCompileConfig", { clear = true }),
   pattern = "config.def.h",
   callback = function(args)
     if not proc_check "autocompile" then
       local shellcmd = { "sudo cp config.def.h config.h && sudo make clean install" }
+      if was_modified[args.buf] and vim.bo.filetype ~= "" and vim.fn.expand "%" ~= "" then
+        vim.cmd.CommandRun(shellcmd)
+      end
+    else
+      vim.notify("AutoCompilation already running", vim.log.levels.WARN)
+    end
+    was_modified[args.buf] = nil -- clear flag
+  end,
+})
+
+-- Auto command for blocks.def.h (only run if modified)
+vim.api.nvim_create_autocmd("BufWritePost", {
+  group = vim.api.nvim_create_augroup("AutoCompileBlocks", { clear = true }),
+  pattern = "blocks.def.h",
+  callback = function(args)
+    if not proc_check "autocompile" then
+      local shellcmd = { "sudo cp blocks.def.h blocks.h && sudo make clean install" }
       if was_modified[args.buf] and vim.bo.filetype ~= "" and vim.fn.expand "%" ~= "" then
         vim.cmd.CommandRun(shellcmd)
       end
