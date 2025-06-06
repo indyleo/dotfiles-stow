@@ -24,11 +24,11 @@ ARG_PROCS=(
 )
 
 # Functions
-command_exists() {
+function command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-StartProc() {
+function StartProc() {
     for program in "${PROCS[@]}"; do
         # Check if the program is already running
         if ! pgrep -x "$program" > /dev/null; then
@@ -38,7 +38,7 @@ StartProc() {
     done
 }
 
-ArgStart() {
+function ArgStart() {
     for program in "${ARG_PROCS[@]}"; do
         if ! pgrep -x "$program" > /dev/null; then
             # Start the program with arguments in the background
@@ -47,7 +47,7 @@ ArgStart() {
     done
 }
 
-StartFlat() {
+function StartFlat() {
     # Iterate over each app in the provided array of Flatpak app IDs
     for app_id in "${FLAT_PROCS[@]}"; do
         # Check if the Flatpak app is running
