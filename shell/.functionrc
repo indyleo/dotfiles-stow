@@ -1,5 +1,5 @@
 # Easier Navigation
-up() {
+function up() {
     local d=""
     local limit="$1"
 
@@ -19,12 +19,12 @@ up() {
 }
 
 # if command exits
-command_exists() {
+function command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
 # Copy and go to the directory
-cpg() {
+function cpg() {
     if [[ -d "$2" ]]; then
         cp "$1" "$2" && cd "$2"
     else
@@ -33,7 +33,7 @@ cpg() {
 }
 
 # Move and go to the directory
-mvg() {
+function mvg() {
     if [[ -d "$2" ]]; then
         mv "$1" "$2" && cd "$2"
     else
@@ -42,14 +42,14 @@ mvg() {
 }
 
 # Create and go to the directory
-mkcd() {
+function mkcd() {
     mkdir -p "$1"
     cd "$1"
 }
 
 # Pacman Manager
 if command_exists pacman; then
-    pac() {
+    function pac() {
         if [[ -z "$1" ]]; then
             command pacman -h
             return
@@ -65,7 +65,7 @@ if command_exists pacman; then
         esac
     }
 elif command_exists apt; then
-    apt() {
+    function apt() {
         if [[ -z "$1" ]]; then
             command apt --help
             return
@@ -83,7 +83,7 @@ elif command_exists apt; then
 fi
 
 # Archive Extraction
-extract() {
+function extract() {
     if [[ "$#" -lt 1 ]]; then
         echo "Usage: extract <archive_file>"
         return 1
@@ -113,7 +113,7 @@ extract() {
 }
 
 # Archiving
-archive() {
+function archive() {
     if [[ "$#" -lt 2 ]]; then
         echo "Usage: archive <archive_name.tar.gz|archive_name.zip|archive_name.rar> <file1> [file2 ... fileN]"
         return 1
@@ -156,7 +156,7 @@ archive() {
     fi
 }
 
-massrename() {
+function massrename() {
     for f in *.*; do
         ext="${f##*.}"
         mv -f -- "$f" "wall${n}.$ext"
@@ -165,13 +165,13 @@ massrename() {
 }
 
 # Be Lazy With Git
-lazygall() {
+function lazygall() {
     git add .
     git commit -m "$1"
     git push
 }
 
-lazygup() {
+function lazygup() {
     git add -u
     git commit -m "$1"
     git push
