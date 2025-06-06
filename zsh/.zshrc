@@ -78,6 +78,8 @@ USE_MULTILINE_PROMPT=true
 bindkey -s '^x' 'y\n'
 bindkey -s '^f' 'chtsh\n'
 bindkey -s '^g' 'chtsh lang\n'
+bindkey -s '^b' 'mkscript\n'
+bindkey -s '^n' 'mkscr\n'
 
 # Search history
 bindkey '^[[A' history-substring-search-up
