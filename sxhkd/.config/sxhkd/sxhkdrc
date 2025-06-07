@@ -142,6 +142,8 @@ super + shift + w
 super + shift + r
 	qrestart
 
-# Quit dwm if current wm
-super + shift + r
+# -- Misc -- #
+
+# Logout of session
+super + shift + q
 	qquit
