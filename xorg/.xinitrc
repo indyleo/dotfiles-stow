@@ -10,6 +10,7 @@ PROCS=(
     lxpolkit
     udiskie
     dwmblocks
+    sxhkd
 )
 FLAT_PROCS=(
     org.fkoehler.KTailctl

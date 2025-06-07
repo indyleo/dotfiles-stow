@@ -1,0 +1,147 @@
+# -- Sxhkd Config -- #
+
+# Reload the config
+super + Escape
+	pkill -USR1 -x sxhkd && notify-send "Reloading the keybinds..."
+
+# -- Dmenu -- #
+
+# Run prompt
+super + r
+  dmenu_run
+
+# Window Switcher
+Alt + Tab 
+  dmenu_alttab
+
+# Flatpak Launcher
+super + p
+  dmenu_flatpak
+
+# Clipboard
+super + shift + c
+  dmenu_clip
+
+# Emoji
+super + shift + e
+  dmenu_emoji
+
+# Powermenu
+super + shift + p
+  dmenu_power
+
+# -- System -- #
+
+# Locker
+super + shift + l
+  slock
+
+# Brightness
+XF86MonBrightness{Up,Down}	
+  brightnessctrl {--inc,--dec} 5
+
+# -- Media -- #
+
+# Volume
+super + {Up,Down}
+  volumectrl {--inc,--dec} 5
+
+super + shift + Down
+  volumectrl --togglemute
+
+XF86Audio{Raise,Lower}Volume
+  volumectrl {--inc,--dec} 5
+
+XF86AudioMute
+  volumectrl --togglemute
+
+# Music
+super + {Right,Left}
+  songctrl {--skip,--previous}
+
+super + Pause
+  songctrl --togglepause
+
+XF86Audio{Next,Prev}
+  songctrl {--skip,--previous}
+
+XF86AudioPlay
+  songctrl --togglepause
+
+# Browser
+super + alt + {Right,Left}
+  browserctrl {--skip,--previous}
+
+super + alt + Pause
+  browserctrl --togglepause
+
+alt + XF86Audio{Next,Prev}
+  browserctrl {--skip,--previous}
+
+alt + XF86AudioPlay
+  browserctrl --togglepause
+
+# -- Applications -- #
+
+# Terminal 
+super + Return
+  st
+
+# File Manager
+super + f
+  thunar
+
+# Browser 
+super + b
+  qutebrowser
+
+# Music 
+super + m
+  flatpak run io.github.dweymouth.supersonic
+
+# Discord 
+super + shift + d
+  flatpak run dev.vencord.Vesktop
+
+# Signal
+super + g
+	signal-desktop
+
+# Neovide
+super + e
+  neovide
+
+# -- Record/Screen -- #
+
+# Record Screen
+super + alt + r
+	record-toggle
+
+# Screenshot
+Print
+	sstool --select
+
+super + Print
+	sstool --screen
+
+super + shift + Print
+	sstool --fullscreen
+
+super + ctrl + Print
+	sstool --window
+
+# -- Wallpaper -- #
+
+# Set Wallpaper
+super + shift + w
+  zsh -c "xwall xwalr $HOME/Pictures/Wallpapers/$(${XDG_CACHE_HOME:-$HOME/.cache}/theme)"
+
+# -- Dwm -- #
+
+# Restart dwm if current wm
+super + shift + r
+	qrestart
+
+# Quit dwm if current wm
+super + shift + r
+	qquit
