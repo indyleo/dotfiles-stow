@@ -1,0 +1,83 @@
+#!/bin/env bash
+
+# preview="$1"
+#
+# # Preview
+# case "$preview" in
+#         # Media
+#     *.png|*.jpg|*.jpeg|*.bmp|*.xpm|*.wepb) mediainfo "$preview" ;;
+#     *.mkv|*.mp3|*.mp4|*.wav) exiftool "$preview" ;;
+#
+#         # Archives
+#     *.tar) tar -tvf "$preview" ;;
+#     *.tar.gz) tar -ztvf "$preview" ;;
+#     *.tar.bz2) tar -jtvf "$preview" ;;
+#     *.zip) zipinfo "$preview" ;;
+#     *.rar) unrar l "$preview" ;;
+#     *.7z) 7z l "$preview" ;;
+#
+#         # Text
+#     *.bash*|*.git*|*.sh|*.zsh*) pistol "$preview" ;;
+#     *.md) glow -s dark "$preview" ;;
+#     *.pdf) pdftotext "$preview" - ;;
+#     *) highlight "$preview" -O ansi || cat "$preview" ;;
+# esac
+
+
+preview="$1"
+
+# Ensure file exists
+[[ -f "$preview" ]] || exit 1
+
+case "$preview" in
+        # Images
+    *.png|*.jpg|*.jpeg|*.bmp|*.webp)
+        chafa "$preview"
+        ;;
+
+        # Videos & Audio
+    *.mkv|*.mp4|*.webm|*.mp3|*.flac|*.wav|*.aac|*.ogg)
+        ffprobe -v error -show_entries format=duration:stream=codec_name -of default=noprint_wrappers=1 "$preview" 2>/dev/null ||
+        exiftool "$preview"
+        ;;
+
+        # Archives
+    *.tar) tar -tvf "$preview" ;;
+    *.tar.gz|*.tgz) tar -ztvf "$preview" ;;
+    *.tar.bz2|*.tbz2) tar -jtvf "$preview" ;;
+    *.zip) zipinfo "$preview" ;;
+    *.rar) unrar l "$preview" ;;
+    *.7z) 7z l "$preview" ;;
+
+        # Office/Docs
+    *.pdf) pdftotext "$preview" - 2>/dev/null | head -n 100 ;;
+    *.epub) epub-meta "$preview" 2>/dev/null || exiftool "$preview" ;;
+
+        # Code and Scripts
+    *.bash*|*.git*|*.sh|*.zsh*|*.py|*.c|*.cpp|*.h|*.js|*.ts|*.go|*.rs)
+        command -v pistol &>/dev/null && pistol "$preview" ||
+        highlight --out-format=ansi "$preview" ||
+        bat --style=plain --color=always "$preview" ||
+        cat "$preview"
+        ;;
+
+        # Markdown
+    *.md) glow -s dark "$preview" ;;
+
+        # JSON/YAML
+    *.json) jq . "$preview" || cat "$preview" ;;
+    *.yml|*.yaml) yq . "$preview" || cat "$preview" ;;
+
+        # HTML
+    *.html|*.htm) lynx -dump "$preview" 2>/dev/null || w3m -dump "$preview" || elinks -dump "$preview" ;;
+
+        # ISO
+    *.iso) isoinfo -d -i "$preview" 2>/dev/null || exiftool "$preview" ;;
+
+        # Default text preview
+    *)
+        highlight --out-format=ansi "$preview" ||
+        bat --style=plain --color=always "$preview" ||
+        cat "$preview"
+        ;;
+esac

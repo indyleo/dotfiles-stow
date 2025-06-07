@@ -177,21 +177,39 @@ function lazygup() {
     git push
 }
 
-# Yazi
-function y() {
-    local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
-    yazi "$@" --cwd-file="$tmp"
-    if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
-        builtin cd -- "$cwd"
+# Lf CD
+function lc() {
+    # Create a temporary file to store the last directory
+    local tmp dir
+    tmp="$(mktemp "${TMPDIR:-/tmp}/lc-cwd.XXXXXX")" || return
+
+    # Launch lf and store the last directory in tmp
+    command lf -last-dir-path="$tmp" "$@" || return
+
+    # Read and validate the result
+    if [[ -f $tmp ]]; then
+        dir=$(<"$tmp")
+        command rm -f -- "$tmp"
+        if [[ -d $dir && $dir != "$PWD" ]]; then
+            cd "$dir" || return
+            echo "  Changed to: $dir"
+        fi
     fi
-    command rm -f -- "$tmp"
 }
 
 # Screenkey
 function scrky() {
-    screenkey --no-systray --opacity 0.85 \
-        --bg-color "#3b4252" --font-color "#d8dee9" \
-        -p fixed -g 627x40+1283+35 &
+    local theme
+    theme="$(cat ${XDG_CACHE_HOME:-$HOME/.cache}/theme)"
+    if [[ "$theme" == "nord" ]]; then
+        screenkey --no-systray --opacity 0.85 \
+            --bg-color "#3b4252" --font-color "#d8dee9" \
+            -p fixed -g 627x40+1283+35 &
+    elif [[ "$theme" == "gruvbox" ]]; then
+        screenkey --no-systray --opacity 0.85 \
+            --bg-color "#282828" --font-color "#ebdbb2" \
+            -p fixed -g 627x40+1283+35 &
+    fi
 
     SCREENKEY_PID=$!
 

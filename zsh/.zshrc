@@ -75,7 +75,7 @@ USE_MULTILINE_PROMPT=true
 [[ -f "$HOME/.prmt.zsh" ]] && source "$HOME/.prmt.zsh"
 
 # Bindkeys
-bindkey -s '^x' 'y\n'
+bindkey -s '^x' 'lc\n'
 bindkey -s '^f' 'chtsh\n'
 bindkey -s '^g' 'chtsh lang\n'
 bindkey -s '^b' 'mkscript\n'

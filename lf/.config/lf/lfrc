@@ -1,0 +1,204 @@
+# Basic Settings
+set previewer ~/.config/lf/preview
+set preview true
+set hidden true
+set drawbox true
+set icons true
+set ignorecase true
+set shellopts '-eu'
+set ifs "\n"
+set scrolloff 10
+
+### KEYBINDS ###
+# Remove some defaults
+map m
+map o
+map n
+map "'"
+map '"'
+map d
+map c
+map e
+map f
+
+# File Operations
+map dd trash-put
+map md mkdir
+map mf mkfile
+map ms mkscript
+map me make-executable
+map re remove-executable
+
+# Basic Operations
+map . set hidden!
+map p paste
+map x cut
+map y copy
+map <enter> open
+map r rename
+map H top
+map L bottom
+map R reload
+map C clear
+map U unselect
+
+# Archive Mappings
+map az zip
+map at tar
+map ag targz
+map ab targz
+map au unarchive
+
+# Trash
+map be trash-empty
+map br trash-restore
+
+# Jumping Around The Filesystem
+map gh :cd ~
+map gc :cd ~/.config
+map gd :cd ~/Downloads
+map gD :cd ~/Documents
+map gv :cd ~/Videos
+map gm :cd ~/Music
+map gg :cd ~/Github
+map ga :cd ~/Github/dots-arch
+map ge :cd ~/Github/dots-debian
+map gw :cd ~/Pictures/Wallpapers
+map gW :cd ~/Pictures/wallpapers
+map gs :cd ~/Pictures/Screenshots
+map gp :cd ~/Pictures
+map gS :cd ~/Scripts
+map gP :cd ~/Projects
+map fj fzf_jump
+
+# Executing Scripts
+map x $"$f"
+map X !"$f"
+
+# Wallpaper
+map bg setbg
+
+### CUSTOM COMMANDS ###
+cmd open ${{
+  case "$(file --mime-type -Lb "$f")" in
+     text/*|application/json) 
+         ${EDITOR:-nvim} "$f" 
+         ;;
+     image/*) 
+         sxiv "$f" 
+         ;;
+     video/*|audio/*) 
+         mpv "$f" 
+         ;;
+     application/pdf) 
+         pdftotext "$f" - | less 
+         ;;
+     *)
+         # Check file extensions if MIME type is unknown
+         case "${f##*.}" in
+             txt|md|json|js|sh|py|cpp|c|java|html|css|lua) ${EDITOR:-nvim} "$f" ;;
+             jpg|jpeg|png|gif|bmp|webp|svg) sxiv "$f" ;;
+             mp4|mkv|webm|avi|mov) mpv "$f" ;;
+             mp3|flac|wav|ogg) mpv "$f" ;;
+             pdf) pdftotext "$f" - | less ;;
+             *) xdg-open "$f" >/dev/null 2>&1 ;;
+         esac
+         ;;
+  esac
+}}
+
+cmd mkdir %{{
+  printf " Directory Name: "
+  read ans
+  mkdir $ans
+}}
+
+cmd mkfile ${{
+  clear
+  printf "File Name: "
+  read ans
+  $EDITOR $ans
+}}
+
+cmd mkscript ${{
+  clear
+  mkscript
+}}
+
+# Filesystem Operations
+cmd make-executable %{{
+  chmod a+x "$f" && lf -remote 'send reload'
+}}
+
+cmd remove-executable %{{
+  chmod a-x "$f" && lf -remote 'send reload'
+}}
+
+# Trashing 
+cmd trash-put %{{
+  trash-put $fx
+}}
+
+cmd trash-empty ${{
+  clear
+  printf "Would you like to see whats inside of the trash [y/n]: "
+  read ans
+  case "$ans" in
+    y) 
+      clear
+      printf "Stuff inside your trash\n"
+      trash-list
+      printf "\nWant to Empty Your Trash [y/n]: "
+      read ans1
+      case "$ans1" in
+        y) trash-empty -f ;;
+        n) exit ;;
+        *) echo "Not echo Not y/n" ;;
+      esac ;;
+    n) trash-empty -f ;;
+    *) echo "Not y/n" ;;
+  esac
+}}
+
+cmd trash-restore ${{
+  clear
+  trash-restore
+}}
+
+# Extract Archives
+cmd unarchive ${{
+  clear
+  case "$f" in
+      *.zip) unzip "$f" ;;
+      *.tar.gz) tar -xzvf "$f" ;;
+      *.tar.bz2) tar -xjvf "$f" ;;
+      *.tar) tar -xvf "$f" ;;
+      *.rar) unrar x "$f" ;;
+      *.7z) 7z x "$f" ;;
+      *) echo "Unsupported format" ;;
+  esac
+}}
+
+# Compressing Current Selected File 
+cmd zip %zip -r "$f" "$f"
+cmd tar %tar cvf "$f.tar" "$f"
+cmd targz %tar cvzf "$f.tar.gz" "$f"
+cmd tarbz2 %tar cjvf "$f.tar.bz2" "$f"
+
+# Fzf Jump
+cmd fzf_jump ${{
+  clear
+  res="$(find . -maxdepth 3 | fzf --reverse --header='Jump to location')"
+  if [[ -f "$res" ]]; then
+    cmd="select"
+  elif [[ -d "$res" ]]; then
+    cmd="cd"
+  fi
+  lf -remote "send $id $cmd \"$res\""
+}}
+
+# Wallpaper
+cmd setbg %{{
+  cp "$f" ~/.config/wall.png
+  xwallpaper --stretch ~/.config/wall.png
+}}

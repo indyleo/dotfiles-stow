@@ -50,6 +50,9 @@ alias clin="sudo make clean install"
 alias dwmblreload="pkill dwmblocks && dwmblocks & disown"
 alias slsreload="pkill slstatus && slstatus & disown"
 
+# Lf
+alias lf="lc"
+
 # find dirs and files
 alias ff="find . | grep "
 
