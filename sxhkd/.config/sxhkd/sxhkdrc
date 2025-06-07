@@ -134,7 +134,7 @@ super + ctrl + Print
 
 # Set Wallpaper
 super + shift + w
-  zsh -c "xwall xwalr $HOME/Pictures/Wallpapers/$(${XDG_CACHE_HOME:-$HOME/.cache}/theme)"
+	xwallrap
 
 # -- Dwm -- #
 
