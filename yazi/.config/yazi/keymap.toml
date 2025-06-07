@@ -231,10 +231,6 @@ keymap = [
   ], run = "cd ~/Github", desc = "Go ~/Github" },
   { on = [
     "g",
-    "w",
-  ], run = "cd ~/Pictures/wallpaper", desc = "Go ~/Pictures/wallpaper" },
-  { on = [
-    "g",
     "W",
   ], run = "cd ~/Pictures/Wallpapers", desc = "Go ~/Pictures/Wallpapers" },
   { on = [
