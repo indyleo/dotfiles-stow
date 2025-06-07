@@ -68,7 +68,11 @@ map gs :cd ~/Pictures/Screenshots
 map gp :cd ~/Pictures
 map gS :cd ~/Scripts
 map gP :cd ~/Projects
-map fj fzf_jump
+map gf follow-link
+
+# Fzf
+map fj fzf_jump_dir
+map fk fzf_jump_file
 
 # Executing Scripts
 map x $"$f"
@@ -128,32 +132,54 @@ cmd open ${{
     esac
 }}
 
+# File Creation Operations
 cmd mkdir %{{
   printf " Directory Name: "
-  read ans
-  mkdir $ans
+  read -r ans
+  if [ -n "$ans" ]; then
+    mkdir -p -- "$ans" && echo "Created: $ans" || echo "Failed to create directory."
+    lf -remote 'send reload'
+  else
+    echo "No directory name entered."
+  fi
 }}
 
 cmd mkfile ${{
   clear
   printf "File Name: "
-  read ans
-  $EDITOR $ans
+  read -r ans
+  if [ -n "$ans" ]; then
+    : > "$ans"  # Touch file safely
+    ${EDITOR:-nvim} "$ans"
+    lf -remote 'send reload'
+  else
+    echo "No file name entered."
+  fi
 }}
 
 cmd mkscript ${{
   clear
-  mkscript
+  mkscript && echo "Script created."
   lf -remote 'send reload'
 }}
 
 # Filesystem Operations
-cmd make-executable %{{
-  chmod a+x "$f" && lf -remote 'send reload'
+cmd make-executable ${{
+  if chmod a+x -- "$f"; then
+    echo "Made executable: $f"
+    lf -remote 'send reload'
+  else
+    echo "Failed to change permissions."
+  fi
 }}
 
-cmd remove-executable %{{
-  chmod a-x "$f" && lf -remote 'send reload'
+cmd remove-executable ${{
+  if chmod a-x -- "$f"; then
+    echo "Removed executable permission: $f"
+    lf -remote 'send reload'
+  else
+    echo "Failed to change permissions."
+  fi
 }}
 
 # Trashing 
@@ -214,7 +240,7 @@ cmd targz %tar cvzf "$f.tar.gz" "$f"
 cmd tarbz2 %tar cjvf "$f.tar.bz2" "$f"
 
 # Fzf Jump
-cmd fzf_jump ${{
+cmd fzf_jump_dir ${{
     # Find directories up to 3 levels deep (excluding .)
     res="$(find . -mindepth 1 -maxdepth 3 -type d 2>/dev/null | fzf \
         --reverse \
@@ -228,10 +254,54 @@ cmd fzf_jump ${{
     fi
 }}
 
+cmd fzf_jump_file ${{
+    # Find directories up to 3 levels deep (excluding .)
+    res="$(find . -mindepth 1 -maxdepth 3 -type f 2>/dev/null | fzf \
+        --reverse \
+        --header='Jump to directory' \
+        --preview 'ls -1 --color=always {}' \
+        --preview-window=down:10:wrap)"
+
+    # If selected, send 'cd' command to lf
+    if [ -n "$res" ]; then
+      ${EDITOR:-nvim} "$res"
+    fi
+}}
+
+cmd follow-link ${{
+    if [ ! -L "$f" ]; then
+        echo "Not a symlink: $f"
+        exit 1
+    fi
+
+    target="$(readlink -f "$f")"
+
+    if [ -d "$target" ]; then
+        # Target is a directory, cd into it
+        lf -remote "send $id cd \"$target\""
+    elif [ -f "$target" ]; then
+        # Target is a file, cd into its parent directory
+        parent_dir=$(dirname "$target")
+        if [ -d "$parent_dir" ]; then
+            lf -remote "send $id cd \"$parent_dir\""
+            ${EDITOR:-nvim} "$target"
+        else
+            echo "Parent directory does not exist: $parent_dir"
+        fi
+    else
+        echo "Target is neither file nor directory: $target"
+    fi
+}}
+
 # Wallpaper
-cmd setbg %{{
-  cp "$f" ~/.config/wall.png
-  xwallpaper --stretch ~/.config/wall.png
-  command rm ~/.config/wall.png
-  lf -remote 'send reload'
+cmd setbg ${{
+  tmp_wall="$HOME/.config/wall.png"
+
+  if cp -- "$f" "$tmp_wall"; then
+    xwallpaper --stretch "$tmp_wall"
+    rm -f -- "$tmp_wall"
+    lf -remote 'send reload'
+  else
+    echo "Failed to copy wallpaper."
+  fi
 }}
