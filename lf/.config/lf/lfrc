@@ -22,17 +22,20 @@ map e
 map f
 
 # File Operations
+map DD delete
 map dd trash-put
 map md mkdir
 map mf mkfile
-map ms mkscript
+map msc mkscript
+map mss mkscript
 map me make-executable
 map re remove-executable
+map ee $${EDITOR:-nvim} "$f"
 
 # Basic Operations
 map . set hidden!
 map p paste
-map x cut
+map mv cut-multi
 map y copy
 map <enter> open
 map r rename
@@ -43,11 +46,8 @@ map C clear
 map U unselect
 
 # Archive Mappings
-map az zip
-map at tar
-map ag targz
-map ab targz
-map au unarchive
+map ex extract
+map er archive
 
 # Trash
 map be trash-empty
@@ -159,7 +159,13 @@ cmd mkfile ${{
 
 cmd mkscript ${{
   clear
-  mkscript && echo "Script created."
+  mkscript && echo "Complex Script created."
+  lf -remote 'send reload'
+}}
+
+cmd mkscr ${{
+  clear
+  mkscr && echo "Simple Script created."
   lf -remote 'send reload'
 }}
 
@@ -220,24 +226,71 @@ cmd trash-restore ${{
 }}
 
 # Extract Archives
-cmd unarchive ${{
+cmd extract %{{
   clear
-  case "$f" in
-      *.zip) unzip "$f" ;;
-      *.tar.gz) tar -xzvf "$f" ;;
-      *.tar.bz2) tar -xjvf "$f" ;;
-      *.tar) tar -xvf "$f" ;;
-      *.rar) unrar x "$f" ;;
-      *.7z) 7z x "$f" ;;
-      *) echo "Unsupported format" ;;
-  esac
+  if [ -f "$f" ]; then
+      case "$f" in
+          *.tar.bz2) tar xjf "$f"    ;;
+          *.tar.gz)  tar xzf "$f"    ;;
+          *.bz2)     bunzip2 "$f"    ;;
+          *.rar)     unrar x "$f"    ;;
+          *.gz)      gunzip "$f"     ;;
+          *.tar)     tar xf "$f"     ;;
+          *.tbz2)    tar xjf "$f"    ;;
+          *.tgz)     tar xzf "$f"    ;;
+          *.zip)     unzip "$f"      ;;
+          *.Z)       uncompress "$f" ;;
+          *.7z)      7z x "$f"       ;;
+          *.deb)     ar x "$f"       ;;
+          *.tar.xz)  tar xf "$f"     ;;
+          *.tar.zst) unzstd "$f"     ;;
+          *)         echo " '$f' cannot be extracted via extract" ;;
+      esac
+  else
+      echo " '$f' is not a valid file"
+  fi
 }}
 
 # Compressing Current Selected File 
-cmd zip %zip -r "$f" "$f"
-cmd tar %tar cvf "$f.tar" "$f"
-cmd targz %tar cvzf "$f.tar.gz" "$f"
-cmd tarbz2 %tar cjvf "$f.tar.bz2" "$f"
+cmd archive %{{
+  clear
+  printf " Archive name (with .tar.gz, .zip, or .rar): "
+  read -r archive_name
+
+  if [ -z "$archive_name" ]; then
+    echo " No archive name provided."
+    exit 1
+  fi
+
+  if [ -e "$archive_name" ]; then
+    echo " Error: Archive '$archive_name' already exists."
+    exit 1
+  fi
+
+  case "$archive_name" in
+    *.tar.gz)
+      tar -czf "$archive_name" $fs ;;
+    *.zip)
+      zip -r "$archive_name" $fs ;;
+    *.rar)
+      if command -v rar > /dev/null; then
+        rar a "$archive_name" $fs
+      else
+        echo " Error: 'rar' is not installed."
+        exit 1
+      fi ;;
+    *)
+      echo " Unsupported format: use .tar.gz, .zip, or .rar"
+      exit 1 ;;
+  esac
+
+  if [ $? -eq 0 ]; then
+    echo " Success: Created $archive_name"
+    lf -remote 'send reload'
+  else
+    echo " Failed to create archive."
+  fi
+}}
 
 # Fzf Jump
 cmd fzf_jump_dir ${{
@@ -293,6 +346,22 @@ cmd follow-link ${{
     fi
 }}
 
+cmd cut-multi %{{
+  printf " Move to directory: "
+  read -r dest
+
+  if [ -z "$dest" ] || [ ! -d "$dest" ]; then
+    echo " Invalid destination: $dest defaulting to ./"
+    dest="."
+  fi
+
+  for file in $fs; do
+    mv -- "$file" "$dest/" || echo " Failed to move: $file"
+  done
+
+  lf -remote 'send reload'
+}}
+
 # Wallpaper
 cmd setbg ${{
   tmp_wall="$HOME/.config/wall.png"
@@ -302,6 +371,6 @@ cmd setbg ${{
     rm -f -- "$tmp_wall"
     lf -remote 'send reload'
   else
-    echo "Failed to copy wallpaper."
+    echo " Failed to copy wallpaper."
   fi
 }}
