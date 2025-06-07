@@ -61,10 +61,9 @@ map gD :cd ~/Documents
 map gv :cd ~/Videos
 map gm :cd ~/Music
 map gg :cd ~/Github
-map ga :cd ~/Github/dots-arch
-map ge :cd ~/Github/dots-debian
+map gs :cd ~/Github/dotfiles-stow
+map gC :cd ~/Github/Catalyst
 map gw :cd ~/Pictures/Wallpapers
-map gW :cd ~/Pictures/wallpapers
 map gs :cd ~/Pictures/Screenshots
 map gp :cd ~/Pictures
 map gS :cd ~/Scripts
@@ -80,31 +79,53 @@ map bg setbg
 
 ### CUSTOM COMMANDS ###
 cmd open ${{
-  case "$(file --mime-type -Lb "$f")" in
-     text/*|application/json) 
-         ${EDITOR:-nvim} "$f" 
-         ;;
-     image/*) 
-         sxiv "$f" 
-         ;;
-     video/*|audio/*) 
-         mpv "$f" 
-         ;;
-     application/pdf) 
-         pdftotext "$f" - | less 
-         ;;
-     *)
-         # Check file extensions if MIME type is unknown
-         case "${f##*.}" in
-             txt|md|json|js|sh|py|cpp|c|java|html|css|lua) ${EDITOR:-nvim} "$f" ;;
-             jpg|jpeg|png|gif|bmp|webp|svg) sxiv "$f" ;;
-             mp4|mkv|webm|avi|mov) mpv "$f" ;;
-             mp3|flac|wav|ogg) mpv "$f" ;;
-             pdf) pdftotext "$f" - | less ;;
-             *) xdg-open "$f" >/dev/null 2>&1 ;;
-         esac
-         ;;
-  esac
+    mime="$(file --mime-type -Lb "$f")"
+    ext="${f##*.}"
+
+    case "$mime" in
+        text/*|application/json|application/xml)
+            ${EDITOR:-nvim} "$f"
+            ;;
+        image/*)
+            command -v sxiv >/dev/null && sxiv "$f" ||
+            command -v imv  >/dev/null && imv "$f"
+            ;;
+        video/*|audio/*)
+            mpv "$f"
+            ;;
+        application/pdf)
+            command -v zathura >/dev/null && zathura "$f" ||
+            command -v pdftotext >/dev/null && pdftotext "$f" - | less
+            ;;
+        *)
+            # Fallback on extension if MIME is unrecognized
+            case "$ext" in
+                txt|md|json|js|sh|py|cpp|c|java|html|css|lua|ts|rs|go|yml|yaml)
+                    command -v bat >/dev/null && bat "$f" || ${EDITOR:-nvim} "$f"
+                    ;;
+                jpg|jpeg|png|gif|bmp|webp|svg)
+                    command -v sxiv >/dev/null && sxiv "$f" ||
+                    command -v imv  >/dev/null && imv "$f"
+                    ;;
+                mp4|mkv|webm|avi|mov)
+                    mpv "$f"
+                    ;;
+                mp3|flac|wav|ogg)
+                    mpv "$f"
+                    ;;
+                pdf)
+                    command -v zathura >/dev/null && zathura "$f" ||
+                    command -v pdftotext >/dev/null && pdftotext "$f" - | less
+                    ;;
+                toml)
+                    ${EDITOR:-nvim} "$f"
+                    ;;
+                *)
+                    xdg-open "$f" >/dev/null 2>&1
+                    ;;
+            esac
+            ;;
+    esac
 }}
 
 cmd mkdir %{{
@@ -123,6 +144,7 @@ cmd mkfile ${{
 cmd mkscript ${{
   clear
   mkscript
+  lf -remote 'send reload'
 }}
 
 # Filesystem Operations
@@ -140,24 +162,30 @@ cmd trash-put %{{
 }}
 
 cmd trash-empty ${{
-  clear
-  printf "Would you like to see whats inside of the trash [y/n]: "
-  read ans
-  case "$ans" in
-    y) 
-      clear
-      printf "Stuff inside your trash\n"
-      trash-list
-      printf "\nWant to Empty Your Trash [y/n]: "
-      read ans1
-      case "$ans1" in
-        y) trash-empty -f ;;
-        n) exit ;;
-        *) echo "Not echo Not y/n" ;;
-      esac ;;
-    n) trash-empty -f ;;
-    *) echo "Not y/n" ;;
-  esac
+    clear
+    printf "Would you like to see what's inside the trash? [y/n]: "
+    read -r ans
+    case "${ans}" in
+        y)
+            clear
+            echo -e "\033[1mContents of your trash:\033[0m"
+            trash-list || echo "Failed to list trash."
+            echo
+            printf "Empty the trash now? [y/n]: "
+            read -r confirm
+            case "${confirm}" in
+                y) trash-empty -f ;;
+                n) echo "Trash not emptied." ;;
+                *) echo "Invalid input. Expected 'y' or 'n'." ;;
+            esac
+            ;;
+        n)
+            trash-empty -f
+            ;;
+        *)
+            echo "Invalid input. Expected 'y' or 'n'."
+            ;;
+    esac
 }}
 
 cmd trash-restore ${{
@@ -187,18 +215,23 @@ cmd tarbz2 %tar cjvf "$f.tar.bz2" "$f"
 
 # Fzf Jump
 cmd fzf_jump ${{
-  clear
-  res="$(find . -maxdepth 3 | fzf --reverse --header='Jump to location')"
-  if [[ -f "$res" ]]; then
-    cmd="select"
-  elif [[ -d "$res" ]]; then
-    cmd="cd"
-  fi
-  lf -remote "send $id $cmd \"$res\""
+    # Find directories up to 3 levels deep (excluding .)
+    res="$(find . -mindepth 1 -maxdepth 3 -type d 2>/dev/null | fzf \
+        --reverse \
+        --header='Jump to directory' \
+        --preview 'ls -1 --color=always {}' \
+        --preview-window=down:10:wrap)"
+
+    # If selected, send 'cd' command to lf
+    if [ -n "$res" ]; then
+        lf -remote "send $id cd \"$res\""
+    fi
 }}
 
 # Wallpaper
 cmd setbg %{{
   cp "$f" ~/.config/wall.png
   xwallpaper --stretch ~/.config/wall.png
+  command rm ~/.config/wall.png
+  lf -remote 'send reload'
 }}
