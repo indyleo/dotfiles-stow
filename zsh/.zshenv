@@ -40,6 +40,14 @@ if [[ -z "$XDG_CACHE_HOME" ]]; then
     export XDG_CACHE_HOME="$HOME/.cache"
 fi
 
+if [[ -z "$XDG_SCRIPTS_HOME" ]]; then
+    export XDG_CACHE_HOME="$HOME/.local/scripts"
+fi
+
+if [[ -z "$XDG_SCRIPTS_DEV" ]]; then
+    export XDG_CACHE_HOME="$HOME/Scripts"
+fi
+
 # Some Nice Exports
 export EDITOR="nvim"
 export VISUAL="nvim"

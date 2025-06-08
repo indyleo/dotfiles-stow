@@ -223,5 +223,14 @@ function scrky() {
     kill "$SCREENKEY_PID" 2>/dev/null
 }
 
+function edit() {
+    local files
+    files="$(fzf -m --preview='batcat --color=always --style=numbers {}')"
+    if [[ -z "$files" ]]; then
+        return
+    fi
+    nvim "$files"
+}
+
 # For Vim Users
 # vim:ft=zsh
