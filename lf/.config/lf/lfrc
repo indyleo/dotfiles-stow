@@ -317,6 +317,7 @@ cmd fzf_jump_file ${{
 
     # If selected, send 'cd' command to lf
     if [ -n "$res" ]; then
+      lf -remote "send $id cd \"$(dirname "$res")\""
       ${EDITOR:-nvim} "$res"
     fi
 }}
