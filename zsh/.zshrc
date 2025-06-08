@@ -7,7 +7,20 @@ autoload -U colors && colors
 # History in cache directory:
 HISTSIZE=10000
 SAVEHIST=10000
-HISTFILE=$XDG_CACHE_HOME/history-zsh
+HISTFILE="${XDG_CACHE_HOME:-$HOME/.cache}/history-zsh"
+
+# History options
+setopt HIST_IGNORE_ALL_DUPS      # Remove older duplicate before adding new
+setopt HIST_SAVE_NO_DUPS         # Don't write dupes to history file
+setopt HIST_REDUCE_BLANKS        # Remove excess whitespace
+setopt HIST_FIND_NO_DUPS         # Avoid dupes during reverse search
+setopt INC_APPEND_HISTORY        # Append history immediately
+setopt SHARE_HISTORY             # Share across terminals
+setopt EXTENDED_HISTORY
+setopt APPEND_HISTORY
+
+# Don't record commands that start with space (like ` ls`)
+setopt HIST_IGNORE_SPACE
 
 # Basic auto/tab complete:
 autoload -U compinit
