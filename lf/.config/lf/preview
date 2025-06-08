@@ -1,29 +1,5 @@
 #!/bin/env bash
 
-# preview="$1"
-#
-# # Preview
-# case "$preview" in
-#         # Media
-#     *.png|*.jpg|*.jpeg|*.bmp|*.xpm|*.wepb) mediainfo "$preview" ;;
-#     *.mkv|*.mp3|*.mp4|*.wav) exiftool "$preview" ;;
-#
-#         # Archives
-#     *.tar) tar -tvf "$preview" ;;
-#     *.tar.gz) tar -ztvf "$preview" ;;
-#     *.tar.bz2) tar -jtvf "$preview" ;;
-#     *.zip) zipinfo "$preview" ;;
-#     *.rar) unrar l "$preview" ;;
-#     *.7z) 7z l "$preview" ;;
-#
-#         # Text
-#     *.bash*|*.git*|*.sh|*.zsh*) pistol "$preview" ;;
-#     *.md) glow -s dark "$preview" ;;
-#     *.pdf) pdftotext "$preview" - ;;
-#     *) highlight "$preview" -O ansi || cat "$preview" ;;
-# esac
-
-
 preview="$1"
 
 # Ensure file exists
