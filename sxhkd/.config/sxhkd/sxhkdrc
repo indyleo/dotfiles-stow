@@ -26,9 +26,17 @@ super + shift + c
 super + shift + e
   dmenu_emoji
 
+# Nerd Fonts
+super + alt + e 
+  dmenu_nerdfont
+
 # Powermenu
 super + shift + p
   dmenu_power
+
+# Dmenu menu
+super + alt + m
+  dmenu_menu
 
 # -- System -- #
 

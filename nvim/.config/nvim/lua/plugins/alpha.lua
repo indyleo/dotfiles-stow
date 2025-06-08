@@ -46,7 +46,7 @@ return {
       dashboard.button("cz", "  > Config Zsh", ":EditFile ~ .zshrc<CR>"),
       dashboard.button("cp", "  > Config OhMyPosh", ":EditFile ~/.config/ohmyposh/ base.toml<CR>"),
       dashboard.button("cf", "󰌢  > Config FastFetch", ":EditFile ~/.config/fastfetch/ config.jsonc<CR>"),
-      dashboard.button("cy", "󰇥  > Config Yazi", ":OilDir $XDG_CONFIG_HOME/yazi<CR>"),
+      dashboard.button("cy", "󰇥  > Config LF", ":OilDir $XDG_CONFIG_HOME/lf<CR>"),
       dashboard.button("md", "  > Opens My Markdown Folder", ":OilDir $HOME/Documents/Markdown<CR>"),
       dashboard.button("q", "  > Quit Nvim", ":qa!<CR>"),
       dashboard.button("SPC l", "󰒲  > Lazy", ":Lazy<CR>"),
