@@ -41,11 +41,11 @@ if [[ -z "$XDG_CACHE_HOME" ]]; then
 fi
 
 if [[ -z "$XDG_SCRIPTS_HOME" ]]; then
-    export XDG_CACHE_HOME="$HOME/.local/scripts"
+    export XDG_SCRIPTS_HOME="$HOME/.local/scripts"
 fi
 
 if [[ -z "$XDG_SCRIPTS_DEV" ]]; then
-    export XDG_CACHE_HOME="$HOME/Scripts"
+    export XDG_SCRIPTS_DEV="$HOME/Scripts"
 fi
 
 # Some Nice Exports
