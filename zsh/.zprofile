@@ -49,7 +49,12 @@ export TERM="xterm-256color"
 export COLORTERM="truecolor"
 export OPENER="xdg-open"
 export BROWSER="qutebrowser"
-export WM="$(ps -e -o comm= | grep -E 'dwm|bspwm|xmonad|awesome|kwin' | grep -v dwmblocks | head -n 1 | xargs)"
+export TERMINAL="st"
+export READER="zathura"
+export TUIF="lf"
+export READER="zathura"
+
+# QT Theme
 export QT_QPA_PLATFORMTHEME="qt6ct"
 
 # Bitwarden
