@@ -147,3 +147,7 @@ super + shift + r
 # Logout of session
 super + shift + q
 	qquit
+
+# Close focused window
+super + q
+	qkill
