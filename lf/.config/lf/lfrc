@@ -27,7 +27,7 @@ map dd trash-put
 map md mkdir
 map mf mkfile
 map msc mkscript
-map mss mkscript
+map mss mkscr
 map me make-executable
 map re remove-executable
 map ee $${EDITOR:-nvim} "$f"
