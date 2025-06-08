@@ -311,7 +311,7 @@ cmd fzf_jump_file ${{
     # Find directories up to 3 levels deep (excluding .)
     res="$(find . -mindepth 1 -maxdepth 3 -type f 2>/dev/null | fzf \
         --reverse \
-        --header='Jump to directory' \
+        --header='Jump to file' \
         --preview 'ls -1 --color=always {}' \
         --preview-window=down:10:wrap)"
 
