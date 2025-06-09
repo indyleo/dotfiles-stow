@@ -86,6 +86,9 @@ super + alt + {Right,Left}
 super + alt + Pause
   browserctrl --togglepause
 
+super + alt + s
+  browserctrl --togglepause
+
 alt + XF86Audio{Next,Prev}
   browserctrl {--skip,--previous}
 
