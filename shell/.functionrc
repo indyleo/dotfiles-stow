@@ -225,7 +225,7 @@ function scrky() {
 
 function edit() {
     local files
-    files="$(fzf -m --preview='batcat --color=always --style=numbers {}')"
+    files="$(find . -maxdepth 5 | fzf -m --preview='batcat --color=always --style=numbers {}')"
     if [[ -z "$files" ]]; then
         return
     fi
