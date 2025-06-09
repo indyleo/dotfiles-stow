@@ -15,13 +15,12 @@ PROCS=(
 FLAT_PROCS=(
     org.fkoehler.KTailctl
 )
-
-ARGS=(
-    timexwalr ~/Pictures/Wallpapers 900
-)
-
 ARG_PROCS=(
     xwall
+)
+
+ARG_LIST=(
+    "timexwalr ${HOME}/Pictures/Wallpapers/${THEME_CURRENT:-other} 900"
 )
 
 # Functions
@@ -29,21 +28,17 @@ function command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+if command_exists solaar; then
+    ARG_PROCS+=("solaar")
+    ARG_LIST+=("--window hide")
+fi
+
 function StartProc() {
     for program in "${PROCS[@]}"; do
         # Check if the program is already running
         if ! pgrep -x "$program" > /dev/null; then
             # If it's not running, start it in the background
             "$program" &
-        fi
-    done
-}
-
-function ArgStart() {
-    for program in "${ARG_PROCS[@]}"; do
-        if ! pgrep -x "$program" > /dev/null; then
-            # Start the program with arguments in the background
-            "$program" "${ARGS[@]}" &
         fi
     done
 }
@@ -59,6 +54,17 @@ function StartFlat() {
 
             # Try to launch the Flatpak application
             flatpak run "$app_id" &
+        fi
+    done
+}
+
+function ArgStart() {
+    for i in "${!ARG_PROCS[@]}"; do
+        program="${ARG_PROCS[$i]}"
+        args="${ARG_LIST[$i]}"
+        if ! pgrep -x "$program" > /dev/null; then
+            # shellcheck disable=SC2086
+            $program $args &
         fi
     done
 }
