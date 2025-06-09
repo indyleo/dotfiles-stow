@@ -70,6 +70,9 @@ super + {Right,Left}
 super + Pause
   songctrl --togglepause
 
+super + s
+  songctrl --togglepause
+
 XF86Audio{Next,Prev}
   songctrl {--skip,--previous}
 
