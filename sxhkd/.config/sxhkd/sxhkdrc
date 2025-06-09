@@ -148,7 +148,7 @@ super + ctrl + Print
 
 # Set Wallpaper
 super + shift + w
-	xwallrap
+	xwall themewall ~/Pictures/Wallpapers
 
 # -- Dwm -- #
 
