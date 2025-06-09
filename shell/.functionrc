@@ -225,11 +225,14 @@ function scrky() {
 
 function edit() {
     local files
-    files="$(find . -maxdepth 5 -type f | fzf -m --preview='batcat --color=always --style=numbers {}')"
-    if [[ -z "$files" ]]; then
-        return
-    fi
-    nvim "$files"
+    files=$(find . -maxdepth 5 -type f | fzf -m --preview='batcat --color=always --style=numbers {}')
+    [[ -z "$files" ]] && return
+
+    # Turn newline-separated string into array safely
+    local -a file_array
+    file_array=("${(f)files}")
+
+    nvim "${file_array[@]}"
 }
 
 # For Vim Users
