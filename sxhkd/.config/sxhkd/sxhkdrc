@@ -111,7 +111,7 @@ super + b
 
 # Music 
 super + m
-  flatpak run io.github.dweymouth.supersonic
+	superlaunch
 
 # Discord 
 super + shift + d
