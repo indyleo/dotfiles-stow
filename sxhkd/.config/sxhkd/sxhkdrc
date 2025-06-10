@@ -99,15 +99,15 @@ alt + XF86AudioPlay
 
 # Terminal 
 super + Return
-  st
+  $TERMINAL
 
 # File Manager
 super + f
-  thunar
+  $GUIF
 
 # Browser 
 super + b
-  qutebrowser
+  $BROWSER
 
 # Music 
 super + m
@@ -123,7 +123,7 @@ super + g
 
 # Neovide
 super + e
-  neovide
+  $GEDIT
 
 # -- Record/Screen -- #
 

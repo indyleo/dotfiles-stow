@@ -64,6 +64,8 @@ export BROWSER="qutebrowser"
 export TERMINAL="st"
 export READER="zathura"
 export TUIF="lf"
+export GUIF="thunar"
+export GEDIT="neovide"
 export READER="zathura"
 
 # RustUp
