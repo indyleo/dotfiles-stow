@@ -82,10 +82,10 @@ bindkey '^e' edit-command-line
 USE_MULTILINE_PROMPT=true
 
 # Load aliases, functions, hooks, and prompt if exists.
-[[ -f "$HOME/.aliasrc" ]] && source "$HOME/.aliasrc"
-[[ -f "$HOME/.functionrc" ]] && source "$HOME/.functionrc"
-[[ -f "$HOME/.hooksrc" ]] && source "$HOME/.hooksrc"
-[[ -f "$HOME/.prmt.zsh" ]] && source "$HOME/.prmt.zsh"
+[[ -f "$SDOTDIR/alias.zsh" ]] && source "$SDOTDIR/alias.zsh"
+[[ -f "$SDOTDIR/function.zsh" ]] && source "$SDOTDIR/function.zsh"
+[[ -f "$SDOTDIR/hooks.zsh" ]] && source "$SDOTDIR/hooks.zsh"
+[[ -f "$SDOTDIR/prompt.zsh" ]] && source "$SDOTDIR/prompt.zsh"
 
 # Bindkeys
 bindkey -s '^x' 'lc\n'

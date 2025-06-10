@@ -70,5 +70,9 @@ export GMUSIC="superlaunch"
 export READER="zathura"
 export LOCKER="slock"
 
+# Setting ZDOTDIR
+export ZDOTDIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"
+export SDOTDIR="${XDG_CONFIG_HOME:-$HOME/.config}/shell"
+
 # RustUp
 [[ -f "$HOME/.cargo/env" ]] || . "$HOME/.cargo/env"
