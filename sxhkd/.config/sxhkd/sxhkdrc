@@ -40,10 +40,6 @@ super + alt + m
 
 # -- System -- #
 
-# Locker
-super + shift + l
-  slock
-
 # Brightness
 XF86MonBrightness{Up,Down}	
   brightnessctrl {--inc,--dec} 5
@@ -111,7 +107,11 @@ super + b
 
 # Music 
 super + m
-	superlaunch
+	$GMUSIC
+
+# Neovide
+super + e
+  $GEDIT
 
 # Discord 
 super + shift + d
@@ -120,10 +120,6 @@ super + shift + d
 # Signal
 super + g
 	signal-desktop
-
-# Neovide
-super + e
-  $GEDIT
 
 # -- Record/Screen -- #
 
@@ -150,18 +146,20 @@ super + ctrl + Print
 super + shift + w
 	xwall themewall ~/Pictures/Wallpapers
 
-# -- Dwm -- #
+# -- WM Managment -- #
 
 # Restart dwm if current wm
 super + shift + r
-	qrestart
-
-# -- Misc -- #
+	wmc restartwm
 
 # Logout of session
 super + shift + q
-	qquit
+	wmc logout
 
 # Close focused window
 super + q
-	qkill
+	wmc killwindow
+
+# Locker
+super + shift + l
+  wmc lock

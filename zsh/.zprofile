@@ -66,7 +66,9 @@ export READER="zathura"
 export TUIF="lf"
 export GUIF="thunar"
 export GEDIT="neovide"
+export GMUSIC="superlauch"
 export READER="zathura"
+export LOCKER="slock"
 
 # QT Theme
 export QT_QPA_PLATFORMTHEME="qt6ct"

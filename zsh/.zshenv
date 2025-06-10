@@ -66,7 +66,9 @@ export READER="zathura"
 export TUIF="lf"
 export GUIF="thunar"
 export GEDIT="neovide"
+export GMUSIC="superlauch"
 export READER="zathura"
+export LOCKER="slock"
 
 # RustUp
 [[ -f "$HOME/.cargo/env" ]] || . "$HOME/.cargo/env"
