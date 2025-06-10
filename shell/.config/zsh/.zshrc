@@ -112,6 +112,6 @@ eval "$(fzf --zsh)"
 # Loading zsh plugins (LAST)
 source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh 2>/dev/null
 source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh 2>/dev/null
-source ~/Zsh-Plugins/zsh-autopair/autopair.zsh 2>/dev/null
-source ~/Zsh-Plugins/zsh-history-substring-search/zsh-history-substring-search.zsh 2>/dev/null
-source ~/Zsh-Plugins/zsh-you-should-use/you-should-use.plugin.zsh 2>/dev/null
+source $PLUGINDIR/zsh-autopair/autopair.zsh 2>/dev/null
+source $PLUGINDIR/zsh-history-substring-search/zsh-history-substring-search.zsh 2>/dev/null
+source $PLUGINDIR/zsh-you-should-use/you-should-use.plugin.zsh 2>/dev/null

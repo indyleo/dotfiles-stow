@@ -73,6 +73,7 @@ export LOCKER="slock"
 # Setting ZDOTDIR
 export ZDOTDIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"
 export SDOTDIR="${XDG_CONFIG_HOME:-$HOME/.config}/shell"
+export PLUGINDIR="${XDG_DATA_HOME:-$HOME/.local/share}/zplugins"
 
 # RustUp
 [[ -f "$HOME/.cargo/env" ]] || . "$HOME/.cargo/env"
