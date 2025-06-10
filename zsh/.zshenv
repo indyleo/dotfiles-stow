@@ -66,7 +66,7 @@ export READER="zathura"
 export TUIF="lf"
 export GUIF="thunar"
 export GEDIT="neovide"
-export GMUSIC="superlauch"
+export GMUSIC="superlaunch"
 export READER="zathura"
 export LOCKER="slock"
 
