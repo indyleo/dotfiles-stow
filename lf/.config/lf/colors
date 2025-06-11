@@ -172,3 +172,29 @@ fi      00      # FILE
 *.opus  00;36
 *.spx   00;36
 *.xspf  00;36
+
+# video formats (extensions from dircolors defaults)
+*.3g2   01;35
+*.3gp   01;35
+*.asf   01;35
+*.asx   01;35
+*.avi   01;35
+*.flv   01;35
+*.m2v   01;35
+*.mkv   01;35
+*.mov   01;35
+*.mp4   01;35
+*.mpg   01;35
+*.rm    01;35
+*.swf   01;35
+*.vob   01;35
+*.wmv   01;35
+
+# # other formats
+*.pdf   01;30
+*.doc   01;30
+*.docx  01;30
+*.xls   01;30
+*.xlsx  01;30
+*.ppt   01;30
+*.pptx  01;30
