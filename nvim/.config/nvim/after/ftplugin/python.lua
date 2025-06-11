@@ -1,4 +1,4 @@
--- Lua filetype plugin --
+-- Python filetype plugin --
 vim.api.nvim_create_autocmd("BufEnter", {
   group = vim.api.nvim_create_augroup("PythonMaps", { clear = true }),
   callback = function(args)

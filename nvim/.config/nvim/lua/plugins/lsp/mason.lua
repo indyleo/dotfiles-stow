@@ -42,6 +42,9 @@ return {
         "lua_ls",
         "gopls",
         "clangd",
+        "rust_analyzer",
+        "cmake",
+        "zls",
 
         -- Script/Shell
         "powershell_es",
@@ -77,6 +80,8 @@ return {
         "cmakelang",
         "checkmake",
         "clang-format",
+        "bacon",
+        "rustfmt",
 
         -- Script/Shell
         "beautysh",
