@@ -81,10 +81,9 @@ bindkey '^e' edit-command-line
 # Choose single-line or multiline prompt
 USE_MULTILINE_PROMPT=true
 
-# Load aliases, functions, hooks, and prompt if exists.
+# Load aliases, functions, and prompt if exists.
 [[ -f "$SDOTDIR/alias.zsh" ]] && source "$SDOTDIR/alias.zsh"
 [[ -f "$SDOTDIR/function.zsh" ]] && source "$SDOTDIR/function.zsh"
-[[ -f "$SDOTDIR/hooks.zsh" ]] && source "$SDOTDIR/hooks.zsh"
 [[ -f "$SDOTDIR/prompt.zsh" ]] && source "$SDOTDIR/prompt.zsh"
 
 # Bindkeys
