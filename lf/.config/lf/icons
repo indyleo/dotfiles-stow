@@ -23,9 +23,9 @@
 ln             # LINK
 or             # ORPHAN
 tw      t       # STICKY_OTHER_WRITABLE
-ow             # OTHER_WRITABLE
+ow             # OTHER_WRITABLE
 st      t       # STICKY
-di             # DIR
+di             # DIR
 pi      p       # FIFO
 so      s       # SOCK
 bd      b       # BLK
@@ -35,7 +35,28 @@ sg      g       # SETGID
 ex             # EXEC
 fi             # FILE
 
-# file extensions (vim-devicons)
+# Setting folder icons
+Downloads/     
+Music/         
+Pictures/      
+Videos/        
+Documents/     󰈙
+Markdown/      
+Github/        
+Desktop/       
+Applications/  
+Img/           
+Virt/          
+Templates/     
+Projects/      
+Public/        
+Scripts/       
+Games/         
+Sync/          
+ssh-keys/      
+go/            
+
+# Language icons
 *.styl          
 *.sass          
 *.scss          
@@ -73,13 +94,6 @@ fi             # FILE
 *.toml          
 *.bat           
 *.mk            
-*.jpg           
-*.jpeg          
-*.bmp           
-*.png           
-*.webp          
-*.gif           
-*.ico           
 *.twig          
 *.cpp           
 *.c++           
@@ -158,7 +172,7 @@ fi             # FILE
 *.sol           󰡪
 *.pem           
 
-# file names (vim-devicons) (case-insensitive not supported in lf)
+# Case-insensitive extensions (Lf does not support case-insensitive patterns)
 *gruntfile.coffee       
 *gruntfile.js           
 *gruntfile.ls           
@@ -195,7 +209,7 @@ fi             # FILE
 *cmakelists.txt         
 *robots.txt             󰚩
 
-# file names (case-sensitive adaptations)
+# Case-sensitive adaptations
 *Gruntfile.coffee       
 *Gruntfile.js           
 *Gruntfile.ls           
@@ -214,18 +228,7 @@ fi             # FILE
 *Makefile               
 *CMakeLists.txt         
 
-# file patterns (vim-devicons) (patterns not supported in lf)
-# .*jquery.*\.js$         
-# .*angular.*\.js$        
-# .*backbone.*\.js$       
-# .*require.*\.js$        
-# .*materialize.*\.js$    
-# .*materialize.*\.css$   
-# .*mootools.*\.js$       
-# .*vimrc.*               
-# Vagrantfile$            
-
-# file patterns (file name adaptations)
+# File name adaptations
 *jquery.min.js          
 *angular.min.js         
 *backbone.min.js        
@@ -285,73 +288,98 @@ Vagrantfile             
 *.esd   
 
 # image formats (extensions from dircolors defaults)
-*.jpg   
-*.jpeg  
-*.mjpg  
-*.mjpeg 
-*.gif   
-*.bmp   
-*.pbm   
-*.pgm   
-*.ppm   
-*.tga   
-*.xbm   
-*.xpm   
-*.tif   
-*.tiff  
-*.png   
-*.svg   
-*.svgz  
-*.mng   
-*.pcx   
-*.mov   
-*.mpg   
-*.mpeg  
-*.m2v   
-*.mkv   
-*.webm  
-*.ogm   
-*.mp4   
-*.m4v   
-*.mp4v  
-*.vob   
-*.qt    
-*.nuv   
-*.wmv   
-*.asf   
-*.rm    
-*.rmvb  
-*.flc   
-*.avi   
-*.fli   
-*.flv   
-*.gl    
-*.dl    
-*.xcf   
-*.xwd   
-*.yuv   
-*.cgm   
-*.emf   
-*.ogv   
-*.ogx   
+*.jpg   
+*.jpeg  
+*.mjpg  
+*.mjpeg 
+*.gif   
+*.bmp   
+*.pbm   
+*.pgm   
+*.ppm   
+*.tga   
+*.xbm   
+*.xpm   
+*.tif   
+*.tiff  
+*.png   
+*.svg   
+*.svgz  
+*.mng   
+*.pcx   
+*.mov   
+*.mpg   
+*.mpeg  
+*.m2v   
+*.mkv   
+*.webm  
+*.ogm   
+*.mp4   
+*.m4v   
+*.mp4v  
+*.vob   
+*.qt    
+*.nuv   
+*.wmv   
+*.asf   
+*.rm    
+*.rmvb  
+*.flc   
+*.avi   
+*.fli   
+*.flv   
+*.gl    
+*.dl    
+*.xcf   
+*.xwd   
+*.yuv   
+*.cgm   
+*.emf   
+*.ogv   
+*.ogx   
+*.webp  
+*.ico   
 
 # audio formats (extensions from dircolors defaults)
-*.aac   
-*.au    
-*.flac  
-*.m4a   
-*.mid   
-*.midi  
-*.mka   
-*.mp3   
-*.mpc   
-*.ogg   
-*.ra    
-*.wav   
-*.oga   
-*.opus  
-*.spx   
-*.xspf  
+*.aac   
+*.au    
+*.flac  
+*.m4a   
+*.mid   
+*.midi  
+*.mka   
+*.mp3   
+*.mpc   
+*.ogg   
+*.ra    
+*.wav   
+*.oga   
+*.opus  
+*.spx   
+*.xspf  
+
+# video formats (extensions from dircolors defaults)
+*.3g2   
+*.3gp   
+*.asf   
+*.asx   
+*.avi   
+*.flv   
+*.m2v   
+*.mkv   
+*.mov   
+*.mp4   
+*.mpg   
+*.rm    
+*.swf   
+*.vob   
+*.wmv   
 
 # other formats
-*.pdf   
+*.pdf   
+*.doc   
+*.docx  
+*.xls   
+*.xlsx  
+*.ppt   
+*.pptx  
