@@ -64,12 +64,6 @@ keymap("n", "<leader>hl", ":nohlsearch<CR>", opts "Clear highlights")
 keymap("n", "a", "<C-a>", opt)
 keymap("n", "q", "<C-x>", opt)
 
--- Exit neovim
-keymap("n", "<leader>qw", ":wq!<CR>", opts "Write file and Exit")
-keymap("n", "<leader>qq", ":q!<CR>", opts "Exit")
-keymap("n", "<leader>qaw", ":wqa!<CR>", opts "Write file and Exit neovim")
-keymap("n", "<leader>qaq", ":qa!<CR>", opts "Exit neovim")
-
 -- Terminal Stuuf
 keymap({ "n", "t" }, "<leader>tr", ":ToggleTerm<CR>", opts "Toggle terminal")
 keymap({ "n", "t" }, "<leader>tg", ":ToggleLazygit<CR>", opts "Toggle lazygit")
@@ -89,8 +83,17 @@ keymap("v", "K", ":m '<-2<CR>gv=gv", opt)
 
 -- Better paste
 keymap("v", "p", "P", opt)
+keymap("v", "P", '"_dP', opt)
+
+-- Visual Block --
+
+-- Better paste
+keymap("x", "p", "P", opt)
+keymap("x", "P", '"_dP', opt)
 
 -- Terminal --
+
+-- Better back to normal mode
 keymap("t", "<Esc><Esc>", "<C-\\><C-n>", opts "Exit terminal to normal Mode")
 
 ---- Plugins ----
@@ -109,11 +112,11 @@ keymap("n", "<C-c>", function()
 end, opt)
 
 -- Trouble
-keymap("n", "<leader>xw", ":Trouble diagnostics toggle<CR>", opts "Open trouble workspace diagnostics")
-keymap("n", "<leader>xd", ":Trouble diagnostics toggle filter.buf=0<CR>", opts "Open trouble document diagnostics")
-keymap("n", "<leader>xq", ":Trouble quickfix toggle<CR>", opts "Open trouble quickfix list")
-keymap("n", "<leader>xl", ":Trouble loclist toggle<CR>", opts "Open trouble location list")
-keymap("n", "<leader>xt", ":Trouble todo toggle<CR>", opts "Open todos in trouble")
+keymap("n", "<leader>tw", ":Trouble diagnostics toggle<CR>", opts "Open trouble workspace diagnostics")
+keymap("n", "<leader>td", ":Trouble diagnostics toggle filter.buf=0<CR>", opts "Open trouble document diagnostics")
+keymap("n", "<leader>tq", ":Trouble quickfix toggle<CR>", opts "Open trouble quickfix list")
+keymap("n", "<leader>tl", ":Trouble loclist toggle<CR>", opts "Open trouble location list")
+keymap("n", "<leader>tt", ":Trouble todo toggle<CR>", opts "Open todos in trouble")
 
 -- Noice
 keymap("n", "<leader>nh", ":NoiceDismiss<CR>", opts "Dimmis noice notifications")
@@ -217,11 +220,11 @@ vim.api.nvim_create_autocmd("LspAttach", {
     keymap("n", "<leader>d", function()
       vim.diagnostic.open_float()
     end, lspopts "Show diagnostics for line")
-    keymap("n", "[d", function()
-      vim.diagnostic.goto_prev()
+    keymap("n", "[t", function()
+      require("trouble").next { skip_groups = true, jump = true }
     end, lspopts "Jump to previous diagnostic in buffer")
-    keymap("n", "]d", function()
-      vim.diagnostic.goto_next()
+    keymap("n", "]t", function()
+      require("trouble").previous { skip_groups = true, jump = true }
     end, lspopts "Jump to next diagnostic in buffer")
     keymap("n", "gK", function()
       vim.lsp.buf.hover()
