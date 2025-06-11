@@ -15,6 +15,7 @@ return {
           text = false,
           gitcommit = false,
           gitrebase = false,
+          rust = false, -- Here because im learning rust
         },
         default_filetype_enabled = true,
         virtual_text_priority = 65535,
