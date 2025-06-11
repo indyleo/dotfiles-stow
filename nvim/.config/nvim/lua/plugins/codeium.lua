@@ -1,5 +1,5 @@
 return {
-  "Exafunction/codeium.nvim",
+  "Exafunction/windsurf.nvim",
   dependencies = {
     "nvim-lua/plenary.nvim",
     "hrsh7th/nvim-cmp",
@@ -10,6 +10,13 @@ return {
       enable_cmp_source = false,
       virtual_text = {
         enabled = true,
+        filetypes = {
+          markdown = false,
+          text = false,
+          gitcommit = false,
+          gitrebase = false,
+        },
+        default_filetype_enabled = true,
         virtual_text_priority = 65535,
         map_keys = true,
         key_bindings = {
