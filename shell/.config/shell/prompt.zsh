@@ -40,13 +40,21 @@ zstyle ':vcs_info:git+set-message:*' hooks store-symbols
 
 function +vi-store-symbols() {
     GIT_SYMBOLS=""
-    git diff --quiet --ignore-submodules HEAD || GIT_SYMBOLS+="*"
-    git diff --cached --quiet --ignore-submodules HEAD || GIT_SYMBOLS+="*"
-    local stats=$(git rev-list --left-right --count @{u}...HEAD 2>/dev/null)
-    local behind=$(echo $stats | awk '{print $1}')
-    local ahead=$(echo $stats | awk '{print $2}')
-    (( behind > 0 )) && GIT_SYMBOLS+="⇣"
-    (( ahead > 0 )) && GIT_SYMBOLS+="⇡"
+
+    # Only run these if HEAD exists
+    if git rev-parse --verify HEAD >/dev/null 2>&1; then
+        git diff --quiet --ignore-submodules HEAD || GIT_SYMBOLS+="*"
+        git diff --cached --quiet --ignore-submodules HEAD || GIT_SYMBOLS+="*"
+
+        # Only run rev-list if upstream is set
+        if git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
+            local stats=$(git rev-list --left-right --count @{u}...HEAD 2>/dev/null)
+            local behind=$(echo $stats | awk '{print $1}')
+            local ahead=$(echo $stats | awk '{print $2}')
+            (( behind > 0 )) && GIT_SYMBOLS+="⇣"
+            (( ahead > 0 )) && GIT_SYMBOLS+="⇡"
+        fi
+    fi
 }
 
 # ---- Command Timing ----
