@@ -28,14 +28,14 @@ map md mkdir
 map mf mkfile
 map msc mkscript
 map mss mkscr
-map me make-executable
-map re remove-executable
+map et toggle-executable
+map ec chmod-custom
 map ee $${EDITOR:-nvim} "$f"
 
 # Basic Operations
 map . set hidden!
 map p paste
-map mv cut-multi
+map x cut
 map y copy
 map <enter> open
 map r rename
@@ -68,15 +68,20 @@ map gs :cd ~/Pictures/Screenshots
 map gp :cd ~/Pictures
 map gS :cd ~/Scripts
 map gP :cd ~/Projects
+map gn :cd ~/Documents/Markdown/Notes
 map gf follow-link
+
+# Notes
+map nn mknotes
+map nf fzf_note
 
 # Fzf
 map fj fzf_jump_dir
 map fk fzf_jump_file
 
 # Executing Scripts
-map x $"$f"
-map X !"$f"
+map Ex $"$f"
+map Ee !"$f"
 
 # Wallpaper
 map bg setbg
@@ -149,7 +154,7 @@ cmd mkfile ${{
   printf "File Name: "
   read -r ans
   if [ -n "$ans" ]; then
-    : > "$ans"  # Touch file safely
+    :> "$ans"  # Touch file safely
     ${EDITOR:-nvim} "$ans"
     lf -remote 'send reload'
   else
@@ -159,33 +164,66 @@ cmd mkfile ${{
 
 cmd mkscript ${{
   clear
-  mkscript && echo "Complex Script created."
+  mkscript 
+  echo "Complex Script created."
+  lf -remote "send $id cd \"$HOME/Scripts\"" 
   lf -remote 'send reload'
 }}
 
 cmd mkscr ${{
   clear
-  mkscr && echo "Simple Script created."
+
+  mkscr 
+  echo "Simple Script created."
+  lf -remote "send $id cd \"$HOME/Scripts\"" 
+  lf -remote 'send reload'
+}}
+
+cmd mknotes ${{
+  notes_dir="$HOME/Documents/Markdown/Notes"
+  clear
+  read -rp "Note Name: " ans
+  if [ -z "$ans" ]; then
+    note=$(gennotes)
+  else
+    note="$(gennotes "$ans")"
+  fi
+  lf -remote "send $id cd \"$notes_dir\""
+  ${EDITOR:-nvim} "$note"
   lf -remote 'send reload'
 }}
 
 # Filesystem Operations
-cmd make-executable ${{
-  if chmod a+x -- "$f"; then
-    echo "Made executable: $f"
-    lf -remote 'send reload'
+cmd toggle-executable %{{
+  if [ -x "$f" ]; then
+    if chmod a-x -- "$f"; then
+      echo "Removed executable permission: $f"
+    else
+      echo "Failed to change permissions."
+    fi
   else
-    echo "Failed to change permissions."
+    if chmod a+x -- "$f"; then
+      echo "Made executable: $f"
+    else
+      echo "Failed to change permissions."
+    fi
   fi
+  lf -remote 'send reload'
 }}
 
-cmd remove-executable ${{
-  if chmod a-x -- "$f"; then
-    echo "Removed executable permission: $f"
-    lf -remote 'send reload'
+cmd chmod-custom %{{
+  printf " Chmod Bits: "
+  read -r ans
+  if [ -z "$ans" ]; then
+    echo "No chmod bits provided."
   else
-    echo "Failed to change permissions."
+    if chmod "$ans" -- "$f"; then
+      echo "Changed permissions: $f"
+    else
+      echo "Failed to change permissions."
+    fi
   fi
+  lf -remote 'send reload'
 }}
 
 # Trashing 
@@ -298,7 +336,7 @@ cmd fzf_jump_dir ${{
     res="$(find . -mindepth 1 -maxdepth 3 -type d 2>/dev/null | fzf \
         --reverse \
         --header='Jump to directory' \
-        --preview 'ls -1 --color=always {}' \
+        --preview 'eza -a --tree --group-directories-first --color=always --icons {}' \
         --preview-window=down:10:wrap)"
 
     # If selected, send 'cd' command to lf
@@ -312,7 +350,7 @@ cmd fzf_jump_file ${{
     res="$(find . -mindepth 1 -maxdepth 3 -type f 2>/dev/null | fzf \
         --reverse \
         --header='Jump to file' \
-        --preview 'ls -1 --color=always {}' \
+        --preview 'batcat --color=always --style=numbers {}' \
         --preview-window=down:10:wrap)"
 
     # If selected, send 'cd' command to lf
@@ -322,6 +360,15 @@ cmd fzf_jump_file ${{
     fi
 }}
 
+cmd fzf_note ${{
+  notes_dir="$HOME/Documents/Markdown/Notes"
+  clear
+  lf -remote "send $id cd \"$notes_dir\"" 
+  fzfnote
+  lf -remote 'send reload'
+}}
+
+# Follow Symlink
 cmd follow-link ${{
     if [ ! -L "$f" ]; then
         echo "Not a symlink: $f"
@@ -347,24 +394,8 @@ cmd follow-link ${{
     fi
 }}
 
-cmd cut-multi %{{
-  printf " Move to directory: "
-  read -r dest
-
-  if [ -z "$dest" ] || [ ! -d "$dest" ]; then
-    echo " Invalid destination: $dest defaulting to ./"
-    dest="."
-  fi
-
-  for file in $fs; do
-    mv -- "$file" "$dest/" || echo " Failed to move: $file"
-  done
-
-  lf -remote 'send reload'
-}}
-
 # Wallpaper
-cmd setbg ${{
+cmd setbg %{{
   tmp_wall="$HOME/.config/wall.png"
 
   if cp -- "$f" "$tmp_wall"; then
