@@ -34,6 +34,10 @@ super + alt + e
 super + shift + p
   dmenu_power
 
+# Notes
+super + n
+  dmenu_notebook
+
 # Dmenu menu
 super + alt + m
   dmenu_menu
