@@ -235,3 +235,21 @@ vim.api.nvim_create_autocmd("LspAttach", {
     vim.notify("Lsp Attached to: " .. vim.fn.expand "%:t", vim.log.levels.INFO)
   end,
 })
+
+-- Insert mode
+
+-- LuaSnip
+keymap({ "i" }, "<C-K>", function()
+  require("luasnip").expand()
+end, opt)
+keymap({ "i", "s" }, "<leader>.", function()
+  require("luasnip").jump(1)
+end, opts "Next snippet")
+keymap({ "i", "s" }, "<leader>,", function()
+  require("luasnip").jump(-1)
+end, opts "Previous snippet")
+keymap({ "i", "s" }, "<C-E>", function()
+  if require("luasnip").choice_active() then
+    require("luasnip").change_choice(1)
+  end
+end, opts "Next snippet choice")

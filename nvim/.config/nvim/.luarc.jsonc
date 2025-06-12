@@ -1,6 +1,7 @@
 {
   "diagnostics": {
     "globals": ["vim", "get_python_path", "listDiagnostics", "leave_snippet"],
-    "disable": ["undefined-field", "missing-fields", "redundant-parameter"]
+    "disable": ["undefined-field", "missing-fields", "redundant-parameter",
+            "missing-parameter"]
   }
 }
