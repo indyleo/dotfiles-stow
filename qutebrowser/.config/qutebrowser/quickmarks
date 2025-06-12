@@ -12,7 +12,7 @@ tv https://www.twitch.tv/
 re https://www.reddit.com/
 pcp https://ca.pcpartpicker.com/
 gpt https://chatgpt.com/
-rs https://doc.rust-lang.org/book/ch00-00-introduction.html
+rust https://doc.rust-lang.org/book/ch00-00-introduction.html
 zig https://ziglang.org/documentation/0.14.1/#Introduction
 cpp https://www.learncpp.com/
-pointers https://github.com/jflaherty/ptrtut13
+cpoint https://github.com/jflaherty/ptrtut13

@@ -199,6 +199,7 @@ c.url.searchengines = {
     "!fh": "https://flathub.org/apps/search?q={}",
     "!np": "https://search.nixos.org/packages?channel=24.11&from=0&size=50&sort=relevance&type=packages&query={}",
     "!pd": "https://www.protondb.com/search?q={}",
+    "!yt": "https://www.youtube.com/search?q={}",
 }
 
 # Completion Categories
