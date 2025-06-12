@@ -43,6 +43,21 @@ return {
           case_mode = "smart_case", -- or "ignore_case" or "respect_case"
           -- the default case_mode is "smart_case"
         },
+        undo = {
+          use_delta = true,
+          use_custom_command = nil, -- setting this implies `use_delta = false`. Accepted format is: { "bash", "-c", "echo '$DIFF' | delta" }
+          side_by_side = true,
+          layout_strategy = "vertical",
+          layout_config = {
+            preview_height = 0.8,
+          },
+          vim_diff_opts = {
+            ctxlen = vim.o.scrolloff,
+          },
+          entry_format = "state #$ID, $STAT, $TIME",
+          time_format = "",
+          saved_only = false,
+        },
       },
     }
     telescope.load_extension "fzf"
