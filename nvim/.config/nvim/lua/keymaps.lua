@@ -100,9 +100,6 @@ keymap("t", "<Esc><Esc>", "<C-\\><C-n>", opts "Exit terminal to normal Mode")
 
 -- Normal --
 
--- Markdown Code Extration
-keymap("n", "<leader>em", ":MarkdownCode<CR>", opts "Markdown Code Block Extration")
-
 -- Todo Comments
 keymap("n", "<C-d>", function()
   require("todo-comments").jump_next()
