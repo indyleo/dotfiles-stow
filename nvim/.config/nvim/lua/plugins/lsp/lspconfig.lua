@@ -6,16 +6,20 @@ return {
     { "antosha417/nvim-lsp-file-operations", config = true },
     {
       "folke/lazydev.nvim",
-      ft = "lua",
+      ft = "lua", -- only load on lua files
       opts = {
-        librarys = {
+        library = {
+          -- See the configuration section for more details
+          -- Load luvit types when the `vim.uv` word is found
           { path = "${3rd}/luv/library", words = { "vim%.uv" } },
         },
       },
     },
   },
+
   config = function()
     local config = {
+      virtual_text = true,
       signs = {
         text = {
           [vim.diagnostic.severity.ERROR] = "",
@@ -59,12 +63,12 @@ return {
     end
 
     vim.lsp.config("*", {
-      capabilities = capabilities,
+      capabilities = vim.tbl_deep_extend("force", vim.lsp.protocol.make_client_capabilities(), capabilities),
     })
 
     vim.lsp.config("lua_ls", {
+      root_markers = { ".luarc.jsonc" },
       settings = {
-        root_markers = { ".luarc.json", ".luarc.jsonc" },
         Lua = {
           runtime = {
             version = "LuaJIT", -- Neovim uses LuaJIT
@@ -75,10 +79,7 @@ return {
           },
           workspace = {
             checkThirdParty = false, -- avoid annoying prompts
-            library = {
-              vim.api.nvim_get_runtime_file("", true), -- include Neovim runtime files
-              vim.env.VIMRUNTIME,
-            },
+            library = vim.api.nvim_get_runtime_file("", true),
           },
           telemetry = {
             enable = false, -- disable telemetry
