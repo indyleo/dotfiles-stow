@@ -100,15 +100,7 @@ keymap("t", "<Esc><Esc>", "<C-\\><C-n>", opts "Exit terminal to normal Mode")
 
 -- Normal --
 
--- Todo Comments
-keymap("n", "<C-d>", function()
-  require("todo-comments").jump_next()
-end, opt)
-keymap("n", "<C-c>", function()
-  require("todo-comments").jump_prev()
-end, opt)
-
--- Trouble
+-- end, opts "Comment multiline")
 keymap("n", "<leader>tw", ":Trouble diagnostics toggle<CR>", opts "Open trouble workspace diagnostics")
 keymap("n", "<leader>td", ":Trouble diagnostics toggle filter.buf=0<CR>", opts "Open trouble document diagnostics")
 keymap("n", "<leader>tq", ":Trouble quickfix toggle<CR>", opts "Open trouble quickfix list")
@@ -150,6 +142,14 @@ keymap("n", "<leader>/", function()
 end, opts "Comments line")
 keymap({ "x", "v" }, "<leader>/", "<Esc><:lua require('Comment.api').toggle.linewise(vim.fn.visualmode())<CR>", opts "Comments multi-line")
 
+-- Todo Comments
+keymap("n", "<C-d>", function()
+  require("todo-comments").jump_next()
+end, opts "Next todo comment")
+keymap("n", "<C-c>", function()
+  require("todo-comments").jump_prev()
+end, opts "Previous todo comment")
+
 -- Nvim Ufo
 keymap("n", "<leader>zr", function()
   require("ufo").openAllFolds()
@@ -175,8 +175,12 @@ keymap("n", "<leader>fb", ":Telescope buffers<CR>", opts "List active file buffe
 keymap("n", "<leader>fk", ":Telescope keymaps<CR>", opts "List keymaps")
 keymap("n", "<leader>fh", ":Telescope help_tags<CR>", opts "Fuzzy find help pages")
 keymap("n", "<leader>ft", ":TodoTelescope<CR>", opts "Find todos")
-keymap("n", "<leader>fu", ":Telescope undo<CR>", opts "Opens undo managment")
 keymap("n", "<leader>fn", ":Telescope notify<CR>", opts "Opens notification histroy")
+
+-- Undotree
+keymap("n", "<leader>u", function()
+  require("undotree").toggle()
+end, opts "Toggle undotree")
 
 -- Formatter and Linters
 keymap("n", "<leader>ml", function()
