@@ -145,10 +145,10 @@ cmd mkdir %{{
   printf " Directory Name: "
   read -r ans
   if [ -n "$ans" ]; then
-    mkdir -p -- "$ans" && echo "Created: $ans" || echo "Failed to create directory."
+    mkdir -p -- "$ans" && printf " Created: $ans" || printf " Failed to create directory."
     lf -remote 'send reload'
   else
-    echo "No directory name entered."
+    printf " No directory name entered."
   fi
 }}
 
@@ -196,11 +196,13 @@ cmd mknotes ${{
   lf -remote 'send reload'
 }}
 
-cmd mkproj ${{
-  read -p "Project name: " name
-  [ -z "$name" ] && echo "No name given." && exit
+cmd mkproj %{{
+  printf " Project Name: "
+  read -r name
+  [ -z "$name" ] && printf " No name given." && exit
 
-  read -p "Language (sh/py/lua/c/cpp/rs/go/zig): " lang
+  printf " Language (sh/py/lua/c/cpp/rs/go/zig): "
+  read -r lang
 
   # Normalize input
   lang="$(echo "$lang" | tr '[:upper:]' '[:lower:]')"
@@ -222,6 +224,9 @@ function main() {
 main "\$@"
 
 EOF
+
+    # Replace backslashes with nothing
+    sed -i 's/\\//g' "main.sh"
 
     # Make file executable
       chmod +x main.sh
@@ -292,16 +297,16 @@ pub fn main() void {
 EOF
       ;;
     *)
-      echo "Unknown language. Created empty folder."
+      printf " Unknown language. Created empty folder."
       ;;
   esac
 
   lf -remote 'send reload'
 }}
 
-cmd mkgit ${{
+cmd mkgit %{{
   if [ -d .git ]; then
-    echo "Git repo already exists here."
+    printf " Git repo already exists here."
     exit
   fi
 
@@ -309,18 +314,18 @@ cmd mkgit ${{
   git add .
   git commit -m "Initial commit"
 
-  echo "Git initialized."
+  printf " Git initialized."
 }}
 
-cmd setupdocs ${{
+cmd setupdocs %{{
   name="$(basename "$PWD")"
   year="$(date +%Y)"
   author="$(git config user.name 2>/dev/null || echo 'Your Name')"
 
   if [ -f README.md ]; then
-    echo "README.md already exists."
+    printf " README.md already exists."
   else
-    cat <<EOF > README.md
+    cat << 'EOF' > "README.md"
 # $name
 
 A new project written in awesome code.
@@ -335,13 +340,13 @@ A new project written in awesome code.
 
 MIT
 EOF
-    echo "Created README.md"
+    printf " Created README.md"
   fi
 
   if [ -f LICENSE ]; then
-    echo "LICENSE already exists."
+    printf " LICENSE already exists."
   else
-    cat <<EOF > LICENSE
+    cat << 'EOF' > "LICENSE"
 MIT License
 
 Copyright (c) $year $author
@@ -364,7 +369,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 EOF
-    echo "Created LICENSE (MIT)"
+    printf " Created LICENSE (MIT)"
   fi
 }}
 
@@ -372,15 +377,15 @@ EOF
 cmd toggle-executable %{{
   if [ -x "$f" ]; then
     if chmod a-x -- "$f"; then
-      echo "Removed executable permission: $f"
+      printf " Removed executable permission: $f"
     else
-      echo "Failed to change permissions."
+      printf " Failed to change permissions."
     fi
   else
     if chmod a+x -- "$f"; then
-      echo "Made executable: $f"
+      printf " Made executable: $f"
     else
-      echo "Failed to change permissions."
+      printf " Failed to change permissions."
     fi
   fi
   lf -remote 'send reload'
@@ -390,12 +395,12 @@ cmd chmod-custom %{{
   printf " Chmod Bits: "
   read -r ans
   if [ -z "$ans" ]; then
-    echo "No chmod bits provided."
+    printf " No chmod bits provided."
   else
     if chmod "$ans" -- "$f"; then
-      echo "Changed permissions: $f"
+      printf " Changed permissions: $f"
     else
-      echo "Failed to change permissions."
+      printf " Failed to change permissions."
     fi
   fi
   lf -remote 'send reload'
@@ -408,7 +413,7 @@ cmd trash-put %{{
 
 cmd trash-empty ${{
     clear
-    printf "Would you like to see what's inside the trash? [y/n]: "
+    echo "Would you like to see what's inside the trash? [y/n]: "
     read -r ans
     case "${ans}" in
         y)
@@ -416,7 +421,7 @@ cmd trash-empty ${{
             echo -e "\033[1mContents of your trash:\033[0m"
             trash-list || echo "Failed to list trash."
             echo
-            printf "Empty the trash now? [y/n]: "
+            echo "Empty the trash now? [y/n]: "
             read -r confirm
             case "${confirm}" in
                 y) trash-empty -f ;;
@@ -457,10 +462,10 @@ cmd extract %{{
           *.deb)     ar x "$f"       ;;
           *.tar.xz)  tar xf "$f"     ;;
           *.tar.zst) unzstd "$f"     ;;
-          *)         echo " '$f' cannot be extracted via extract" ;;
+          *)         printf " '$f' cannot be extracted via extract" ;;
       esac
   else
-      echo " '$f' is not a valid file"
+      printf " '$f' is not a valid file"
   fi
 }}
 
@@ -471,12 +476,12 @@ cmd archive %{{
   read -r archive_name
 
   if [ -z "$archive_name" ]; then
-    echo " No archive name provided."
+    printf " No archive name provided."
     exit 1
   fi
 
   if [ -e "$archive_name" ]; then
-    echo " Error: Archive '$archive_name' already exists."
+    printf " Error: Archive '$archive_name' already exists."
     exit 1
   fi
 
@@ -489,19 +494,19 @@ cmd archive %{{
       if command -v rar > /dev/null; then
         rar a "$archive_name" $fs
       else
-        echo " Error: 'rar' is not installed."
+        printf " Error: 'rar' is not installed."
         exit 1
       fi ;;
     *)
-      echo " Unsupported format: use .tar.gz, .zip, or .rar"
+      printf " Unsupported format: use .tar.gz, .zip, or .rar"
       exit 1 ;;
   esac
 
   if [ $? -eq 0 ]; then
-    echo " Success: Created $archive_name"
+    printf " Success: Created $archive_name"
     lf -remote 'send reload'
   else
-    echo " Failed to create archive."
+    printf " Failed to create archive."
   fi
 }}
 
@@ -578,6 +583,6 @@ cmd setbg %{{
     rm -f -- "$tmp_wall"
     lf -remote 'send reload'
   else
-    echo " Failed to copy wallpaper."
+    printf " Failed to copy wallpaper."
   fi
 }}
