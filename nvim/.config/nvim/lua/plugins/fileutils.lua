@@ -1,8 +1,5 @@
 return {
   "indyleo/fileutils-nvim",
-  config = function()
-    require("fileutils").setup()
-  end,
   dependencies = {
     {
       "stevearc/oil.nvim",
@@ -12,8 +9,13 @@ return {
       lazy = false,
     },
   },
+  lazy = false,
+  config = function()
+    require("fileutils").setup()
+  end,
   -- { -- Here to test fileutils
   --   dir = "~/Github/fileutils-nvim",
+  --   lazy = false,
   --   config = function()
   --     require("fileutils").setup()
   --   end,

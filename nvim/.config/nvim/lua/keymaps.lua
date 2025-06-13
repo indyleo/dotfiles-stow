@@ -68,6 +68,11 @@ keymap("n", "q", "<C-x>", opt)
 keymap({ "n", "t" }, "<leader>tr", ":ToggleTerm<CR>", opts "Toggle terminal")
 keymap({ "n", "t" }, "<leader>tg", ":ToggleLazygit<CR>", opts "Toggle lazygit")
 
+-- Cword Replace
+keymap("n", "<leader>sw", ":SwapNext<CR>", opts "Cword Replace, next")
+keymap("n", "<leader>sW", ":SwapPrev<CR>", opts "Cword Replace, previous")
+keymap("n", "<leader>sr", ":SwapReload<CR>", opts "Reload swap groups")
+
 -- Insert --
 
 -- Press jk fast to enter
