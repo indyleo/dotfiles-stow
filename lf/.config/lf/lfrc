@@ -244,13 +244,17 @@ EOF
       chmod +x main.py
       ;;
     lua)
-      cat << 'EOF' > "main.lua"
-local function main()
+      mkdir -pv -- "lua/$name/functions" || exit
+      cd "lua/$name" || exit
+      cat << 'EOF' > "init.lua"
+local M = {}
+
+function M.setup()
   print("Hello from Lua")
 end
-
-main()
 EOF
+      chmod a+x init.lua || exit
+      cd ../.. || exit
       ;;
     c)
       cat << 'EOF' > "main.c"
