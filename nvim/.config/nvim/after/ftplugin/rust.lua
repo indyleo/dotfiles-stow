@@ -5,7 +5,7 @@ vim.api.nvim_create_autocmd("BufEnter", {
     local keymap = vim.keymap.set
     local bufnr = args.buf
     local rsopts = function(desc)
-      return { desc = desc, buffer = bufnr, noremap = true, silent = true }
+      return { desc = "Rust: " .. desc, buffer = bufnr, noremap = true, silent = true }
     end
     local function cargo_cmd(cmd)
       vim.notify("🔧 Running cargo " .. cmd .. "...", vim.log.levels.INFO, { title = "Cargo" })

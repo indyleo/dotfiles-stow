@@ -5,7 +5,7 @@ vim.api.nvim_create_autocmd("BufEnter", {
     local keymap = vim.keymap.set
     local bufnr = args.buf
     local mdopts = function(desc)
-      return { desc = desc, buffer = bufnr, noremap = true, silent = true }
+      return { desc = "Markdown: " .. desc, buffer = bufnr, noremap = true, silent = true }
     end
 
     -- Markdown Code Extration

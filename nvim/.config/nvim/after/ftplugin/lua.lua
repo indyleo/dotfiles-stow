@@ -5,7 +5,7 @@ vim.api.nvim_create_autocmd("BufEnter", {
     local keymap = vim.keymap.set
     local bufnr = args.buf
     local langopts = function(desc)
-      return { desc = desc, buffer = bufnr, noremap = true, silent = true }
+      return { desc = "Lua: " .. desc, buffer = bufnr, noremap = true, silent = true }
     end
     -- Run current line
     keymap("n", "<leader>rc", ":.lua<CR>", langopts "Runs line under cursor")
