@@ -182,11 +182,6 @@ keymap("n", "<leader>fh", ":Telescope help_tags<CR>", opts "Fuzzy find help page
 keymap("n", "<leader>ft", ":TodoTelescope<CR>", opts "Find todos")
 keymap("n", "<leader>fn", ":Telescope notify<CR>", opts "Opens notification histroy")
 
--- Undotree
-keymap("n", "<leader>u", function()
-  require("undotree").toggle()
-end, opts "Toggle undotree")
-
 -- Formatter and Linters
 keymap("n", "<leader>ml", function()
   require("lint").try_lint()
