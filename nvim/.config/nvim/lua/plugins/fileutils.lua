@@ -10,14 +10,10 @@ return {
     },
   },
   lazy = false,
-  config = function()
-    require("fileutils").setup()
-  end,
+  config = true,
   -- { -- Here to test fileutils
   --   dir = "~/Github/fileutils-nvim",
   --   lazy = false,
-  --   config = function()
-  --     require("fileutils").setup()
-  --   end,
+  --   config = true,
   -- },
 }
