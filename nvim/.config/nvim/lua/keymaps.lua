@@ -58,8 +58,10 @@ keymap("n", "<S-h>", ":bprevious<CR>", opt)
 keymap("n", "<S-q>", ":Bdelete!<CR>", opt)
 
 -- Quickfix list navigation
-keymap("n", "<leader>qn", ":cnext<CR>", opts "Next quickfix")
-keymap("n", "<leader>qp", ":cprev<CR>", opts "Previous quickfix")
+keymap("n", "<leader>qn", ":cnext<CR>zz", opts "Next quickfix")
+keymap("n", "<leader>qp", ":cprev<CR>zz", opts "Previous quickfix")
+keymap("n", "<leader>ql", ":lnext<CR>zz", opts "Next location")
+keymap("n", "<leader>qk", ":lprev<CR>zz", opts "Previous location")
 keymap("n", "<leader>qf", function()
   for _, win in ipairs(vim.fn.getwininfo()) do
     if win.quickfix == 1 then
@@ -119,6 +121,12 @@ keymap("n", "<leader>td", ":Trouble diagnostics toggle filter.buf=0<CR>", opts "
 keymap("n", "<leader>tq", ":Trouble quickfix toggle<CR>", opts "Open trouble quickfix list")
 keymap("n", "<leader>tl", ":Trouble loclist toggle<CR>", opts "Open trouble location list")
 keymap("n", "<leader>tt", ":Trouble todo toggle<CR>", opts "Open todos in trouble")
+keymap("n", "[t", function()
+  require("trouble").next { skip_groups = true, jump = true }
+end, opts "Next trouble")
+keymap("n", "]t", function()
+  require("trouble").previous { skip_groups = true, jump = true }
+end, opts "Previous trouble")
 
 -- Noice
 keymap("n", "<leader>nh", ":NoiceDismiss<CR>", opts "Dimmis noice notifications")
@@ -228,18 +236,17 @@ vim.api.nvim_create_autocmd("LspAttach", {
     keymap("n", "<leader>d", function()
       vim.diagnostic.open_float()
     end, lspopts "Show diagnostics for line")
-    keymap("n", "[t", function()
-      require("trouble").next { skip_groups = true, jump = true }
+    keymap("n", "[d", function()
+      vim.diagnostic.goto_prev()
     end, lspopts "Jump to previous diagnostic in buffer")
-    keymap("n", "]t", function()
-      require("trouble").previous { skip_groups = true, jump = true }
+    keymap("n", "]d", function()
+      vim.diagnostic.goto_next()
     end, lspopts "Jump to next diagnostic in buffer")
     keymap("n", "gK", function()
       vim.lsp.buf.hover()
     end, lspopts "Show documentation for what is under cursor")
     keymap("n", "<leader>rs", ":LspRestart<CR>", lspopts "Restart LSP if necessary")
 
-    -- Showing lsp is attached current file
     vim.notify("Lsp Attached to: " .. vim.fn.expand "%:t", vim.log.levels.INFO)
   end,
 })
