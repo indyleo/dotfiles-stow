@@ -256,6 +256,11 @@ keymap("n", "<leader>sw", ":SwapNext<CR>", opts "Cword Replace, next")
 keymap("n", "<leader>sW", ":SwapPrev<CR>", opts "Cword Replace, previous")
 keymap("n", "<leader>sr", ":SwapReload<CR>", opts "Reload swap groups")
 
+-- Undotree
+keymap("n", "<leader>u", function()
+  require("undotree").toggle()
+end, opts "Toggle undotree")
+
 -- Insert mode
 
 -- LuaSnip
