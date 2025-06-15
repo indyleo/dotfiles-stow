@@ -57,21 +57,29 @@ keymap("n", "<S-l>", ":bnext<CR>", opt)
 keymap("n", "<S-h>", ":bprevious<CR>", opt)
 keymap("n", "<S-q>", ":Bdelete!<CR>", opt)
 
+-- Quickfix list navigation
+keymap("n", "<leader>qn", ":cnext<CR>", opts "Next quickfix")
+keymap("n", "<leader>qp", ":cprev<CR>", opts "Previous quickfix")
+keymap("n", "<leader>qf", function()
+  for _, win in ipairs(vim.fn.getwininfo()) do
+    if win.quickfix == 1 then
+      vim.cmd "cclose"
+      return
+    end
+  end
+  vim.cmd "copen"
+end, opts "Toggle Quickfix")
+
 -- Clear highlights
 keymap("n", "<leader>hl", ":nohlsearch<CR>", opts "Clear highlights")
 
 -- Increment/Decrement numbers
-keymap("n", "a", "<C-a>", opt)
-keymap("n", "q", "<C-x>", opt)
+keymap("n", "a", "<C-a>", opts "Increment number")
+keymap("n", "q", "<C-x>", opts "Decrement number")
 
 -- Terminal Stuuf
 keymap({ "n", "t" }, "<leader>tr", ":ToggleTerm<CR>", opts "Toggle terminal")
 keymap({ "n", "t" }, "<leader>tg", ":ToggleLazygit<CR>", opts "Toggle lazygit")
-
--- Cword Replace
-keymap("n", "<leader>sw", ":SwapNext<CR>", opts "Cword Replace, next")
-keymap("n", "<leader>sW", ":SwapPrev<CR>", opts "Cword Replace, previous")
-keymap("n", "<leader>sr", ":SwapReload<CR>", opts "Reload swap groups")
 
 -- Insert --
 
@@ -180,7 +188,6 @@ keymap("n", "<leader>fb", ":Telescope buffers<CR>", opts "List active file buffe
 keymap("n", "<leader>fk", ":Telescope keymaps<CR>", opts "List keymaps")
 keymap("n", "<leader>fh", ":Telescope help_tags<CR>", opts "Fuzzy find help pages")
 keymap("n", "<leader>ft", ":TodoTelescope<CR>", opts "Find todos")
-keymap("n", "<leader>fn", ":Telescope notify<CR>", opts "Opens notification histroy")
 
 -- Formatter and Linters
 keymap("n", "<leader>ml", function()
@@ -236,6 +243,11 @@ vim.api.nvim_create_autocmd("LspAttach", {
     vim.notify("Lsp Attached to: " .. vim.fn.expand "%:t", vim.log.levels.INFO)
   end,
 })
+
+-- Cword Replace
+keymap("n", "<leader>sw", ":SwapNext<CR>", opts "Cword Replace, next")
+keymap("n", "<leader>sW", ":SwapPrev<CR>", opts "Cword Replace, previous")
+keymap("n", "<leader>sr", ":SwapReload<CR>", opts "Reload swap groups")
 
 -- Insert mode
 
