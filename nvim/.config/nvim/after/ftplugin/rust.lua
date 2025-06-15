@@ -59,5 +59,8 @@ vim.api.nvim_create_autocmd("BufEnter", {
     keymap("n", "<leader>rc", function()
       cargo_cmd "check"
     end, rsopts "Cargo check")
+    keymap("n", "<leader>rt", function()
+      cargo_cmd "test"
+    end, rsopts "Cargo check")
   end,
 })
