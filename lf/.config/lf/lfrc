@@ -207,7 +207,7 @@ cmd mkproj %{{
   # Normalize input
   lang="$(echo "$lang" | tr '[:upper:]' '[:lower:]')"
 
-  mkdir "$name" || exit
+  mkdir -pv -- "$name" || exit
   cd "$name" || exit
 
   case "$lang" in
