@@ -17,10 +17,14 @@ local function proc_check(program)
 
   return false
 end
+local function augroup(name)
+  vim.api.nvim_create_augroup(name, { clear = true })
+end
+local autocmd = vim.api.nvim_create_autocmd
 
 -- Automatically add the header on new file creation
-vim.api.nvim_create_autocmd("BufNewFile", {
-  group = vim.api.nvim_create_augroup("FileHeader", { clear = true }),
+autocmd("BufNewFile", {
+  group = augroup("FileHeader", { clear = true }),
   pattern = "*",
   callback = function()
     -- Delay execution to ensure filetype is set
@@ -32,23 +36,30 @@ vim.api.nvim_create_autocmd("BufNewFile", {
 })
 
 -- Highlight on yank
-vim.api.nvim_create_autocmd("TextYankPost", {
-  group = vim.api.nvim_create_augroup("Highlight-Yank", { clear = true }),
+autocmd("TextYankPost", {
+  group = augroup "Highlight-Yank",
   callback = function()
     vim.hl.on_yank()
   end,
 })
 
+-- Trim trailing whitespace
+autocmd({ "BufWritePre" }, {
+  group = augroup "TrimTrailingWhitespace",
+  pattern = "*",
+  command = [[%s/\s\+$//e]],
+})
+
 -- Hides the "[Process exited 0]" call whenever you close a terminal
-vim.api.nvim_create_autocmd("TermClose", {
-  group = vim.api.nvim_create_augroup("SilentKill", { clear = true }),
+autocmd("TermClose", {
+  group = augroup "SilentKill",
   callback = function()
     vim.cmd "silent! bd!" -- Close the buffer silently
   end,
 })
 
-vim.api.nvim_create_autocmd("TermOpen", {
-  group = vim.api.nvim_create_augroup("TermSettings", { clear = true }),
+autocmd("TermOpen", {
+  group = augroup "TermSettings",
   pattern = "*",
   callback = function()
     vim.opt_local.number = false
@@ -58,8 +69,8 @@ vim.api.nvim_create_autocmd("TermOpen", {
 })
 
 -- Save the modified state *before* write
-vim.api.nvim_create_autocmd("BufWritePre", {
-  group = vim.api.nvim_create_augroup("TrackModified", { clear = true }),
+autocmd("BufWritePre", {
+  group = augroup "TrackModified",
   pattern = { "config.def.h", "blocks.def.h", "keymaps.lua", "options.lua", "guioptions.lua", "autocommand.lua", "init.lua" },
   callback = function(args)
     was_modified[args.buf] = vim.bo.modified
@@ -67,8 +78,8 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 })
 
 -- Auto command for config.def.h (only run if modified)
-vim.api.nvim_create_autocmd("BufWritePost", {
-  group = vim.api.nvim_create_augroup("AutoCompileConfig", { clear = true }),
+autocmd("BufWritePost", {
+  group = augroup "AutoCompileConfig",
   pattern = "config.def.h",
   callback = function(args)
     if not proc_check "autocompile" then
@@ -84,8 +95,8 @@ vim.api.nvim_create_autocmd("BufWritePost", {
 })
 
 -- Auto command for blocks.def.h (only run if modified)
-vim.api.nvim_create_autocmd("BufWritePost", {
-  group = vim.api.nvim_create_augroup("AutoCompileBlocks", { clear = true }),
+autocmd("BufWritePost", {
+  group = augroup "AutoCompileBlocks",
   pattern = "blocks.def.h",
   callback = function(args)
     if not proc_check "autocompile" then
@@ -101,8 +112,8 @@ vim.api.nvim_create_autocmd("BufWritePost", {
 })
 
 -- Auto reload run lua files if changerd and a neovim config file (only run if modified)
-vim.api.nvim_create_autocmd("BufWritePost", {
-  group = vim.api.nvim_create_augroup("AutoReload", { clear = true }),
+autocmd("BufWritePost", {
+  group = augroup "AutoReload",
   pattern = { "keymaps.lua", "options.lua", "guioptions.lua", "autocommand.lua", "init.lua" },
   callback = function(args)
     if was_modified[args.buf] and vim.bo.filetype ~= "" and vim.fn.expand "%" ~= "" then
