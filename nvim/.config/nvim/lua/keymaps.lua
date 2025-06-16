@@ -48,9 +48,9 @@ keymap("n", "<M-k>", ":resize -2<CR>", opt)
 keymap("n", "<M-=>", "<C-w>=", opt)
 
 -- Making splits
-keymap("n", "<leader>sv", ":NewVSplit ", opts "Makes a Vertical Spilt")
-keymap("n", "<leader>sh", ":NewHSplit ", opts "Makes a Horizontal Spilt")
-keymap("n", "<leader>sq", ":close!<CR>", opts "Kill a Spilt")
+keymap("n", "<M-v>", ":vsplit<CR>", opts "Makes a Vertical Spilt")
+keymap("n", "<M-s>", ":split<CR>", opts "Makes a Horizontal Spilt")
+keymap("n", "<M-q>", ":close!<CR>", opts "Kill a Spilt")
 
 -- Buffer managment
 keymap("n", "<S-l>", ":bnext<CR>", opt)
