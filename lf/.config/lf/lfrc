@@ -167,18 +167,18 @@ cmd mkfile ${{
 
 cmd mkscript ${{
   clear
-  mkscript 
+  mkscript
   echo "Complex Script created."
-  lf -remote "send $id cd \"$HOME/Scripts\"" 
+  lf -remote "send $id cd \"$HOME/Scripts\""
   lf -remote 'send reload'
 }}
 
 cmd mkscr ${{
   clear
 
-  mkscr 
+  mkscr
   echo "Simple Script created."
-  lf -remote "send $id cd \"$HOME/Scripts\"" 
+  lf -remote "send $id cd \"$HOME/Scripts\""
   lf -remote 'send reload'
 }}
 
@@ -235,7 +235,7 @@ EOF
       cat << 'EOF' >> "main.py"
 #!/usr/bin/env python3
 
-def main():    
+def main():
     print("Hello from Python")
 
 if __name__ == "__main__":
@@ -252,6 +252,8 @@ local M = {}
 function M.setup()
   print("Hello from Lua")
 end
+
+return M
 EOF
       chmod a+x init.lua || exit
       cd ../.. || exit
@@ -404,7 +406,7 @@ cmd chmod-custom %{{
   lf -remote 'send reload'
 }}
 
-# Trashing 
+# Trashing
 cmd trash-put %{{
   trash-put $fx
 }}
@@ -467,7 +469,7 @@ cmd extract %{{
   fi
 }}
 
-# Compressing Current Selected File 
+# Compressing Current Selected File
 cmd archive %{{
   clear
   printf " Archive name (with .tar.gz, .zip, or .rar): "
@@ -541,7 +543,7 @@ cmd fzf_jump_file ${{
 cmd fzf_note ${{
   notes_dir="$HOME/Documents/Markdown/Notes"
   clear
-  lf -remote "send $id cd \"$notes_dir\"" 
+  lf -remote "send $id cd \"$notes_dir\""
   fzfnote
   lf -remote 'send reload'
 }}
