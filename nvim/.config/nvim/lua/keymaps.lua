@@ -83,6 +83,13 @@ keymap("n", "q", "<C-x>", opts "Decrement number")
 keymap({ "n", "t" }, "<leader>tr", ":ToggleTerm<CR>", opts "Toggle terminal")
 keymap({ "n", "t" }, "<leader>tg", ":ToggleLazygit<CR>", opts "Toggle lazygit")
 
+-- Cword Replace
+keymap("n", "<leader>sw", ":SwapNext<CR>", opts "Cword Replace, next")
+keymap("n", "<leader>sW", ":SwapPrev<CR>", opts "Cword Replace, previous")
+keymap("n", "<leader>sc", ":SwapCNext<CR>", opts "Case Replace, next")
+keymap("n", "<leader>sC", ":SwapCPrev<CR>", opts "Case Replace, previous")
+keymap("n", "<leader>sr", ":SwapReload<CR>", opts "Reload swap groups")
+
 -- Insert --
 
 -- Press jk fast to enter
@@ -250,11 +257,6 @@ vim.api.nvim_create_autocmd("LspAttach", {
     vim.notify("Lsp Attached to: " .. vim.fn.expand "%:t", vim.log.levels.INFO)
   end,
 })
-
--- Cword Replace
-keymap("n", "<leader>sw", ":SwapNext<CR>", opts "Cword Replace, next")
-keymap("n", "<leader>sW", ":SwapPrev<CR>", opts "Cword Replace, previous")
-keymap("n", "<leader>sr", ":SwapReload<CR>", opts "Reload swap groups")
 
 -- Undotree
 keymap("n", "<leader>u", function()
