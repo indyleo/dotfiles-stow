@@ -11,7 +11,7 @@ super + r
   dmenu_run
 
 # Window Switcher
-alt + Tab 
+alt + Tab
   dmenu_alttab
 
 # Flatpak Launcher
@@ -27,7 +27,7 @@ super + shift + e
   dmenu_emoji
 
 # Nerd Fonts
-super + alt + e 
+super + alt + e
   dmenu_nerdfont
 
 # Powermenu
@@ -45,7 +45,7 @@ super + alt + m
 # -- System -- #
 
 # Brightness
-XF86MonBrightness{Up,Down}	
+XF86MonBrightness{Up,Down}
   brightnessctrl {--inc,--dec} 5
 
 # -- Media -- #
@@ -97,19 +97,23 @@ alt + XF86AudioPlay
 
 # -- Applications -- #
 
-# Terminal 
+# Terminal
 super + Return
   $TERMINAL
+
+# Tabbed Terminal
+super + ctrl + Return
+	tabbedtab
 
 # File Manager
 super + f
   $GUIF
 
-# Browser 
+# Browser
 super + b
   $BROWSER
 
-# Music 
+# Music
 super + m
 	$GMUSIC
 
@@ -117,7 +121,7 @@ super + m
 super + e
   $GEDIT
 
-# Discord 
+# Discord
 super + shift + d
   flatpak run dev.vencord.Vesktop
 
