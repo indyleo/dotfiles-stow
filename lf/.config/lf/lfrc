@@ -34,6 +34,7 @@ map mnd setupdocs
 map et toggle-executable
 map ec chmod-custom
 map ee $${EDITOR:-nvim} "$f"
+map dr drag
 
 # Basic Operations
 map . set hidden!
@@ -585,4 +586,9 @@ cmd setbg %{{
   else
     printf " Failed to copy wallpaper."
   fi
+}}
+
+# Dragon
+cmd drag %{{
+    dragon -a -x -T "$fx"
 }}
