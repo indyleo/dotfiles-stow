@@ -2,7 +2,7 @@
 
 # Vars
 XRANDR_OUTPUT=$(xrandr -q)
-THEME_CURRENT="$(cat ${XDG_CACHE_HOME:-$HOME/.cache}/theme)"
+THEME_CURRENT="$(cat "${XDG_CACHE_HOME:-$HOME/.cache}"/theme)"
 PROCS=(
     clipmenud
     flameshot
