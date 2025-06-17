@@ -42,6 +42,7 @@ alias sizedirs="du -sh * | sort -hr"
 alias sizefiles="find . -type f -exec du -h {} + | sort -hr | head -n 10"
 alias mpv="command mpv --fs"
 alias getxinfo="xprop | grep -E 'WM_CLASS|_NET_WM_WINDOW_TYPE|WM_NAME'"
+alias fd="fdfind"
 
 # Suckless
 alias cpc="sudo cp config.def.h config.h"
