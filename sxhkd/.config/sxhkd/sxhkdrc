@@ -148,6 +148,9 @@ super + shift + Print
 super + ctrl + Print
 	sstool --window
 
+super + alt + Print
+  sstool --colorpicker
+
 # -- Wallpaper -- #
 
 # Set Wallpaper
