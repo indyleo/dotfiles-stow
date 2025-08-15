@@ -137,9 +137,9 @@ elif [[ -f /usr/bin/pacman ]]; then
 fi
 
 # Random Aliases
-alias tmodserver="~/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/common/tModLoader/start-tModLoaderServer.sh"
+alias tmodserver="~/.steam/debian-installation/steamapps/common/tModLoader/start-tModLoaderServer.sh"
 alias tmodport="ngrok tcp 7777"
-alias fusee="sudo fusee-nano hekate_ctcaer_*.bin"
+alias fusee="sudo fusee-nano ~/Downloads/Bin/hekate_ctcaer_*.bin"
 
 # For Vim Users
 # vim:ft=sh

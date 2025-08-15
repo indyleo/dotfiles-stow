@@ -60,7 +60,7 @@ case "$preview" in
 
         # Markdown
     *.md)
-        glow -s dark "$preview"
+        glow -s dark "$preview" ||
         txtuse
         ;;
 
