@@ -157,9 +157,10 @@ function archive() {
 }
 
 function massrename() {
+    local prefix="${1:-wall}"
     for f in *.*; do
         ext="${f##*.}"
-        mv -f -- "$f" "wall${n}.$ext"
+        mv -f -- "$f" "${prefix}${n}.$ext"
         ((n++))
     done
 }
