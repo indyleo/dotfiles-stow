@@ -163,6 +163,7 @@ function massrename() {
         mv -f -- "$f" "${prefix}${n}.$ext"
         ((n++))
     done
+    echo "Renamed ${n} files"
 }
 
 # Be Lazy With Git
