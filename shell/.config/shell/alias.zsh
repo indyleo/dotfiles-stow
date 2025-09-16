@@ -46,7 +46,6 @@ alias fd="fdfind"
 
 # Suckless
 alias cpc="sudo cp config.def.h config.h"
-alias cpb="sudo cp blocks.def.h blocks.h"
 alias clin="sudo make clean install"
 
 # find dirs and files
