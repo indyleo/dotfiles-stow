@@ -10,7 +10,7 @@ PROCS=(
     nm-applet
     lxpolkit
     udiskie
-    dwmblocks
+    bar.sh
     sxhkd
 )
 FLAT_PROCS=(
