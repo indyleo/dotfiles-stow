@@ -71,7 +71,7 @@ autocmd("TermOpen", {
 -- Save the modified state *before* write
 autocmd("BufWritePre", {
   group = augroup "TrackModified",
-  pattern = { "config.def.h", "blocks.def.h", "keymaps.lua", "options.lua", "guioptions.lua", "autocommand.lua", "init.lua" },
+  pattern = { "config.def.h", "keymaps.lua", "options.lua", "guioptions.lua", "autocommand.lua", "init.lua" },
   callback = function(args)
     was_modified[args.buf] = vim.bo.modified
   end,
@@ -84,23 +84,6 @@ autocmd("BufWritePost", {
   callback = function(args)
     if not proc_check "autocompile" then
       local shellcmd = { "sudo cp config.def.h config.h && sudo make clean install" }
-      if was_modified[args.buf] and vim.bo.filetype ~= "" and vim.fn.expand "%" ~= "" then
-        vim.cmd.CommandRun(shellcmd)
-      end
-    else
-      vim.notify("AutoCompilation already running", vim.log.levels.WARN)
-    end
-    was_modified[args.buf] = nil -- clear flag
-  end,
-})
-
--- Auto command for blocks.def.h (only run if modified)
-autocmd("BufWritePost", {
-  group = augroup "AutoCompileBlocks",
-  pattern = "blocks.def.h",
-  callback = function(args)
-    if not proc_check "autocompile" then
-      local shellcmd = { "sudo cp blocks.def.h blocks.h && sudo make clean install" }
       if was_modified[args.buf] and vim.bo.filetype ~= "" and vim.fn.expand "%" ~= "" then
         vim.cmd.CommandRun(shellcmd)
       end
