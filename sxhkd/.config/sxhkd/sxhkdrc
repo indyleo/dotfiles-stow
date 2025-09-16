@@ -115,7 +115,7 @@ super + b
 
 # Music
 super + m
-	$GMUSIC
+	flatpak run $GMUSIC
 
 # Neovide
 super + e
