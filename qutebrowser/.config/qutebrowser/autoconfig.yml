@@ -10,5 +10,8 @@ settings:
     global: false
   content.private_browsing:
     global: false
+  content.register_protocol_handler:
+    https://mail.google.com?extsrc=mailto&url=%25s: true
+    https://mail.proton.me#mailto=%25s: true
   tabs.width:
     global: 4%
