@@ -101,10 +101,6 @@ alt + XF86AudioPlay
 super + Return
   $TERMINAL
 
-# Tabbed Terminal
-super + ctrl + Return
-	tabbedtab
-
 # File Manager
 super + f
   $GUIF
