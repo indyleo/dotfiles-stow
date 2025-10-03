@@ -86,8 +86,9 @@ if echo "$XRANDR_OUTPUT" | grep -q "HDMI-0 connected"; then
     xrandr \
         --output HDMI-0 --mode 1920x1080 --rate 75.00 --primary \
         --output eDP-1-1 --mode 1920x1080 --rate 120.00 --right-of HDMI-0
-else
-    xrandr --output eDP-1-1 --mode 1920x1080 --rate 120.00 --primary
+
+elif echo "$XRANDR_OUTPUT" | grep -q "eDP-1 connected"; then
+    xrandr --output eDP-1 --mode 1366x768 --rate 60.00 --primary
 fi
 
 picom -b
