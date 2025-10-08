@@ -13,9 +13,7 @@ PROCS=(
     bar.sh
     sxhkd
 )
-FLAT_PROCS=(
-    org.fkoehler.KTailctl
-)
+# FLAT_PROCS=()
 ARG_PROCS=(
     xwall
 )
@@ -44,20 +42,20 @@ function StartProc() {
     done
 }
 
-function StartFlat() {
-    # Iterate over each app in the provided array of Flatpak app IDs
-    for app_id in "${FLAT_PROCS[@]}"; do
-        # Check if the Flatpak app is running
-        if flatpak ps | grep -q "$app_id"; then
-            echo "$app_id is already running."
-        else
-            echo "$app_id is not running. Starting it now..."
-
-            # Try to launch the Flatpak application
-            flatpak run "$app_id" &
-        fi
-    done
-}
+# function StartFlat() {
+#     # Iterate over each app in the provided array of Flatpak app IDs
+#     for app_id in "${FLAT_PROCS[@]}"; do
+#         # Check if the Flatpak app is running
+#         if flatpak ps | grep -q "$app_id"; then
+#             echo "$app_id is already running."
+#         else
+#             echo "$app_id is not running. Starting it now..."
+#
+#             # Try to launch the Flatpak application
+#             flatpak run "$app_id" &
+#         fi
+#     done
+# }
 
 function ArgStart() {
     for i in "${!ARG_PROCS[@]}"; do
