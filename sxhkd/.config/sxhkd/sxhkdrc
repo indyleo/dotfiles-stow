@@ -152,21 +152,3 @@ super + alt + Print
 # Set Wallpaper
 super + shift + w
 	xwall themewall ~/Pictures/Wallpapers
-
-# -- WM Managment -- #
-
-# Restart dwm if current wm
-super + shift + r
-	wmc restartwm
-
-# Logout of session
-super + shift + q
-	wmc logout
-
-# Close focused window
-super + q
-	wmc killwindow
-
-# Locker
-super + shift + l
-  wmc lock
