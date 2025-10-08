@@ -47,7 +47,6 @@ return {
       dashboard.button("cp", "  > Config Prompt", ":EditFile ~/.config/shell/ prompt.zsh<CR>"),
       dashboard.button("cf", "󰌢  > Config FastFetch", ":EditFile ~/.config/fastfetch/ config.jsonc<CR>"),
       dashboard.button("cy", "󰇥  > Config LF", ":OilDir $XDG_CONFIG_HOME/lf<CR>"),
-      dashboard.button("md", "  > Opens My Markdown Folder", ":OilDir $HOME/Documents/Markdown<CR>"),
       dashboard.button("q", "  > Quit Nvim", ":qa!<CR>"),
       dashboard.button("SPC l", "󰒲  > Lazy", ":Lazy<CR>"),
     }
