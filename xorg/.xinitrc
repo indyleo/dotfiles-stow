@@ -7,7 +7,6 @@ PROCS=(
     clipmenud
     flameshot
     dunst
-    nm-applet
     lxpolkit
     udiskie
     bar.sh
