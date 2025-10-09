@@ -12,7 +12,6 @@ PROCS=(
     bar.sh
     sxhkd
 )
-# FLAT_PROCS=()
 ARG_PROCS=(
     xwall
 )
@@ -41,21 +40,6 @@ function StartProc() {
     done
 }
 
-# function StartFlat() {
-#     # Iterate over each app in the provided array of Flatpak app IDs
-#     for app_id in "${FLAT_PROCS[@]}"; do
-#         # Check if the Flatpak app is running
-#         if flatpak ps | grep -q "$app_id"; then
-#             echo "$app_id is already running."
-#         else
-#             echo "$app_id is not running. Starting it now..."
-#
-#             # Try to launch the Flatpak application
-#             flatpak run "$app_id" &
-#         fi
-#     done
-# }
-
 function ArgStart() {
     for i in "${!ARG_PROCS[@]}"; do
         program="${ARG_PROCS[$i]}"
@@ -83,7 +67,10 @@ if echo "$XRANDR_OUTPUT" | grep -q "HDMI-0 connected"; then
     xrandr \
         --output HDMI-0 --mode 1920x1080 --rate 75.00 --primary \
         --output eDP-1-1 --mode 1920x1080 --rate 120.00 --right-of HDMI-0
-
+elif echo "$XRANDR_OUTPUT" | grep -q "HDMI-1 connected" && echo "$XRANDR_OUTPUT" | grep -q "eDP-1 connected"; then
+    xrandr --output eDP-1 --primary --mode 1366x768 --pos 0x600 --rotate normal \
+        --output HDMI-1 --mode 1024x600 --pos 171x0 --rotate normal
+    touch_screen
 elif echo "$XRANDR_OUTPUT" | grep -q "eDP-1 connected"; then
     xrandr --output eDP-1 --mode 1366x768 --rate 60.00 --primary
 fi
