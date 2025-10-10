@@ -83,6 +83,9 @@ export QT_QPA_PLATFORMTHEME="qt6ct"
 [[ -f "$HOME/Documents/pass/clientsec" ]] && export BW_CLIENTSECRET="$(cat "$HOME/Documents/pass/clientsec")"
 [[ -f "$HOME/Documents/pass/userpass" ]] && export BW_PASSWORD="$(cat "$HOME/Documents/pass/userpass")"
 
+# Gurk (Signal TUI)
+[[ -f "$HOME/Documents/pass/gurkpass"]] && export GURK_PASSPHRASE="$(cat "$HOME/Documents/pass/gurkpass")"
+
 # RustUp
 [[ -f "$HOME/.cargo/env" ]] || . "$HOME/.cargo/env"
 
