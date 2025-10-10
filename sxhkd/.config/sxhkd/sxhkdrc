@@ -109,10 +109,6 @@ super + f
 super + b
   $BROWSER
 
-# Music
-super + m
-	flatpak run $GMUSIC
-
 # Neovide
 super + e
   $GEDIT
