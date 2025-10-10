@@ -86,6 +86,12 @@ export QT_QPA_PLATFORMTHEME="qt6ct"
 # Gurk (Signal TUI)
 [[ -f "$HOME/Documents/pass/gurkpass" ]] && export GURK_PASSPHRASE="$(cat "$HOME/Documents/pass/gurkpass")"
 
+# Twt (Twich Chat TUI)
+[[ -f "$HOME/Documents/pass/twt" ]] && export TWT_TOKEN="$(cat "$HOME/Documents/pass/twt")"
+
+# Discordo (Discord TUI)
+[[ -f "$HOME/Documents/pass/discord" ]] && export DISCORDO_TOKEN="$(cat "$HOME/Documents/pass/discord")"
+
 # RustUp
 [[ -f "$HOME/.cargo/env" ]] || . "$HOME/.cargo/env"
 
