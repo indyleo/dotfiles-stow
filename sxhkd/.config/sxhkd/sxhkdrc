@@ -122,7 +122,7 @@ super + shift + d
   flatpak run dev.vencord.Vesktop
 
 # Signal
-super + g
+super + shift + g
 	signal-desktop
 
 # -- Record/Screen -- #
