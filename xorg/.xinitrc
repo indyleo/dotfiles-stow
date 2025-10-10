@@ -68,8 +68,8 @@ if echo "$XRANDR_OUTPUT" | grep -q "HDMI-0 connected"; then
         --output HDMI-0 --mode 1920x1080 --rate 75.00 --primary \
         --output eDP-1-1 --mode 1920x1080 --rate 120.00 --right-of HDMI-0
 elif echo "$XRANDR_OUTPUT" | grep -q "HDMI-1 connected" && echo "$XRANDR_OUTPUT" | grep -q "eDP-1 connected"; then
-    xrandr --output eDP-1 --primary --mode 1366x768 --pos 0x600 --rotate normal \
-        --output HDMI-1 --mode 1024x600 --pos 171x0 --rotate normal
+    xrandr --output eDP-1 --mode 1366x768 --rate 60.00 --primary \
+        --output HDMI-1 --mode 1024x600 --rate 60.00 --right-of eDP-1
     touch_screen
 elif echo "$XRANDR_OUTPUT" | grep -q "eDP-1 connected"; then
     xrandr --output eDP-1 --mode 1366x768 --rate 60.00 --primary
