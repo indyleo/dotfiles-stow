@@ -1,0 +1,45 @@
+[twitch]
+username = "indy_leo"
+channel = "Indy_leo"
+server = "irc.chat.twitch.tv"
+token = "$TWT_TOKEN"
+
+[terminal]
+delay = 30
+maximum_messages = 500
+verbose = false
+first_state = "Dashboard"
+
+[storage]
+channels = false
+mentions = false
+
+[filters]
+enabled = false
+reversed = false
+
+[frontend]
+show_datetimes = true
+datetime_format = "%a %b %e %T %Y"
+username_shown = true
+palette = "pastel"
+title_shown = true
+margin = 0
+badges = false
+theme = "dark"
+username_highlight = true
+state_tabs = false
+cursor_shape = "user"
+blinking_cursor = false
+inverted_scrolling = false
+show_scroll_offset = false
+twitch_emotes = false
+betterttv_emotes = false
+seventv_emotes = false
+frankerfacez_emotes = false
+favorite_channels = []
+recent_channel_count = 5
+border_type = "plain"
+hide_chat_border = false
+right_align_usernames = false
+show_unsupported_screen_size = true
