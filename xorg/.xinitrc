@@ -5,12 +5,10 @@ XRANDR_OUTPUT=$(xrandr -q)
 THEME_CURRENT="$(cat "${XDG_CACHE_HOME:-$HOME/.cache}"/theme)"
 PROCS=(
     clipmenud
-    flameshot
     dunst
     lxpolkit
     udiskie
     bar.sh
-    sxhkd
 )
 ARG_PROCS=(
     xwall
