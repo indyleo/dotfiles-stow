@@ -38,7 +38,6 @@ return {
       dashboard.button("SPC fs", "󰅳  > Find String", ":Telescope live_grep<CR>"),
       dashboard.button("SPC fh", "󰞋  > Find Help", ":Telescope help_tags<CR>"),
       dashboard.button("cd", "  > Config DWM", ":EditFile ~/Github/suckless/dwm/ config.def.h<CR>"),
-      dashboard.button("ck", "  > Config Sxhkd", ":EditFile ~/.config/sxhkd/ sxhkdrc<CR>"),
       dashboard.button("cm", "  > Config Dmenu", ":EditFile ~/Github/suckless/dmenu/ config.def.h<CR>"),
       dashboard.button("cl", "  > Config Slock", ":EditFile ~/Github/suckless/slock/ config.def.h<CR>"),
       dashboard.button("ct", "  > Config St", ":EditFile ~/Github/suckless/st/ config.def.h<CR>"),
