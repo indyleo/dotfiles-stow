@@ -84,6 +84,9 @@ export QT_QPA_PLATFORMTHEME="qt6ct"
 # Twt (Twich Chat TUI)
 [[ -f "$HOME/Documents/pass/twt" ]] && export TWT_TOKEN="$(cat "$HOME/Documents/pass/twt")"
 
+# Streaming token (Twich Streaming)
+[[ -f "$HOME/Documents/pass/twitch_token" ]] && export TWITCH_TOKEN="$(cat "$HOME/Documents/pass/twitch_token")"
+
 # Discordo (Discord TUI)
 [[ -f "$HOME/Documents/pass/discord" ]] && export DISCORDO_TOKEN="$(cat "$HOME/Documents/pass/discord")"
 
