@@ -1,11 +1,34 @@
 first_name_only = false
 show_receipts = true
-notifications = true
+notifications = false
 bell = true
 colored_messages = false
-default_keybindings = true
+default_keybindings = false
 
 [user]
 display_name = "Indy"
 
-[keybindings]
+[keybindings.anywhere]
+ctrl-c = ""
+ctrl-q = "quit"
+
+[keybindings.normal]
+ctrl-j = ""
+ctrl-k = "kill_line"
+ctrl-n = "select_channel next"
+ctrl-p = "select_channel previous"
+alt-c = "toggle_channel_modal"
+up = "select_message previous entry"
+down = "select_message next entry"
+
+[keybindings.channel_modal]
+ctrl-j = ""
+ctrl-k = ""
+ctrl-n = "select_channel_modal next"
+ctrl-p = "select_channel_modal previous"
+
+[keybindings.message_selected]
+alt-y = ""
+alt-w = "copy_message selected"
+ctrl-t = "react :thumbsup:"
+ctrl-h = "react ❤️"
