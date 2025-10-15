@@ -208,8 +208,9 @@ cmd mkproj %{{
   # Normalize input
   lang="$(echo "$lang" | tr '[:upper:]' '[:lower:]')"
 
-  mkdir -pv -- "$name" || exit
-  cd "$name" || exit
+  # Make it in project directory
+  mkdir -pv -- "$HOME/Projects/$name" || exit
+  cd "$HOME/Projects/$name" || exit
 
   case "$lang" in
     bash|sh)
