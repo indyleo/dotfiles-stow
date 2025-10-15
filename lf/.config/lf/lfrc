@@ -233,6 +233,7 @@ EOF
       chmod +x main.sh
       ;;
     python|py)
+    python3 -m venv "../$name" || exit
       cat << 'EOF' >> "main.py"
 #!/usr/bin/env python3
 
