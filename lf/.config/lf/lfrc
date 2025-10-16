@@ -344,6 +344,9 @@ A new project written in awesome code.
 MIT
 EOF
     printf " Created README.md"
+
+    # Replace backslashes with nothing
+    sed -i 's/\\//g' "README.md"
   fi
 
   if [ -f LICENSE ]; then
