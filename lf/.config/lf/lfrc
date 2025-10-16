@@ -323,12 +323,12 @@ cmd mkgit %{{
 cmd setupdocs %{{
   name="$(basename "$PWD")"
   year="$(date +%Y)"
-  author="$(git config user.name 2>/dev/null || echo 'Your Name')"
+  author="$(git config user.name 2>/dev/null || whoami 2>/dev/null || echo 'Unknown Author')"
 
   if [ -f README.md ]; then
     printf " README.md already exists."
   else
-    cat << 'EOF' > "README.md"
+    cat << EOF > "README.md"
 # $name
 
 A new project written in awesome code.
@@ -352,7 +352,7 @@ EOF
   if [ -f LICENSE ]; then
     printf " LICENSE already exists."
   else
-    cat << 'EOF' > "LICENSE"
+    cat << EOF > "LICENSE"
 MIT License
 
 Copyright (c) $year $author
