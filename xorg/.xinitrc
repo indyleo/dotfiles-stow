@@ -8,6 +8,7 @@ PROCS=(
     dunst
     lxpolkit
     udiskie
+    medianotify
     bar.sh
 )
 ARG_PROCS=(
