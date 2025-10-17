@@ -6,6 +6,9 @@ alias l='eza -alF --group-directories-first --color=auto --icons' # My Favourite
 alias lt='eza -a --tree --group-directories-first --color=always --icons' # Tree Listing
 alias l.='eza -a | egrep "^\."' # Show Only Hidden File
 
+# Duf Aliases
+alias df='duf'
+
 # Cat to Bat Alias
 alias cat='batcat -pn --pager=""'
 
@@ -34,7 +37,6 @@ alias mkdir='mkdir -pv'
 # Nice Aliases To Have
 alias wq='exit'
 alias ping='ping -c 10'
-alias df='df -h'
 alias mimetype='file --mime-type'
 alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
 alias userx='pkill -u $USER'
