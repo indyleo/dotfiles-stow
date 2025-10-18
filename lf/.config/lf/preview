@@ -87,7 +87,7 @@ case "$preview" in
         isoinfo -d -i "$preview" 2>/dev/null ||
         exiftool "$preview"
         ;;
-    *.bin)
+    *.bin|*.o|*.obj)
         xxd -b "$preview" || hexdump -D "$preview" || objdump -d "$preview"
         ;;
         # Default text preview
