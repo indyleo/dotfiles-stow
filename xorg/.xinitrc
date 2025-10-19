@@ -10,6 +10,7 @@ PROCS=(
     udiskie
     medianotify
     bar.sh
+    organizer
 )
 ARG_PROCS=(
     xwall
