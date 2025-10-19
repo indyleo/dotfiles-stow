@@ -9,7 +9,7 @@ PROCS=(
     lxpolkit
     udiskie
     medianotify
-    bar.sh
+    bar.py
     organizer
 )
 ARG_PROCS=(
