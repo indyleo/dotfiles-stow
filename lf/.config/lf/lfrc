@@ -113,7 +113,7 @@ cmd open ${{
         *)
             # Fallback on extension if MIME is unrecognized
             case "$ext" in
-                txt|md|json|js|sh|py|cpp|c|java|html|css|lua|ts|rs|go|yml|yaml)
+                txt|md|json|js|sh|py|cpp|c|java|html|css|lua|ts|rs|go|yml|yaml|toml)
                     command -v bat >/dev/null && bat "$f" || ${EDITOR:-nvim} "$f"
                     ;;
                 jpg|jpeg|png|gif|bmp|webp|svg)
@@ -130,8 +130,8 @@ cmd open ${{
                     command -v zathura >/dev/null && zathura "$f" ||
                     command -v pdftotext >/dev/null && pdftotext "$f" - | less
                     ;;
-                toml)
-                    ${EDITOR:-nvim} "$f"
+                iso|img)
+                    command -v caligula >/dev/null && caligula burn "$f"
                     ;;
                 *)
                     xdg-open "$f" >/dev/null 2>&1
