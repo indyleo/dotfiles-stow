@@ -138,9 +138,6 @@ end, opts "Previous trouble")
 -- Noice
 keymap("n", "<leader>nh", ":NoiceDismiss<CR>", opts "Dimmis noice notifications")
 
--- Oil Nvim
-keymap("n", "<leader>ee", ":Oil --float<CR>", opts "Toggles Oil")
-
 -- Harpoon
 keymap("n", "<leader>a", function()
   require("harpoon"):list():add()
