@@ -67,3 +67,4 @@ vim.opt.shellcmdflag = ""
 vim.opt.shellxquote = ""
 opt.title = true
 opt.titlestring = "Neovim - %t (%{expand('%:p:h')})"
+opt.winborder = "rounded"
