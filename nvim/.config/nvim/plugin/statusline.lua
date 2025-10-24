@@ -1,8 +1,23 @@
 -- Ensure laststatus is always shown
 vim.o.laststatus = 2
 
--- Fetch current theme from environment
-local theme_current = os.getenv "THEME_CURRENT" or "gruvbox"
+-- Get cache directory
+local cache_home = os.getenv "XDG_CACHE_HOME" or os.getenv "HOME" .. "/.cache"
+local theme_file = cache_home .. "/theme"
+
+-- Function to read the theme from file
+local function read_theme(path)
+  local f = io.open(path, "r")
+  if f then
+    local theme = f:read "*l" -- read first line
+    f:close()
+    return theme
+  end
+  return nil
+end
+
+-- Pull theme from file or fallback
+local theme_current = read_theme(theme_file) or "gruvbox"
 
 -- Define colors for themes
 local themes = {
