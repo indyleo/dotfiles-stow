@@ -1,5 +1,5 @@
 return {
-  -- LSPConfig
+  -- 🌐 Core LSP
   {
     "neovim/nvim-lspconfig",
     event = { "BufReadPre", "BufNewFile" },
@@ -7,35 +7,46 @@ return {
       { "antosha417/nvim-lsp-file-operations", config = true },
     },
     config = function()
-      -- Diagnostics config
+      --------------------------------------------------------------------------
+      -- 🩺 Diagnostics Configuration
+      --------------------------------------------------------------------------
       vim.diagnostic.config {
         signs = {
           text = {
             [vim.diagnostic.severity.ERROR] = "",
             [vim.diagnostic.severity.WARN] = "",
-            [vim.diagnostic.severity.HINT] = "",
-            [vim.diagnostic.severity.INFO] = "",
+            [vim.diagnostic.severity.HINT] = "󰠠",
+            [vim.diagnostic.severity.INFO] = "",
           },
         },
         update_in_insert = true,
         underline = true,
         severity_sort = true,
-        float = { focusable = false, style = "minimal", border = "single", source = "always" },
+        float = {
+          focusable = false,
+          style = "minimal",
+          border = "single",
+          source = "always",
+        },
       }
 
-      -- Diagnostic signs
       local signs = { Error = " ", Warn = " ", Hint = "󰠠 ", Info = " " }
       for type, icon in pairs(signs) do
         vim.fn.sign_define("DiagnosticSign" .. type, { text = icon, texthl = "DiagnosticSign" .. type })
       end
 
-      -- Capabilities
+      --------------------------------------------------------------------------
+      -- ⚙️ Capabilities
+      --------------------------------------------------------------------------
       local capabilities = vim.lsp.protocol.make_client_capabilities()
       capabilities.textDocument.foldingRange = { dynamicRegistration = true, lineFoldingOnly = true }
+      capabilities.textDocument.semanticTokens = capabilities.textDocument.semanticTokens or {}
       capabilities.textDocument.semanticTokens.multilineTokenSupport = true
       capabilities.textDocument.completion.completionItem.snippetSupport = true
 
-      -- LSP servers list
+      --------------------------------------------------------------------------
+      -- 🔧 Servers
+      --------------------------------------------------------------------------
       local servers = {
         "jsonls",
         "ltex",
@@ -44,15 +55,16 @@ return {
         "cssls",
         "eslint",
         "html",
+        "htmx",
         "clangd",
         "cmake",
         "lua_ls",
         "pyright",
         "rust_analyzer",
         "bashls",
+        "luau-lsp",
       }
 
-      -- New API: vim.lsp.config
       local lspconfig = vim.lsp.config
 
       for _, server in ipairs(servers) do
@@ -75,15 +87,20 @@ return {
           }
         end
 
-        -- Register the server using the new API
-        lspconfig[server] = {
-          default_config = default_config,
-        }
+        -- 🧱 Declarative registration
+        lspconfig[server] = { default_config = default_config }
+      end
+
+      --------------------------------------------------------------------------
+      -- 🚀 Enable servers after defining configs
+      --------------------------------------------------------------------------
+      for _, server in ipairs(servers) do
+        vim.lsp.enable(server)
       end
     end,
   },
 
-  -- Mason + Mason Tool Installer
+  -- 🧰 Mason + Mason Tool Installer
   {
     "williamboman/mason.nvim",
     dependencies = { "WhoIsSethDaniel/mason-tool-installer.nvim" },
@@ -92,7 +109,13 @@ return {
       local mason_tool_installer = require "mason-tool-installer"
 
       mason.setup {
-        ui = { icons = { package_installed = "✓", package_pending = "➜", package_uninstalled = "✗" } },
+        ui = {
+          icons = {
+            package_installed = "✓",
+            package_pending = "➜",
+            package_uninstalled = "✗",
+          },
+        },
       }
 
       mason_tool_installer.setup {
@@ -100,26 +123,40 @@ return {
           -- Text
           "codespell",
           "jsonlint",
+          "json-lsp",
+          "ltex-ls",
           "alex",
+          "taplo",
           "yamllint",
+          "yaml-language-server",
           -- Web
           "eslint_d",
           "htmlhint",
           "stylelint",
+          "css-lsp",
+          "eslint-lsp",
+          "html-lsp",
+          "htmx-lsp",
           -- Languages
           "bacon",
           "black",
+          "pyright",
           "cmakelang",
           "cmakelint",
           "checkmake",
           "clang-format",
+          "clangd",
+          "cmake-language-server",
           "isort",
           "prettier",
           "pylint",
           "rustfmt",
           "selene",
           "stylua",
-          -- Script/Shell
+          "lua-language-server",
+          "luau-lsp",
+          -- Script / Shell
+          "bash-language-server",
           "beautysh",
           "shellcheck",
           "shellharden",
