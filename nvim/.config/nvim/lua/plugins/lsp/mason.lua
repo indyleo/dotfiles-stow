@@ -1,19 +1,13 @@
 return {
   "williamboman/mason.nvim",
   dependencies = {
-    "williamboman/mason-lspconfig.nvim",
     "WhoIsSethDaniel/mason-tool-installer.nvim",
   },
   config = function()
-    -- import mason
     local mason = require "mason"
-
-    -- import mason-lspconfig
-    local mason_lspconfig = require "mason-lspconfig"
-
     local mason_tool_installer = require "mason-tool-installer"
 
-    -- enable mason and configure icons
+    -- Mason UI
     mason.setup {
       ui = {
         icons = {
@@ -24,69 +18,43 @@ return {
       },
     }
 
-    mason_lspconfig.setup {
-      ensure_installed = {
-        -- Text
-        "jsonls",
-        "yamlls",
-        "taplo",
-        "ltex",
-
-        -- Web
-        "html",
-        "cssls",
-        "eslint",
-
-        -- Langs
-        "pyright",
-        "lua_ls",
-        "gopls",
-        "clangd",
-        "rust_analyzer",
-        "cmake",
-        "zls",
-
-        -- Script/Shell
-        "powershell_es",
-        "bashls",
-      },
-      automatic_enable = true,
-    }
-
+    -- Ensure essential LSP servers and formatters/linters are installed
     mason_tool_installer.setup {
       ensure_installed = {
         -- Text
-        "yamllint",
-        "jsonlint",
-        "markdownlint-cli2",
+        "json-lsp",
+        "yaml-language-server",
+        "taplo",
+        "ltex-ls",
+        "alex",
         "codespell",
 
         -- Web
+        "html-lsp",
+        "css-lsp",
         "htmlhint",
-        "stylelint",
         "eslint_d",
-
-        -- Langs
         "prettier",
-        "stylua",
-        "isort",
-        "black",
-        "pylint",
-        "selene",
-        "crlfmt",
-        "staticcheck",
-        "cpplint",
-        "cmakelint",
-        "cmakelang",
-        "checkmake",
-        "clang-format",
-        "bacon",
-        "rustfmt",
 
-        -- Script/Shell
-        "beautysh",
+        -- Languages
+        "cmake-language-server",
+        "checkmake",
+        "pyright",
+        "lua-language-server",
+        "clangd",
+        "rust-analyzer",
+        "cmake-language-server",
+        "bacon-ls",
+
+        -- Script / Shell
+        "bash-language-server",
         "shellcheck",
-        "shellharden",
+
+        -- Formatters / Linters
+        "black",
+        "isort",
+        "pylint",
+        "stylua",
       },
     }
   end,

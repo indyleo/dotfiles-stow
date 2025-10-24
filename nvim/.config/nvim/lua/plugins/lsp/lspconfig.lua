@@ -7,16 +7,16 @@ return {
   },
 
   config = function()
-    local config = {
+    -- === Diagnostics setup ===
+    local signs = { Error = " ", Warn = " ", Hint = "󰠠 ", Info = " " }
+    for type, icon in pairs(signs) do
+      local hl = "DiagnosticSign" .. type
+      vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = "" })
+    end
+
+    vim.diagnostic.config {
       virtual_text = true,
-      signs = {
-        text = {
-          [vim.diagnostic.severity.ERROR] = "",
-          [vim.diagnostic.severity.WARN] = "",
-          [vim.diagnostic.severity.HINT] = "",
-          [vim.diagnostic.severity.INFO] = "",
-        },
-      },
+      signs = true,
       update_in_insert = true,
       underline = true,
       severity_sort = true,
@@ -25,65 +25,71 @@ return {
         style = "minimal",
         border = "single",
         source = "always",
-        header = "",
-        prefix = "",
-        suffix = "",
       },
     }
-    vim.diagnostic.config(config)
 
-    -- used to enable autocompletion (assign to every lsp server config)
+    -- === LSP capabilities ===
     local capabilities = vim.lsp.protocol.make_client_capabilities()
-
-    -- Add custom folding range capabilities
-    capabilities.textDocument.foldingRange = {
-      dynamicRegistration = true,
-      lineFoldingOnly = true,
-    }
-
+    capabilities.textDocument.foldingRange = { dynamicRegistration = true, lineFoldingOnly = true }
     capabilities.textDocument.semanticTokens.multilineTokenSupport = true
     capabilities.textDocument.completion.completionItem.snippetSupport = true
 
-    -- Change the Diagnostic symbols in the sign column (gutter)
-    local signs = { Error = " ", Warn = " ", Hint = "󰠠 ", Info = " " }
-    for type, icon in pairs(signs) do
-      local hl = "DiagnosticSign" .. type
-      vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = "" })
+    -- === Default servers to loop through ===
+    local default_servers = {
+      -- Text
+      "json-lsp",
+      "yaml-language-server",
+      "taplo",
+      "ltex-ls",
+      "alex",
+      "codespell",
+
+      -- Web
+      "html-lsp",
+      "css-lsp",
+      "htmlhint",
+      "eslint_d",
+      "prettier",
+
+      -- Languages
+      "cmake-language-server",
+      "checkmake",
+      "pyright",
+      "lua-language-server",
+      "clangd",
+      "rust-analyzer",
+      "cmake-language-server",
+      "bacon-ls",
+
+      -- Script / Shell
+      "bash-language-server",
+      "shellcheck",
+
+      -- Formatters / Linters
+      "black",
+      "isort",
+      "pylint",
+      "stylua",
+    }
+
+    for _, server in ipairs(default_servers) do
+      vim.lsp.config(server, { capabilities = capabilities })
     end
 
-    vim.lsp.config("*", {
-      capabilities = vim.tbl_deep_extend("force", vim.lsp.protocol.make_client_capabilities(), capabilities),
-    })
+    -- === Server-specific configurations ===
 
-    vim.lsp.config("lua_ls", {
-      root_markers = { ".luarc.jsonc" },
+    -- Lua LSP
+    vim.lsp.config("lua-language-server", {
+      capabilities = capabilities,
       settings = {
         Lua = {
-          runtime = {
-            version = "LuaJIT", -- Neovim uses LuaJIT
-            path = vim.split(package.path, ";"),
-          },
-          diagnostics = {
-            globals = { "vim" }, -- recognize `vim` as a global
-          },
-          workspace = {
-            checkThirdParty = false, -- avoid annoying prompts
-            library = vim.api.nvim_get_runtime_file("", true),
-          },
-          telemetry = {
-            enable = false, -- disable telemetry
-          },
-          completion = {
-            callSnippet = "Replace",
-          },
+          runtime = { version = "LuaJIT", path = vim.split(package.path, ";") },
+          diagnostics = { globals = { "vim" } },
+          workspace = { checkThirdParty = false, library = vim.api.nvim_get_runtime_file("", true) },
+          telemetry = { enable = false },
+          completion = { callSnippet = "Replace" },
         },
       },
-    })
-
-    vim.lsp.config("powershell_es", {
-      filetypes = { "ps1" },
-      shell = "pwsh",
-      bundle_path = vim.fn.stdpath "data" .. "/mason/packages/powershell-editor-services",
     })
   end,
 }

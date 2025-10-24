@@ -6,10 +6,6 @@ vim.cmd [[
   let g:netrw_liststyle = 3
 ]]
 
--- Disabling NetRW
-vim.g.loaded_netrw = 1
-vim.g.loaded_netrwPlugin = 1
-
 -- Options
 opt.backup = false
 opt.clipboard = "unnamedplus"
