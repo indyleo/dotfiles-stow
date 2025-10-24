@@ -191,15 +191,14 @@ keymap("n", "<leader>zk", function()
   end
 end, opts "Peek closed folds")
 
--- Telescope
-keymap("n", "<leader>ff", ":Telescope find_files<CR>", opts "Fuzzy find files in cwd")
-keymap("n", "<leader>fr", ":Telescope oldfiles<CR>", opts "Fuzzy find recent files")
-keymap("n", "<leader>fs", ":Telescope live_grep<CR>", opts "Find string in cwd")
-keymap("n", "<leader>fc", ":Telescope grep_string<CR>", opts "Find string under cursor in cwd")
-keymap("n", "<leader>fb", ":Telescope buffers<CR>", opts "List active file buffers")
-keymap("n", "<leader>fk", ":Telescope keymaps<CR>", opts "List keymaps")
-keymap("n", "<leader>fh", ":Telescope help_tags<CR>", opts "Fuzzy find help pages")
-keymap("n", "<leader>ft", ":TodoTelescope<CR>", opts "Find todos")
+-- Fzf lua
+keymap("n", "<leader>ff", ":FzfLua files<CR>", opts "Fuzzy find files in cwd")
+keymap("n", "<leader>fr", ":FzfLua oldfiles<CR>", opts "Fuzzy find recent files")
+keymap("n", "<leader>fs", ":FzfLua grep<CR>", opts "Find string in cwd")
+keymap("n", "<leader>fc", ":FzfLua grep_cword<CR>", opts "Find string under cursor in cwd")
+keymap("n", "<leader>fg", ":FzfLua git_files<CR>", opts "Fuzzy find git files in cwd")
+keymap("n", "<leader>fh", ":FzfLua helptags<CR>", opts "Fuzzy find help pages")
+keymap("n", "<leader>fk", ":FzfLua keymaps<CR>", opts "Fuzzy find keymaps")
 
 -- Formatter and Linters
 keymap("n", "<leader>ml", function()

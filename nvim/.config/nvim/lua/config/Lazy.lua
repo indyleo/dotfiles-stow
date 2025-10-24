@@ -21,7 +21,6 @@ end
 lazy.setup {
   spec = {
     { import = "plugins" },
-    { import = "plugins.lsp" },
   },
   install = { colorscheme = { "habamax" } },
   checker = { enabled = true, notify = false },
