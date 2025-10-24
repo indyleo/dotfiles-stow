@@ -121,20 +121,7 @@ keymap("t", "<Esc><Esc>", "<C-\\><C-n>", opts "Exit terminal to normal Mode")
 ---- Plugins ----
 
 -- Normal --
-
--- end, opts "Comment multiline")
-keymap("n", "<leader>tw", ":Trouble diagnostics toggle<CR>", opts "Open trouble workspace diagnostics")
-keymap("n", "<leader>td", ":Trouble diagnostics toggle filter.buf=0<CR>", opts "Open trouble document diagnostics")
-keymap("n", "<leader>tq", ":Trouble quickfix toggle<CR>", opts "Open trouble quickfix list")
-keymap("n", "<leader>tl", ":Trouble loclist toggle<CR>", opts "Open trouble location list")
-keymap("n", "<leader>tt", ":Trouble todo toggle<CR>", opts "Open todos in trouble")
-keymap("n", "[t", function()
-  require("trouble").next { skip_groups = true, jump = true }
-end, opts "Next trouble")
-keymap("n", "]t", function()
-  require("trouble").previous { skip_groups = true, jump = true }
-end, opts "Previous trouble")
-
+--
 -- Noice
 keymap("n", "<leader>nh", ":NoiceDismiss<CR>", opts "Dimmis noice notifications")
 
