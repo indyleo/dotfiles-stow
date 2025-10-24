@@ -1,1 +1,0 @@
-/home/indy/.config/nvim/lua/plugins/lualine.lua_gruvbox
