@@ -10,7 +10,6 @@ return {
     file_icon_padding = " ",
     winopts = {
       split = "belowright 15new",
-      preview = { hidden = true },
     },
   },
 }
