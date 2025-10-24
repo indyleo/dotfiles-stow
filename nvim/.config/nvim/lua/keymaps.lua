@@ -1,68 +1,54 @@
 -- Shorten function name
 local keymap = vim.keymap.set
--- Keymap option
+
+-- Keymap options helper
 local function opts(desc)
   return { noremap = true, silent = true, desc = desc }
 end
-local opt = { noremap = true, silent = true }
 
--- Remap space as leader key
-keymap("", "<Space>", "<Nop>", opt)
+-- Helper for multiple modes
+local function map(modes, lhs, rhs, desc)
+  keymap(modes, lhs, rhs, opts(desc))
+end
+
+-- Leader key
+map("", "<Space>", "<Nop>", "Disable space")
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
--- Modes:
---   normal_mode       = "n"  -- Normal mode
---   insert_mode       = "i"  -- Insert mode
---   visual_mode       = "v"  -- Visual mode
---   visual_block_mode = "x"  -- Visual block mode
---   select_mode       = "s"  -- Select mode
---   term_mode         = "t"  -- Terminal mode
---   command_mode      = "c"  -- Command-line mode
---   operator_pending  = "o"  -- Operator-pending mode
---   replace_mode      = "R"  -- Replace mode
---   virtual_replace   = "gR" -- Virtual Replace mode
---   ex_mode           = "!"  -- Ex mode
---   hit-enter         = "r"  -- Hit-enter prompt
---   confirm_mode      = "cv" -- Confirm mode
---   more_mode         = "rm" -- More prompt
---   shell_mode        = "!"  -- Shell or external command execution
---   lang_arg_mode     = "l"  -- Language-specific argument completion
---   lang_map_mode     = "L"  -- Language-specific mappings
-
 ---- Non-Plugin ----
 
--- Normal --
+-- Normal Mode --
 
--- Better window managment
-keymap("n", "<C-h>", "<C-w>h", opt)
-keymap("n", "<C-j>", "<C-w>j", opt)
-keymap("n", "<C-k>", "<C-w>k", opt)
-keymap("n", "<C-l>", "<C-w>l", opt)
+-- Window navigation
+for _, k in pairs { h = "h", j = "j", k = "k", l = "l" } do
+  map("n", "<C-" .. k .. ">", "<C-w>" .. k, "Move to window " .. k)
+end
 
 -- Resize splits
-keymap("n", "<M-h>", ":vertical resize +2<CR>", opt)
-keymap("n", "<M-l>", ":vertical resize -2<CR>", opt)
-keymap("n", "<M-j>", ":resize +2<CR>", opt)
-keymap("n", "<M-k>", ":resize -2<CR>", opt)
-keymap("n", "<M-=>", "<C-w>=", opt)
+local resize_map = { h = "+2", l = "-2", j = "+2", k = "-2" }
+for k, v in pairs(resize_map) do
+  local cmd = (k == "h" or k == "l") and ":vertical resize " .. v .. "<CR>" or ":resize " .. v .. "<CR>"
+  map("n", "<M-" .. k .. ">", cmd, "Resize " .. k)
+end
+map("n", "<M-=>", "<C-w>=", "Equalize window sizes")
 
--- Making splits
-keymap("n", "<M-v>", ":vsplit<CR>", opts "Makes a Vertical Spilt")
-keymap("n", "<M-s>", ":split<CR>", opts "Makes a Horizontal Spilt")
-keymap("n", "<M-q>", ":close!<CR>", opts "Kill a Spilt")
+-- Make splits
+map("n", "<M-v>", ":vsplit<CR>", "Vertical split")
+map("n", "<M-s>", ":split<CR>", "Horizontal split")
+map("n", "<M-q>", ":close!<CR>", "Close split")
 
--- Buffer managment
-keymap("n", "<S-l>", ":bnext<CR>", opt)
-keymap("n", "<S-h>", ":bprevious<CR>", opt)
-keymap("n", "<S-q>", ":Bdelete!<CR>", opt)
+-- Buffer navigation
+map("n", "<S-l>", ":bnext<CR>", "Next buffer")
+map("n", "<S-h>", ":bprevious<CR>", "Previous buffer")
+map("n", "<S-q>", ":Bdelete!<CR>", "Delete buffer")
 
--- Quickfix list navigation
-keymap("n", "<leader>qn", ":cnext<CR>zz", opts "Next quickfix")
-keymap("n", "<leader>qp", ":cprev<CR>zz", opts "Previous quickfix")
-keymap("n", "<leader>ql", ":lnext<CR>zz", opts "Next location")
-keymap("n", "<leader>qk", ":lprev<CR>zz", opts "Previous location")
-keymap("n", "<leader>qf", function()
+-- Quickfix navigation
+map("n", "<leader>qn", ":cnext<CR>zz", "Next quickfix")
+map("n", "<leader>qp", ":cprev<CR>zz", "Previous quickfix")
+map("n", "<leader>ql", ":lnext<CR>zz", "Next location")
+map("n", "<leader>qk", ":lprev<CR>zz", "Previous location")
+map("n", "<leader>qf", function()
   for _, win in ipairs(vim.fn.getwininfo()) do
     if win.quickfix == 1 then
       vim.cmd "cclose"
@@ -70,196 +56,156 @@ keymap("n", "<leader>qf", function()
     end
   end
   vim.cmd "copen"
-end, opts "Toggle Quickfix")
+end, "Toggle Quickfix")
 
 -- Clear highlights
-keymap("n", "<leader>hl", ":nohlsearch<CR>", opts "Clear highlights")
+map("n", "<leader>hl", ":nohlsearch<CR>", "Clear highlights")
 
 -- Increment/Decrement numbers
-keymap("n", "a", "<C-a>", opts "Increment number")
-keymap("n", "q", "<C-x>", opts "Decrement number")
+map("n", "a", "<C-a>", "Increment number")
+map("n", "q", "<C-x>", "Decrement number")
 
--- Terminal Stuuf
-keymap({ "n", "t" }, "<leader>tr", ":ToggleTerm<CR>", opts "Toggle terminal")
-keymap({ "n", "t" }, "<leader>tg", ":ToggleLazygit<CR>", opts "Toggle lazygit")
+-- Terminal toggles
+map({ "n", "t" }, "<leader>tr", ":ToggleTerm<CR>", "Toggle terminal")
+map({ "n", "t" }, "<leader>tg", ":ToggleLazygit<CR>", "Toggle lazygit")
 
--- Cword Replace
-keymap("n", "<leader>sw", ":SwapNext<CR>", opts "Cword Replace, next")
-keymap("n", "<leader>sW", ":SwapPrev<CR>", opts "Cword Replace, previous")
-keymap("n", "<leader>sc", ":SwapCNext<CR>", opts "Case Replace, next")
-keymap("n", "<leader>sC", ":SwapCPrev<CR>", opts "Case Replace, previous")
-keymap("n", "<leader>sr", ":SwapReload<CR>", opts "Reload swap groups")
+-- Cword/Case replace
+map("n", "<leader>sw", ":SwapNext<CR>", "Cword replace next")
+map("n", "<leader>sW", ":SwapPrev<CR>", "Cword replace previous")
+map("n", "<leader>sc", ":SwapCNext<CR>", "Case replace next")
+map("n", "<leader>sC", ":SwapCPrev<CR>", "Case replace previous")
+map("n", "<leader>sr", ":SwapReload<CR>", "Reload swap groups")
 
--- Insert --
+-- Insert Mode --
+map("i", "jk", "<Esc>", "Exit insert mode")
 
--- Press jk fast to enter
-keymap("i", "jk", "<Esc>", opt)
+-- Visual Mode --
+map("v", "<", "<gv", "Indent left")
+map("v", ">", ">gv", "Indent right")
+map("v", "J", ":m '>+1<CR>gv=gv", "Move selection down")
+map("v", "K", ":m '<-2<CR>gv=gv", "Move selection up")
+map("v", "p", "P", "Paste over selection")
+map("v", "P", '"_dP', "Paste over selection without overwriting register")
 
--- Visual --
+-- Visual Block Mode --
+map("x", "p", "P", "Paste over selection")
+map("x", "P", '"_dP', "Paste over selection without overwriting register")
 
--- Moving text around
-keymap("v", "<", "<gv", opt)
-keymap("v", ">", ">gv", opt)
-keymap("v", "J", ":m '>+1<CR>gv=gv", opt)
-keymap("v", "K", ":m '<-2<CR>gv=gv", opt)
-
--- Better paste
-keymap("v", "p", "P", opt)
-keymap("v", "P", '"_dP', opt)
-
--- Visual Block --
-
--- Better paste
-keymap("x", "p", "P", opt)
-keymap("x", "P", '"_dP', opt)
-
--- Terminal --
-
--- Better back to normal mode
-keymap("t", "<Esc><Esc>", "<C-\\><C-n>", opts "Exit terminal to normal Mode")
+-- Terminal Mode --
+map("t", "<Esc><Esc>", "<C-\\><C-n>", "Exit terminal to normal mode")
 
 ---- Plugins ----
 
--- Normal --
---
 -- Noice
-keymap("n", "<leader>nh", ":NoiceDismiss<CR>", opts "Dimmis noice notifications")
+map("n", "<leader>nh", ":NoiceDismiss<CR>", "Dismiss noice notifications")
 
 -- Harpoon
-keymap("n", "<leader>a", function()
+map("n", "<leader>a", function()
   require("harpoon"):list():add()
-end, opts "Marks a file")
-keymap("n", "<leader>ha", function()
+end, "Mark a file")
+map("n", "<leader>ha", function()
   require("harpoon").ui:toggle_quick_menu(require("harpoon"):list())
-end, opts "Opens Harpoon Menu")
-keymap("n", "<leader>1", function()
-  require("harpoon"):list():select(1)
-end, opts "Open file 1")
-keymap("n", "<leader>2", function()
-  require("harpoon"):list():select(2)
-end, opts "Open file 2")
-keymap("n", "<leader>3", function()
-  require("harpoon"):list():select(3)
-end, opts "Open file 3")
-keymap("n", "<leader>4", function()
-  require("harpoon"):list():select(4)
-end, opts "Open file 4")
-keymap("n", "<leader>5", function()
-  require("harpoon"):list():select(5)
-end, opts "Open file 5")
+end, "Harpoon menu")
+for i = 1, 5 do
+  map("n", "<leader>" .. i, function()
+    require("harpoon"):list():select(i)
+  end, "Open file " .. i)
+end
 
 -- Comment
-keymap("n", "<leader>/", function()
+map("n", "<leader>/", function()
   require("Comment.api").toggle.linewise.current()
-end, opts "Comments line")
-keymap({ "x", "v" }, "<leader>/", "<Esc><:lua require('Comment.api').toggle.linewise(vim.fn.visualmode())<CR>", opts "Comments multi-line")
+end, "Comment line")
+map({ "x", "v" }, "<leader>/", "<Esc><:lua require('Comment.api').toggle.linewise(vim.fn.visualmode())<CR>", "Comment selection")
 
 -- Todo Comments
-keymap("n", "<C-d>", function()
+map("n", "<C-d>", function()
   require("todo-comments").jump_next()
-end, opts "Next todo comment")
-keymap("n", "<C-c>", function()
+end, "Next todo comment")
+map("n", "<C-c>", function()
   require("todo-comments").jump_prev()
-end, opts "Previous todo comment")
+end, "Previous todo comment")
 
 -- Nvim Ufo
-keymap("n", "<leader>zr", function()
+map("n", "<leader>zr", function()
   require("ufo").openAllFolds()
-end, opts "Opens all folds")
-keymap("n", "<leader>zm", function()
+end, "Open all folds")
+map("n", "<leader>zm", function()
   require("ufo").closeAllFolds()
-end, opts "Closes all folds")
-keymap("n", "<leader>zf", ":foldopen<CR>", opts "Opens folds")
-keymap("n", "<leader>zc", ":foldclose<CR>", opts "Closes folds")
-keymap("n", "<leader>zk", function()
+end, "Close all folds")
+map("n", "<leader>zf", ":foldopen<CR>", "Open folds")
+map("n", "<leader>zc", ":foldclose<CR>", "Close folds")
+map("n", "<leader>zk", function()
   local winid = require("ufo").peekFoldedLinesUnderCursor()
   if not winid then
     vim.lsp.buf.hover()
   end
-end, opts "Peek closed folds")
+end, "Peek closed folds")
 
--- Fzf lua
-keymap("n", "<leader>ff", ":FzfLua files<CR>", opts "Fuzzy find files in cwd")
-keymap("n", "<leader>fr", ":FzfLua oldfiles<CR>", opts "Fuzzy find recent files")
-keymap("n", "<leader>fs", ":FzfLua grep<CR>", opts "Find string in cwd")
-keymap("n", "<leader>fc", ":FzfLua grep_cword<CR>", opts "Find string under cursor in cwd")
-keymap("n", "<leader>fg", ":FzfLua git_files<CR>", opts "Fuzzy find git files in cwd")
-keymap("n", "<leader>fh", ":FzfLua helptags<CR>", opts "Fuzzy find help pages")
-keymap("n", "<leader>fk", ":FzfLua keymaps<CR>", opts "Fuzzy find keymaps")
+-- Fzf Lua
+local fzf = { ff = "files", fr = "oldfiles", fs = "grep", fc = "grep_cword", fg = "git_files", fh = "helptags", fk = "keymaps" }
+for k, v in pairs(fzf) do
+  map("n", "<leader>" .. k, ":FzfLua " .. v .. "<CR>", "FzfLua " .. v)
+end
 
--- Formatter and Linters
-keymap("n", "<leader>ml", function()
+-- Formatter/Linter
+map("n", "<leader>ml", function()
   require("lint").try_lint()
-end, opts "Trigger linting for current file")
-keymap({ "n", "v" }, "<leader>mf", function()
-  require("conform").format {
-    lsp_fallback = true,
-    async = false,
-    timeout_ms = 1000,
-  }
-end, opts "Format file or range (in visual mode)")
+end, "Lint current file")
+map({ "n", "v" }, "<leader>mf", function()
+  require("conform").format { lsp_fallback = true, async = false, timeout_ms = 1000 }
+end, "Format file or selection")
 
--- Lsp
+-- LSP
 vim.api.nvim_create_autocmd("LspAttach", {
   group = vim.api.nvim_create_augroup("LspKeymaps", { clear = true }),
   callback = function(args)
     local bufnr = args.buf
     local lspopts = function(desc)
-      return { desc = desc, buffer = bufnr, noremap = true, silent = true }
+      return { buffer = bufnr, noremap = true, silent = true, desc = desc }
     end
 
-    -- Keymaps for LSP
-    keymap("n", "gR", ":Telescope lsp_references<CR>", lspopts "Show definition, references")
-    keymap("n", "gD", function()
-      vim.lsp.buf.declaration()
-    end, lspopts "Go to declaration")
-    keymap("n", "gd", ":Telescope lsp_definitions<CR>", lspopts "Show LSP definitions")
-    keymap("n", "gi", ":Telescope lsp_implementations<CR>", lspopts "Show LSP implementations")
-    keymap("n", "gt", ":Telescope lsp_type_definitions<CR>", lspopts "Show LSP type definitions")
-    keymap({ "n", "v" }, "<leader>ca", function()
-      vim.lsp.buf.code_action()
-    end, lspopts "See available code actions; applies to selection in visual mode")
-    keymap("n", "<leader>rn", function()
-      vim.lsp.buf.rename()
-    end, lspopts "Smart rename")
-    keymap("n", "<leader>D", ":Telescope diagnostics bufnr=0<CR>", lspopts "Show diagnostics for file")
-    keymap("n", "<leader>d", function()
-      vim.diagnostic.open_float()
-    end, lspopts "Show diagnostics for line")
-    keymap("n", "[d", function()
-      vim.diagnostic.goto_prev()
-    end, lspopts "Jump to previous diagnostic in buffer")
-    keymap("n", "]d", function()
-      vim.diagnostic.goto_next()
-    end, lspopts "Jump to next diagnostic in buffer")
-    keymap("n", "gK", function()
-      vim.lsp.buf.hover()
-    end, lspopts "Show documentation for what is under cursor")
-    keymap("n", "<leader>rs", ":LspRestart<CR>", lspopts "Restart LSP if necessary")
+    local lsp_maps = {
+      ["gR"] = ":FzfLua lsp_references<CR>",
+      ["gD"] = vim.lsp.buf.declaration,
+      ["gd"] = ":FzfLua lsp_definitions<CR>",
+      ["gi"] = ":FzfLua lsp_implementations<CR>",
+      ["gt"] = ":FzfLua lsp_typedefs<CR>",
+      ["<leader>ca"] = vim.lsp.buf.code_action,
+      ["<leader>rn"] = vim.lsp.buf.rename,
+      ["<leader>D"] = ":FzfLua diagnostics_document<CR>",
+      ["<leader>d"] = vim.diagnostic.open_float,
+      ["[d"] = vim.diagnostic.goto_prev,
+      ["]d"] = vim.diagnostic.goto_next,
+      ["gK"] = vim.lsp.buf.hover,
+      ["<leader>rs"] = ":LspRestart<CR>",
+    }
 
-    vim.notify("Lsp Attached to: " .. vim.fn.expand "%:t", vim.log.levels.INFO)
+    for k, v in pairs(lsp_maps) do
+      keymap("n", k, v, lspopts(k))
+    end
+
+    vim.notify("LSP attached to: " .. vim.fn.expand "%:t", vim.log.levels.INFO)
   end,
 })
 
 -- Undotree
-keymap("n", "<leader>u", function()
+map("n", "<leader>u", function()
   require("undotree").toggle()
-end, opts "Toggle undotree")
-
--- Insert mode
+end, "Toggle undotree")
 
 -- LuaSnip
-keymap({ "i" }, "<C-K>", function()
+map("i", "<C-K>", function()
   require("luasnip").expand()
-end, opt)
-keymap({ "i", "s" }, "<leader>.", function()
+end, "Expand snippet")
+map({ "i", "s" }, "<leader>.", function()
   require("luasnip").jump(1)
-end, opts "Next snippet")
-keymap({ "i", "s" }, "<leader>,", function()
+end, "Next snippet")
+map({ "i", "s" }, "<leader>,", function()
   require("luasnip").jump(-1)
-end, opts "Previous snippet")
-keymap({ "i", "s" }, "<C-E>", function()
+end, "Previous snippet")
+map({ "i", "s" }, "<C-E>", function()
   if require("luasnip").choice_active() then
     require("luasnip").change_choice(1)
   end
-end, opts "Next snippet choice")
+end, "Next snippet choice")
