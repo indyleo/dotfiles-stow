@@ -1,65 +1,75 @@
--- Var
 local opt = vim.opt
+local cmd = vim.cmd
 
+-- ========================
 -- Vim Commands
-vim.cmd [[
-  let g:netrw_liststyle = 1
-]]
+-- ========================
+cmd [[ let g:netrw_liststyle = 1 ]]
 
--- Options
-opt.backup = false
-opt.clipboard = "unnamedplus"
-opt.cmdheight = 1
-opt.completeopt = { "menuone", "noselect" }
-opt.conceallevel = 0
-opt.fileencoding = "utf-8"
-opt.hlsearch = true
-opt.incsearch = true
-opt.ignorecase = true
-opt.mouse = ""
-opt.pumheight = 10
-opt.showmode = false
-opt.showtabline = 0
-opt.smartcase = true
-opt.smartindent = true
-opt.splitbelow = true
-opt.splitright = true
-opt.swapfile = false
-opt.termguicolors = true
-opt.timeout = true
-opt.timeoutlen = 300
-opt.undofile = true
-opt.updatetime = 300
-opt.writebackup = false
-opt.expandtab = true
-opt.shiftwidth = 2
-opt.tabstop = 2
-opt.cursorline = true
-opt.relativenumber = true
-opt.number = true
-opt.laststatus = 3
-opt.showcmd = false
-opt.ruler = false
-opt.numberwidth = 4
-opt.signcolumn = "yes"
-opt.wrap = false
-opt.scrolloff = 8
-opt.sidescrolloff = 8
-opt.fillchars = { eob = " ", foldopen = "▾", foldclose = "▸" }
+-- ========================
+-- Options grouped in tables
+-- ========================
+
+-- Boolean options
+local bool_opts = {
+  backup = false,
+  writebackup = false,
+  swapfile = false,
+  undofile = true,
+  cursorline = true,
+  number = true,
+  relativenumber = true,
+  wrap = false,
+  showmode = false,
+  title = true,
+  foldenable = true,
+}
+
+for k, v in pairs(bool_opts) do
+  opt[k] = v
+end
+
+-- Number options
+local num_opts = {
+  timeoutlen = 300,
+  updatetime = 300,
+  scrolloff = 8,
+  sidescrolloff = 8,
+  shiftwidth = 2,
+  tabstop = 2,
+  numberwidth = 4,
+  cmdheight = 1,
+  pumheight = 10,
+  foldlevel = 99,
+  foldlevelstart = 99,
+}
+
+for k, v in pairs(num_opts) do
+  opt[k] = v
+end
+
+-- String options
+local str_opts = {
+  clipboard = "unnamedplus",
+  fileencoding = "utf-8",
+  termguicolors = true,
+  signcolumn = "yes",
+  laststatus = 3,
+  shell = "zsh",
+  mouse = "",
+  titlestring = "Neovim - %t (%{expand('%:p:h')})",
+  winborder = "rounded",
+  linebreak = true,
+  completeopt = "menuone,noselect",
+}
+
+for k, v in pairs(str_opts) do
+  opt[k] = v
+end
+
+-- Append / remove options
 opt.shortmess:append "c"
 opt.whichwrap:append "<,>,[,],h,l"
 opt.iskeyword:append "-"
 opt.formatoptions:remove { "c", "r", "o" }
-opt.linebreak = true
-opt.spelllang = "en_ca"
-opt.spell = false
-opt.foldcolumn = "0"
-opt.foldlevel = 99
-opt.foldlevelstart = 99
-opt.foldenable = true
-vim.opt.shell = "zsh"
-vim.opt.shellcmdflag = ""
-vim.opt.shellxquote = ""
-opt.title = true
-opt.titlestring = "Neovim - %t (%{expand('%:p:h')})"
-opt.winborder = "rounded"
+opt.fillchars = { eob = " ", foldopen = "▾", foldclose = "▸" }
