@@ -6,7 +6,7 @@ return {
 
     lint.linters_by_ft = {
       -- Text
-      markdown = { "markdownlint-cli2" },
+      markdown = { "alex" },
       json = { "jsonlint" },
       yaml = { "yamllint" },
 

@@ -9,7 +9,7 @@ return {
         -- Text
         json = { "prettier" },
         yaml = { "prettier" },
-        markdown = { "prettier", "markdownlint-cli2" },
+        markdown = { "prettier", "alex" },
 
         -- Web
         javascript = { "prettier" },
