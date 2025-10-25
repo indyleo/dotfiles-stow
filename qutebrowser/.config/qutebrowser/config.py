@@ -4,63 +4,87 @@ config = config  # noqa: F821 pylint: disable=E0602,C0103
 
 import os
 
-# load settings from config.py
+
+# --- Helper function to load theme ---
+def load_theme():
+    """Reads the theme name from ~/.cache/theme and returns ('theme_name', palette, tabs)."""
+    theme_file = os.path.expanduser("~/.cache/theme")
+
+    try:
+        with open(theme_file, "r") as f:
+            theme_name = f.read().strip().lower()
+    except FileNotFoundError:
+        theme_name = "gruvbox"
+
+    if theme_name not in ["gruvbox", "nord"]:
+        theme_name = "gruvbox"
+
+    # --- Palettes ---
+    if theme_name == "nord":
+        palette = {
+            "bg0": "#2e3440",
+            "bg1": "#3b4252",
+            "bg2": "#434c5e",
+            "bg3": "#4c566a",
+            "fg0": "#d8dee9",
+            "fg1": "#e5e9f0",
+            "fg2": "#eceff4",
+            "blue": "#5e81ac",
+            "cyan": "#88c0d0",
+            "green": "#a3be8c",
+            "yellow": "#ebcb8b",
+            "orange": "#d08770",
+            "red": "#bf616a",
+            "purple": "#b48ead",
+        }
+        tabs = {
+            "polar_night1": "#3b425226",
+            "polar_night2": "#434c5e26",
+            "polar_night3": "#4c566a26",
+        }
+    else:  # gruvbox
+        palette = {
+            "bg0": "#1d2021",
+            "bg1": "#282828",
+            "bg2": "#3c3836",
+            "bg3": "#504945",
+            "fg0": "#fbf1c7",
+            "fg1": "#ebdbb2",
+            "fg2": "#d5c4a1",
+            "red": "#fb4934",
+            "green": "#b8bb26",
+            "yellow": "#fabd2f",
+            "blue": "#83a598",
+            "purple": "#d3869b",
+            "aqua": "#8ec07c",
+            "orange": "#fe8019",
+        }
+        tabs = {
+            "dark1": "#28282826",
+            "dark2": "#3c383626",
+            "dark3": "#50494526",
+        }
+
+    return theme_name, palette, tabs
+
+
+# --- Load theme dynamically ---
+theme_name, palette, tabs = load_theme()
+
+# --- Base config ---
 config.load_autoconfig(True)
 
-# --- Determine theme ---
-theme_file = os.path.expanduser("~/.cache/theme")
-
-try:
-    with open(theme_file, "r") as f:
-        theme_name = f.read().strip().lower()
-except FileNotFoundError:
-    theme_name = "gruvbox"
-
-if theme_name not in ["gruvbox", "nord"]:
-    theme_name = "gruvbox"
-
-# --- Common settings ---
 c.aliases = {"q": "quit", "w": "session-save", "wq": "quit --save"}
-
-# Default editor
 c.editor.command = ["neovide", "{file}"]
 
-# Dark mode settings
+# --- Dark mode ---
 config.set("colors.webpage.darkmode.enabled", True)
 c.colors.webpage.darkmode.algorithm = "lightness-cielab"
 c.colors.webpage.darkmode.policy.images = "never"
 config.set("colors.webpage.darkmode.enabled", False, "file://*")
 config.set("colors.webpage.darkmode.enabled", True, "https://*.suckless.org/*")
 
-# User agents
-config.set(
-    "content.headers.user_agent",
-    "Mozilla/5.0 ({os_info}) AppleWebKit/{webkit_version} (KHTML, like Gecko) "
-    "{upstream_browser_key}/{upstream_browser_version} Safari/{webkit_version}",
-    "https://web.whatsapp.com/",
-)
-config.set(
-    "content.headers.user_agent",
-    "Mozilla/5.0 ({os_info}; rv:71.0) Gecko/20100101 Firefox/71.0",
-    "https://accounts.google.com/*",
-)
-config.set(
-    "content.headers.user_agent",
-    "Mozilla/5.0 ({os_info}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99 Safari/537.36",
-    "https://*.slack.com/*",
-)
-config.set(
-    "content.headers.user_agent",
-    "Mozilla/5.0 ({os_info}; rv:71.0) Gecko/20100101 Firefox/71.0",
-    "https://docs.google.com/*",
-)
-config.set(
-    "content.headers.user_agent",
-    "Mozilla/5.0 ({os_info}; rv:71.0) Gecko/20100101 Firefox/71.0",
-    "https://drive.google.com/*",
-)
-
-# Privacy / Web settings
+# --- Content & privacy ---
 config.set("content.images", True, "*")
 config.set("content.javascript.enabled", True, "*")
 config.set("content.notifications.enabled", False)
@@ -72,7 +96,7 @@ config.set("content.cookies.accept", "all")
 config.set("content.cookies.store", True)
 config.set("content.javascript.clipboard", "access")
 
-# Adblock settings
+# --- Adblock lists ---
 c.content.blocking.method = "both"
 c.content.blocking.adblock.lists = [
     "https://easylist.to/easylist/easylist.txt",
@@ -83,7 +107,7 @@ c.content.blocking.adblock.lists = [
     "https://secure.fanboy.co.nz/fanboy-cookiemonster.txt",
 ]
 
-# UI behavior
+# --- UI ---
 c.downloads.location.directory = "~/Downloads"
 c.tabs.position = "left"
 c.tabs.show = "always"
@@ -92,7 +116,7 @@ c.url.default_page = "file:///home/indy/Github/portfilio/startpage/index.html"
 c.url.start_pages = "file:///home/indy/Github/portfilio/startpage/index.html"
 c.tabs.title.format = "{audio}{current_title}"
 
-# Search engines
+# --- Search engines ---
 c.url.searchengines = {
     "DEFAULT": "https://searxng.linuxlab.work/search?q={}",
     "!ar": "https://aur.archlinux.org/packages?O=0&K={}",
@@ -105,7 +129,6 @@ c.url.searchengines = {
     "!yt": "https://www.youtube.com/search?q={}",
 }
 
-# Completion categories
 c.completion.open_categories = [
     "searchengines",
     "quickmarks",
@@ -114,50 +137,25 @@ c.completion.open_categories = [
     "filesystem",
 ]
 
-# --- THEMES ---
-
-if theme_name == "nord":
-    palette = {
-        "bg0": "#2e3440",
-        "bg1": "#3b4252",
-        "bg2": "#434c5e",
-        "bg3": "#4c566a",
-        "fg0": "#d8dee9",
-        "fg1": "#e5e9f0",
-        "fg2": "#eceff4",
-        "blue": "#5e81ac",
-        "cyan": "#88c0d0",
-        "green": "#a3be8c",
-        "yellow": "#ebcb8b",
-        "orange": "#d08770",
-        "red": "#bf616a",
-        "purple": "#b48ead",
-    }
-else:  # default Gruvbox
-    palette = {
-        "bg0": "#1d2021",
-        "bg1": "#282828",
-        "bg2": "#3c3836",
-        "bg3": "#504945",
-        "fg0": "#fbf1c7",
-        "fg1": "#ebdbb2",
-        "fg2": "#d5c4a1",
-        "red": "#fb4934",
-        "green": "#b8bb26",
-        "yellow": "#fabd2f",
-        "blue": "#83a598",
-        "purple": "#d3869b",
-        "aqua": "#8ec07c",
-        "orange": "#fe8019",
-    }
-
-# --- UI COLORS ---
+# --- Transparent Tabs ---
 c.window.transparent = True
 c.tabs.indicator.width = 0
 c.tabs.padding = {"top": 5, "bottom": 5, "left": 7, "right": 7}
 c.tabs.width = "4%" if theme_name == "gruvbox" else "5%"
 
-# Completion
+c.colors.tabs.bar.bg = "transparent"
+c.colors.tabs.odd.bg = list(tabs.values())[0]
+c.colors.tabs.even.bg = list(tabs.values())[1]
+
+accent = palette["blue"]
+c.colors.tabs.selected.odd.bg = accent + "99"  # 60% opacity
+c.colors.tabs.selected.even.bg = accent + "99"
+c.colors.tabs.selected.odd.fg = palette["fg0"]
+c.colors.tabs.selected.even.fg = palette["fg0"]
+c.colors.tabs.odd.fg = palette["fg1"]
+c.colors.tabs.even.fg = palette["fg1"]
+
+# --- Completion ---
 c.colors.completion.category.bg = palette["bg2"]
 c.colors.completion.category.fg = palette["fg1"]
 c.colors.completion.even.bg = palette["bg0"]
@@ -167,8 +165,10 @@ c.colors.completion.item.selected.fg = palette["fg2"]
 c.colors.completion.item.selected.border.top = palette["blue"]
 c.colors.completion.item.selected.border.bottom = palette["blue"]
 c.colors.completion.match.fg = palette.get("orange", palette["yellow"])
+c.colors.completion.scrollbar.bg = palette["bg1"]
+c.colors.completion.scrollbar.fg = palette["bg3"]
 
-# Statusbar
+# --- Statusbar ---
 c.colors.statusbar.normal.bg = palette["bg2"]
 c.colors.statusbar.insert.bg = palette["green"]
 c.colors.statusbar.passthrough.bg = palette["yellow"]
@@ -180,43 +180,25 @@ c.colors.statusbar.url.error.fg = palette["red"]
 c.colors.statusbar.url.warn.fg = palette["yellow"]
 c.colors.statusbar.url.hover.fg = palette["blue"]
 
-# Tabs
-c.colors.tabs.bar.bg = palette["bg1"]
-c.colors.tabs.odd.bg = palette["bg2"]
-c.colors.tabs.even.bg = palette["bg3"]
-c.colors.tabs.selected.odd.bg = palette["blue"]
-c.colors.tabs.selected.even.bg = palette["blue"]
-c.colors.tabs.selected.odd.fg = palette["fg0"]
-c.colors.tabs.selected.even.fg = palette["fg0"]
-c.colors.tabs.odd.fg = palette["fg1"]
-c.colors.tabs.even.fg = palette["fg1"]
-
-# Hints
+# --- Hints, Messages, Downloads, Prompts ---
 c.colors.hints.bg = palette["yellow"]
 c.colors.hints.fg = palette["bg0"]
 c.colors.hints.match.fg = palette["red"]
 
-# Messages
 c.colors.messages.error.bg = palette["red"]
 c.colors.messages.warning.bg = palette.get("orange", palette["yellow"])
 c.colors.messages.info.bg = palette["blue"]
 
-# Downloads
 c.colors.downloads.bar.bg = palette["bg2"]
 c.colors.downloads.start.bg = palette["blue"]
 c.colors.downloads.stop.bg = palette["green"]
 c.colors.downloads.error.bg = palette["red"]
 
-# Prompts
 c.colors.prompts.bg = palette["bg1"]
 c.colors.prompts.fg = palette["fg1"]
 c.colors.prompts.border = f"1px solid {palette['blue']}"
 
-# Completion scrollbar
-c.colors.completion.scrollbar.bg = palette["bg1"]
-c.colors.completion.scrollbar.fg = palette["bg3"]
-
-# Fonts
+# --- Fonts ---
 c.fonts.default_family = '"SauceCodePro NF"'
 c.fonts.default_size = "11pt"
 c.fonts.completion.entry = '11pt "SauceCodePro NF"'
@@ -225,7 +207,9 @@ c.fonts.prompts = "default_size sans-serif"
 c.fonts.statusbar = '11pt "SauceCodePro NF"'
 
 # --- Keybindings ---
-config.bind("cs", "config-source")
+config.bind("cs", "config-source ;; message-info 'Config & theme reloaded'")
+config.bind("cp", f"message-info 'Current theme: {theme_name}'")
+
 config.bind("Px", "hint links spawn --detach mpv --fs {hint-url}")
 config.bind("Pt", "hint links spawn --detach ytdl {hint-url} bth")
 config.bind("Py", "hint links spawn --detach ytdl {hint-url} vid")
