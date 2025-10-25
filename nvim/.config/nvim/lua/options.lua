@@ -3,7 +3,7 @@ local opt = vim.opt
 
 -- Vim Commands
 vim.cmd [[
-  let g:netrw_liststyle = 3
+  let g:netrw_liststyle = 1
 ]]
 
 -- Options
@@ -16,8 +16,7 @@ opt.fileencoding = "utf-8"
 opt.hlsearch = true
 opt.incsearch = true
 opt.ignorecase = true
-opt.mouse = "a"
-opt.mousemodel = "popup"
+opt.mouse = ""
 opt.pumheight = 10
 opt.showmode = false
 opt.showtabline = 0
