@@ -248,6 +248,7 @@ EOF
       ;;
     lua)
       mkdir -pv -- "lua/$name/functions" || exit
+      mkdir -pv -- "plugin" || exit
       cd "lua/$name" || exit
       cat << 'EOF' > "init.lua"
 local M = {}
