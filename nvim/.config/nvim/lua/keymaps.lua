@@ -276,19 +276,3 @@ vim.api.nvim_create_autocmd("LspAttach", {
 map("n", "<leader>u", function()
   require("undotree").toggle()
 end, "Toggle undotree")
-
--- LuaSnip
-map("i", "<C-K>", function()
-  require("luasnip").expand()
-end, "Expand snippet")
-map({ "i", "s" }, "<leader>.", function()
-  require("luasnip").jump(1)
-end, "Next snippet")
-map({ "i", "s" }, "<leader>,", function()
-  require("luasnip").jump(-1)
-end, "Previous snippet")
-map({ "i", "s" }, "<C-E>", function()
-  if require("luasnip").choice_active() then
-    require("luasnip").change_choice(1)
-  end
-end, "Next snippet choice")
