@@ -17,6 +17,20 @@ local function proc_check(program)
 
   return false
 end
+-- Allowed directories
+local allowed_dirs = {
+  vim.fn.expand "~/.config/nvim/lua/",
+  vim.fn.expand "~/Github/dotfiles-stow/nvim/.config/nvim/lua/",
+}
+local function is_in_allowed_dir(filepath)
+  for _, dir in ipairs(allowed_dirs) do
+    if filepath:sub(1, #dir) == dir then
+      return true
+    end
+  end
+  return false
+end
+
 local function augroup(name)
   return vim.api.nvim_create_augroup(name, { clear = true })
 end
@@ -94,13 +108,14 @@ autocmd("BufWritePost", {
   end,
 })
 
--- Auto reload run lua files if changerd and a neovim config file (only run if modified)
+-- Auto reload only if modified and in allowed directories
 autocmd("BufWritePost", {
   group = augroup "AutoReload",
   pattern = { "keymaps.lua", "options.lua", "guioptions.lua", "autocommand.lua", "init.lua" },
   callback = function(args)
-    if was_modified[args.buf] and vim.bo.filetype ~= "" and vim.fn.expand "%" ~= "" then
-      vim.cmd.luafile(vim.fn.expand "%")
+    local filepath = vim.fn.expand "%:p" -- full path
+    if was_modified[args.buf] and is_in_allowed_dir(filepath) then
+      vim.cmd.luafile(filepath)
       vim.notify("Reloaded " .. vim.fn.expand "%:t", vim.log.levels.INFO)
     end
     was_modified[args.buf] = nil -- clear flag
