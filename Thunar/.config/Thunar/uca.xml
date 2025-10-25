@@ -25,4 +25,15 @@
 	<other-files/>
 	<text-files/>
 </action>
+<action>
+	<icon>cool-retro-term</icon>
+	<name>St Open</name>
+	<submenu></submenu>
+	<unique-id>1761402120701248-1</unique-id>
+	<command>st -e zsh -c &quot;cd %f; exec zsh&quot;</command>
+	<description>Open the cwd in st</description>
+	<range>*</range>
+	<patterns>*</patterns>
+	<directories/>
+</action>
 </actions>
