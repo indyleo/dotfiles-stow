@@ -46,7 +46,7 @@ local themes = {
 }
 
 -- Pick current theme or fallback
-local colors = themes[theme_current:lower()] or themes["default"]
+local colors = themes[theme_current:lower()] or themes["gruvbox"]
 
 -- Create highlight groups dynamically
 for name, col in pairs(colors) do
