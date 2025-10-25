@@ -20,6 +20,11 @@ vim.g.maplocalleader = " "
 
 -- Normal Mode --
 
+-- Disable arrow keys in normal and visual modes
+for _, key in ipairs { "<Up>", "<Down>", "<Left>", "<Right> " } do
+  map({ "n", "v" }, key, "<Nop>", "Disable " .. key)
+end
+
 -- Window navigation
 for _, k in pairs { h = "h", j = "j", k = "k", l = "l" } do
   map("n", "<C-" .. k .. ">", "<C-w>" .. k, "Move to window " .. k)
