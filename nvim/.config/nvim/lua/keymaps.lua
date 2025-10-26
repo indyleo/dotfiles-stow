@@ -219,12 +219,6 @@ for i = 1, 5 do
   end, "Open file " .. i)
 end
 
--- Comment
-map("n", "<leader>/", function()
-  require("Comment.api").toggle.linewise.current()
-end, "Comment line")
-map({ "x", "v" }, "<leader>/", "<Esc><:lua require('Comment.api').toggle.linewise(vim.fn.visualmode())<CR>", "Comment selection")
-
 -- Fzf Lua
 local fzf = { ff = "files", fr = "oldfiles", fs = "grep", fc = "grep_cword", fg = "git_files", fh = "helptags", fk = "keymaps" }
 for k, v in pairs(fzf) do
