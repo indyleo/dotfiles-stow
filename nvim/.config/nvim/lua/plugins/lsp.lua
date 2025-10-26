@@ -144,6 +144,7 @@ return {
           "cmakelang",
           "cmakelint",
           "checkmake",
+          "cpplint",
           "clang-format",
           "clangd",
           "cmake-language-server",
