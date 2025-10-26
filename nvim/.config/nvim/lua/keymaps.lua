@@ -124,7 +124,7 @@ map("n", "<leader>zk", peek_fold, "Peek folded lines or LSP hover")
 
 -- Disable arrow keys in normal and visual modes
 for _, key in ipairs { "<Up>", "<Down>", "<Left>", "<Right> " } do
-  map({ "n", "v" }, key, "<Nop>", "Disable " .. key)
+  map({ "n", "v", "x" }, key, "<Nop>", "Disable " .. key)
 end
 
 -- Window navigation
@@ -172,17 +172,6 @@ map("n", "<leader>hl", ":nohlsearch<CR>", "Clear highlights")
 map("n", "a", "<C-a>", "Increment number")
 map("n", "q", "<C-x>", "Decrement number")
 
--- Terminal toggles
-map({ "n", "t" }, "<leader>tr", ":ToggleTerm<CR>", "Toggle terminal")
-map({ "n", "t" }, "<leader>tg", ":ToggleLazygit<CR>", "Toggle lazygit")
-
--- Cword/Case replace
-map("n", "<leader>sw", ":SwapNext<CR>", "Cword replace next")
-map("n", "<leader>sW", ":SwapPrev<CR>", "Cword replace previous")
-map("n", "<leader>sc", ":SwapCNext<CR>", "Case replace next")
-map("n", "<leader>sC", ":SwapCPrev<CR>", "Case replace previous")
-map("n", "<leader>sr", ":SwapReload<CR>", "Reload swap groups")
-
 -- Insert Mode --
 map("i", "jk", "<Esc>", "Exit insert mode")
 
@@ -202,6 +191,17 @@ map("x", "P", '"_dP', "Paste over selection without overwriting register")
 map("t", "<Esc><Esc>", "<C-\\><C-n>", "Exit terminal to normal mode")
 
 ---- Plugins ----
+
+-- Terminal toggles
+map({ "n", "t" }, "<leader>tr", ":ToggleTerm<CR>", "Toggle terminal")
+map({ "n", "t" }, "<leader>tg", ":ToggleLazygit<CR>", "Toggle lazygit")
+
+-- Cword/Case replace
+map("n", "<leader>sw", ":SwapNext<CR>", "Cword replace next")
+map("n", "<leader>sW", ":SwapPrev<CR>", "Cword replace previous")
+map("n", "<leader>sc", ":SwapCNext<CR>", "Case replace next")
+map("n", "<leader>sC", ":SwapCPrev<CR>", "Case replace previous")
+map("n", "<leader>sr", ":SwapReload<CR>", "Reload swap groups")
 
 -- Noice
 map("n", "<leader>nh", ":NoiceDismiss<CR>", "Dismiss noice notifications")
