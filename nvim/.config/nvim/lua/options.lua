@@ -23,6 +23,8 @@ local bool_opts = {
   showmode = false,
   title = true,
   foldenable = true,
+  termguicolors = true,
+  linebreak = true,
 }
 
 for k, v in pairs(bool_opts) do
@@ -42,6 +44,7 @@ local num_opts = {
   pumheight = 10,
   foldlevel = 99,
   foldlevelstart = 99,
+  laststatus = 3,
 }
 
 for k, v in pairs(num_opts) do
@@ -52,16 +55,13 @@ end
 local str_opts = {
   clipboard = "unnamedplus",
   fileencoding = "utf-8",
-  termguicolors = true,
   signcolumn = "yes",
-  laststatus = 3,
   shell = "zsh",
   mouse = "",
   titlestring = "Neovim - %t (%{expand('%:p:h')})",
   winborder = "rounded",
   foldmethod = "expr",
   foldexpr = "nvim_treesitter#foldexpr()",
-  linebreak = true,
   completeopt = "menuone,noselect",
 }
 
