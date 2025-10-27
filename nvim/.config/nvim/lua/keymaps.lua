@@ -70,6 +70,10 @@ map("n", "<leader>hl", ":nohlsearch<CR>", "Clear highlights")
 map("n", "a", "<C-a>", "Increment number")
 map("n", "q", "<C-x>", "Decrement number")
 
+-- Commenting
+map("n", "<leader>/", ":ToggleComment<CR>", "Toggle comment")
+map("v", "<leader>/", ":ToggleCommentVisual<CR>", "Toggle comment Visual")
+
 -- Folding
 map("n", "<leader>zr", ":ToggleAllFolds<CR>", "Toggle all folds")
 map("n", "<leader>zt", ":ToggleFold<CR>", "Toggle fold under cursor")

@@ -175,16 +175,25 @@ local function toggle_visual_comment()
   toggle_comment(srow, erow)
 end
 
--- Setup keymaps
+-- Expose commands instead of keymaps
 function M.setup()
-  local opts = { noremap = true, silent = true, desc = "Toggle comment (<leader>/)" }
+  -- Normal toggle command
+  vim.api.nvim_create_user_command("ToggleComment", function()
+    if not toggle_block_comment_if_inside() then
+      local l = vim.fn.line "." - 1
+      toggle_comment(l, l + 1)
+    end
+  end, { desc = "Toggle comment for current line or block" })
 
-  vim.keymap.set("n", "<leader>/", toggle_line_comment, opts)
-  vim.keymap.set("x", "<leader>/", function()
-    local esc = vim.api.nvim_replace_termcodes("<Esc>", true, false, true)
-    vim.api.nvim_feedkeys(esc, "x", false)
-    vim.schedule(toggle_visual_comment)
-  end, opts)
+  -- Visual mode toggle command
+  vim.api.nvim_create_user_command("ToggleCommentVisual", function()
+    local srow = vim.fn.line "'<" - 1
+    local erow = vim.fn.line "'>"
+    if srow > erow then
+      srow, erow = erow, srow
+    end
+    toggle_comment(srow, erow)
+  end, { range = true, desc = "Toggle comment for selected lines" })
 end
 
 M.setup()
