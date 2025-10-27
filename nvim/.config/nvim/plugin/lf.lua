@@ -71,4 +71,4 @@ local function open_lf_in_float()
   vim.cmd "startinsert"
 end
 
-vim.keymap.set("n", "<leader>ee", open_lf_in_float, { desc = "Open lf file manager" })
+vim.api.nvim_create_user_command("Lf", open_lf_in_float, { bang = true, desc = "Open lf in a floating window" })

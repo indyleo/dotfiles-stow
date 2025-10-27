@@ -117,11 +117,6 @@ end
 
 -- Normal Mode --
 
--- Folding
-map("n", "<leader>zr", toggle_all_folds, "Toggle all folds")
-map("n", "<leader>zt", toggle_fold_under_cursor, "Toggle fold under cursor")
-map("n", "<leader>zk", peek_fold, "Peek folded lines or LSP hover")
-
 -- Disable arrow keys in normal and visual modes
 for _, key in ipairs { "<Up>", "<Down>", "<Left>", "<Right> " } do
   map({ "n", "v", "x" }, key, "<Nop>", "Disable " .. key)
@@ -171,6 +166,14 @@ map("n", "<leader>hl", ":nohlsearch<CR>", "Clear highlights")
 -- Increment/Decrement numbers
 map("n", "a", "<C-a>", "Increment number")
 map("n", "q", "<C-x>", "Decrement number")
+
+-- Folding
+map("n", "<leader>zr", toggle_all_folds, "Toggle all folds")
+map("n", "<leader>zt", toggle_fold_under_cursor, "Toggle fold under cursor")
+map("n", "<leader>zk", peek_fold, "Peek folded lines or LSP hover")
+
+-- Lf file manager
+map("n", "<leader>ee", ":Lf<CR>", "Open file manager")
 
 -- Insert Mode --
 map("i", "jk", "<Esc>", "Exit insert mode")
