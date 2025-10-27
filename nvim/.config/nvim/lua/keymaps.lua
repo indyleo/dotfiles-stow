@@ -16,103 +16,6 @@ map("", "<Space>", "<Nop>", "Disable space")
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
--- 1️⃣ Toggle all folds
-local function any_folds_closed()
-  for l = 1, vim.fn.line "$" do
-    if vim.fn.foldclosed(l) ~= -1 then
-      return true
-    end
-  end
-  return false
-end
-
-local function toggle_all_folds()
-  if any_folds_closed() then
-    vim.cmd "normal! zR" -- open all folds
-  else
-    vim.cmd "normal! zM" -- close all folds
-  end
-end
-
--- 2️⃣ Toggle fold under cursor
-local function toggle_fold_under_cursor()
-  local line = vim.fn.line "."
-  local fold_closed = vim.fn.foldclosed(line)
-  if fold_closed == -1 then
-    vim.cmd "normal! zc" -- fold is open → close
-  else
-    vim.cmd "normal! zo" -- fold is closed → open
-  end
-end
-
--- 3️⃣ Peek fold under cursor (scrollable)
-local peek_win = nil
-
-local function peek_fold()
-  local line = vim.fn.line "."
-  local fold_start = vim.fn.foldclosed(line)
-
-  -- Close peek if already open
-  if peek_win and vim.api.nvim_win_is_valid(peek_win) then
-    vim.api.nvim_win_close(peek_win, true)
-    peek_win = nil
-    return
-  end
-
-  if fold_start == -1 then
-    vim.lsp.buf.hover()
-    return
-  end
-
-  local fold_end = vim.fn.foldclosedend(line)
-  local lines = vim.fn.getline(fold_start, fold_end)
-
-  local buf = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-  vim.api.nvim_buf_set_option(buf, "filetype", vim.bo.filetype)
-  vim.api.nvim_buf_set_option(buf, "modifiable", false)
-
-  local width = math.min(
-    80,
-    math.max(unpack(vim.tbl_map(function(s)
-      return #s
-    end, lines)))
-  )
-  local height = math.min(20, #lines)
-
-  local opts_win = {
-    relative = "cursor",
-    width = width,
-    height = height,
-    col = 0,
-    row = 1,
-    style = "minimal",
-    border = "rounded",
-    noautocmd = true,
-  }
-
-  peek_win = vim.api.nvim_open_win(buf, false, opts_win)
-
-  local close_cmd = function()
-    if peek_win and vim.api.nvim_win_is_valid(peek_win) then
-      vim.api.nvim_win_close(peek_win, true)
-    end
-    peek_win = nil
-  end
-
-  -- Keymaps for the floating window
-  vim.api.nvim_buf_set_keymap(buf, "n", "<Esc>", "<cmd>lua(" .. vim.inspect(close_cmd) .. ")()<CR>", { noremap = true, silent = true })
-  vim.api.nvim_buf_set_keymap(buf, "n", "q", "<cmd>lua(" .. vim.inspect(close_cmd) .. ")()<CR>", { noremap = true, silent = true })
-  vim.api.nvim_buf_set_keymap(buf, "n", "<C-d>", "<C-d>", { noremap = true, silent = true })
-  vim.api.nvim_buf_set_keymap(buf, "n", "<C-u>", "<C-u>", { noremap = true, silent = true })
-
-  vim.api.nvim_create_autocmd({ "BufLeave", "WinLeave" }, {
-    buffer = buf,
-    once = true,
-    callback = close_cmd,
-  })
-end
-
 ---- Non-Plugin ----
 
 -- Normal Mode --
@@ -168,9 +71,9 @@ map("n", "a", "<C-a>", "Increment number")
 map("n", "q", "<C-x>", "Decrement number")
 
 -- Folding
-map("n", "<leader>zr", toggle_all_folds, "Toggle all folds")
-map("n", "<leader>zt", toggle_fold_under_cursor, "Toggle fold under cursor")
-map("n", "<leader>zk", peek_fold, "Peek folded lines or LSP hover")
+map("n", "<leader>zr", ":ToggleAllFolds<CR>", "Toggle all folds")
+map("n", "<leader>zt", ":ToggleFold<CR>", "Toggle fold under cursor")
+map("n", "<leader>zk", ":PeekFold<CR>", "Peek folded lines or LSP hover")
 
 -- Lf file manager
 map("n", "<leader>ee", ":Lf<CR>", "Open file manager")
