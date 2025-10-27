@@ -1,100 +1,96 @@
--- ===========================================================================
+-- ========================
 -- Folding Utilities for Neovim
--- ===========================================================================
+-- Works with Treesitter and fallback methods
+-- ========================
 
--- Helper: check if any folds are closed
+local api = vim.api
+local cmd = vim.cmd
+local fn = vim.fn
+
+-- Refresh folds (important for Treesitter)
+local function refresh_folds()
+  cmd "silent! normal! zx"
+end
+
+-- Check if any folds are currently closed
 local function any_folds_closed()
-  for l = 1, vim.fn.line "$" do
-    if vim.fn.foldclosed(l) ~= -1 then
+  for l = 1, fn.line "$" do
+    if fn.foldclosed(l) ~= -1 then
       return true
     end
   end
   return false
 end
 
--- ===========================================================================
--- 1️⃣ Toggle all folds safely
--- ===========================================================================
+-- ========================
+-- Toggle all folds
+-- ========================
 local function toggle_all_folds()
-  -- Recalculate folds (important for Treesitter)
-  vim.cmd "silent! normal! zx"
-
-  local ok, closed = pcall(any_folds_closed)
-  if not ok then
-    return -- skip if fold functions fail
-  end
-
-  if closed then
-    vim.cmd "silent! normal! zR" -- open all
+  refresh_folds()
+  if any_folds_closed() then
+    cmd "normal! zR" -- open all
   else
-    vim.cmd "silent! normal! zM" -- close all
+    cmd "normal! zM" -- close all
   end
 end
 
--- ===========================================================================
--- 2️⃣ Toggle fold under cursor (safe)
--- ===========================================================================
+-- ========================
+-- Toggle fold under cursor
+-- ========================
 local function toggle_fold_under_cursor()
-  local line = vim.fn.line "."
-  vim.cmd "silent! normal! zx" -- ensure folds updated
+  refresh_folds()
+  local line = fn.line "."
+  local fold_closed = fn.foldclosed(line)
 
-  local fold_start = vim.fn.foldclosed(line)
-  local fold_end = vim.fn.foldclosedend(line)
-
-  -- No fold at cursor → do nothing
-  if fold_start == -1 and fold_end == -1 then
-    return
-  end
-
-  if fold_start == -1 then
-    vim.cmd "silent! normal! zc" -- open → close
+  if fold_closed == -1 then
+    cmd "silent! normal! zc" -- open → close
   else
-    vim.cmd "silent! normal! zo" -- close → open
+    cmd "silent! normal! zo" -- closed → open
   end
 end
 
--- ===========================================================================
--- 3️⃣ Peek fold under cursor (scrollable floating window)
--- ===========================================================================
+-- ========================
+-- Peek fold contents in floating window
+-- ========================
 local peek_win = nil
 
 local function peek_fold()
-  local line = vim.fn.line "."
-  local fold_start = vim.fn.foldclosed(line)
+  local line = fn.line "."
+  local fold_start = fn.foldclosed(line)
 
-  -- Close peek if already open
-  if peek_win and vim.api.nvim_win_is_valid(peek_win) then
-    vim.api.nvim_win_close(peek_win, true)
+  -- If window already open, close it
+  if peek_win and api.nvim_win_is_valid(peek_win) then
+    api.nvim_win_close(peek_win, true)
     peek_win = nil
     return
   end
 
-  -- No fold under cursor → show LSP hover instead
+  -- No fold? show LSP hover instead
   if fold_start == -1 then
     vim.lsp.buf.hover()
     return
   end
 
-  local fold_end = vim.fn.foldclosedend(line)
-  local lines = vim.fn.getline(fold_start, fold_end)
+  local fold_end = fn.foldclosedend(line)
+  local lines = fn.getline(fold_start, fold_end)
   if not lines or #lines == 0 then
     return
   end
 
-  -- Create temporary buffer
-  local buf = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-  vim.bo[buf].filetype = vim.bo.filetype
-  vim.bo[buf].modifiable = false
+  -- Create floating buffer
+  local buf = api.nvim_create_buf(false, true)
+  api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  api.nvim_buf_set_option(buf, "filetype", vim.bo.filetype)
+  api.nvim_buf_set_option(buf, "modifiable", false)
 
-  -- Calculate window dimensions
-  local max_width = 0
-  for _, l in ipairs(lines) do
-    max_width = math.max(max_width, #l)
-  end
-
-  local width = math.min(100, math.max(20, max_width))
-  local height = math.min(25, #lines)
+  -- Calculate dimensions
+  local width = math.min(
+    100,
+    math.max(unpack(vim.tbl_map(function(s)
+      return #s
+    end, lines)))
+  )
+  local height = math.min(20, #lines)
 
   -- Floating window options
   local opts = {
@@ -108,33 +104,34 @@ local function peek_fold()
     noautocmd = true,
   }
 
-  peek_win = vim.api.nvim_open_win(buf, false, opts)
+  peek_win = api.nvim_open_win(buf, false, opts)
 
-  -- Define a safe close function
+  -- Close function
   local function close_peek()
-    if peek_win and vim.api.nvim_win_is_valid(peek_win) then
-      vim.api.nvim_win_close(peek_win, true)
+    if peek_win and api.nvim_win_is_valid(peek_win) then
+      api.nvim_win_close(peek_win, true)
     end
     peek_win = nil
   end
 
-  -- Local keymaps (use Lua callbacks, not strings)
-  vim.keymap.set("n", "<Esc>", close_peek, { buffer = buf, silent = true })
-  vim.keymap.set("n", "q", close_peek, { buffer = buf, silent = true })
-  vim.keymap.set("n", "<C-d>", "<C-d>", { buffer = buf, silent = true })
-  vim.keymap.set("n", "<C-u>", "<C-u>", { buffer = buf, silent = true })
-
-  -- Auto-close when leaving buffer/window
-  vim.api.nvim_create_autocmd({ "BufLeave", "WinLeave" }, {
+  -- Close when leaving buffer/window
+  api.nvim_create_autocmd({ "BufLeave", "WinLeave" }, {
     buffer = buf,
     once = true,
     callback = close_peek,
   })
+
+  -- Local keymaps for navigation / closing
+  local opts_key = { noremap = true, silent = true, nowait = true }
+  api.nvim_buf_set_keymap(buf, "n", "<Esc>", "", { callback = close_peek, noremap = true, silent = true })
+  api.nvim_buf_set_keymap(buf, "n", "q", "", { callback = close_peek, noremap = true, silent = true })
+  api.nvim_buf_set_keymap(buf, "n", "<C-d>", "<C-d>", opts_key)
+  api.nvim_buf_set_keymap(buf, "n", "<C-u>", "<C-u>", opts_key)
 end
 
--- ===========================================================================
--- 🧩 User Commands
--- ===========================================================================
-vim.api.nvim_create_user_command("ToggleAllFolds", toggle_all_folds, {})
-vim.api.nvim_create_user_command("ToggleFold", toggle_fold_under_cursor, {})
-vim.api.nvim_create_user_command("PeekFold", peek_fold, {})
+-- ========================
+-- User commands
+-- ========================
+api.nvim_create_user_command("ToggleAllFolds", toggle_all_folds, {})
+api.nvim_create_user_command("ToggleFold", toggle_fold_under_cursor, {})
+api.nvim_create_user_command("PeekFold", peek_fold, {})
