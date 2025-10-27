@@ -61,7 +61,6 @@ local str_opts = {
   titlestring = "Neovim - %t (%{expand('%:p:h')})",
   winborder = "rounded",
   foldmethod = "expr",
-  foldexpr = "nvim_treesitter#foldexpr()",
   completeopt = "menuone,noselect",
 }
 
