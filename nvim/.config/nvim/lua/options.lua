@@ -59,6 +59,8 @@ local str_opts = {
   mouse = "",
   titlestring = "Neovim - %t (%{expand('%:p:h')})",
   winborder = "rounded",
+  foldmethod = "expr",
+  foldexpr = "nvim_treesitter#foldexpr()",
   linebreak = true,
   completeopt = "menuone,noselect",
 }
