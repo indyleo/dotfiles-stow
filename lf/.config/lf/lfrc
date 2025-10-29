@@ -64,6 +64,7 @@ map gd :cd ~/Downloads
 map gD :cd ~/Documents
 map gv :cd ~/Videos
 map gm :cd ~/Music
+map gM :cd /media/indy/
 map gg :cd ~/Github
 map gs :cd ~/Github/dotfiles-stow
 map gC :cd ~/Github/Catalyst
