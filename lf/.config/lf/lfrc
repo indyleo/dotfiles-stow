@@ -288,6 +288,7 @@ EOF
       ;;
     go)
       go mod init "$name"
+			cd "$name"
       cat << 'EOF' > "main.go"
 package main
 
