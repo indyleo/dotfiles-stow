@@ -154,16 +154,15 @@ cmd mkdir %{{
   fi
 }}
 
-cmd mkfile ${{
+cmd mkfile %{{
   clear
-  printf "File Name: "
+  printf " File Name: "
   read -r ans
   if [ -n "$ans" ]; then
     :> "$ans"  # Touch file safely
-    ${EDITOR:-nvim} "$ans"
     lf -remote 'send reload'
   else
-    echo "No file name entered."
+    echo " No file name entered."
   fi
 }}
 
