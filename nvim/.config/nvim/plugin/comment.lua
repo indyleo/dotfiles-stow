@@ -1,15 +1,26 @@
 -- plugin/comment.lua
 -- Minimal self-contained comment toggler for Neovim (single-file)
--- Fixes: find & unwrap enclosing block markers even when not selected,
--- removes padding lines on unwrap, avoids nesting.
+-- Features:
+--  - line vs block selection threshold
+--  - unwrap block comments when selecting interior (find enclosing markers)
+--  - removes padding lines inserted when block was created
+--  - preserves cursor pos
+--  - visual-block (rect) support
+--  - smarter indent detection and block padding
+--  - prefers internal comment_map by default (so C/C++ use // for single lines)
+--  - respects vim.bo.commentstring if vim.g.comment_prefer_buffer_commentstring = true
+--  - trims CRLF and trailing empty lines
+--  - DEV_MODE for debug notifications
 
 local M = {}
 
 -- ============== CONFIG =================
-local DEV_MODE = true -- set true to get vim.notify debug messages
+local DEV_MODE = false -- set true to get vim.notify debug messages
 local BLOCK_PADDING = true -- add an empty line after opening / before closing block markers
 local DEFAULT_BLOCK_THRESHOLD = 5
 local BLOCK_THRESHOLD = vim.g.comment_block_threshold or DEFAULT_BLOCK_THRESHOLD
+-- If true, prefer vim.bo.commentstring over internal comment_map
+local PREFER_BUFFER_COMMENTSTRING = vim.g.comment_prefer_buffer_commentstring or false
 -- =======================================
 
 local comment_map = {
@@ -51,19 +62,33 @@ local function parse_commentstring(cs)
   return p, s
 end
 
+-- New: prefer internal comment_map unless user opts in via vim.g
 local function get_commentstrings_for_ft(ft)
-  local buf_cs = vim.bo.commentstring or ""
-  if buf_cs ~= "" and buf_cs:find "%%s" then
-    local p, s = parse_commentstring(buf_cs)
-    return p, s
+  if PREFER_BUFFER_COMMENTSTRING then
+    local buf_cs = vim.bo.commentstring or ""
+    if buf_cs ~= "" and buf_cs:find "%%s" then
+      return parse_commentstring(buf_cs)
+    end
+    local per_line = comment_map[ft]
+    if per_line then
+      return parse_commentstring(per_line)
+    end
+    return parse_commentstring "# %s"
   end
+
+  -- default: prefer internal map
   local per_line = comment_map[ft]
   if per_line then
-    local p, s = parse_commentstring(per_line)
-    return p, s
+    return parse_commentstring(per_line)
   end
-  local fallback = vim.bo.commentstring or "# %s"
-  return parse_commentstring(fallback)
+
+  -- fallback to buffer commentstring if provided
+  local buf_cs = vim.bo.commentstring or ""
+  if buf_cs ~= "" and buf_cs:find "%%s" then
+    return parse_commentstring(buf_cs)
+  end
+
+  return parse_commentstring "# %s"
 end
 
 local function normalize_and_trim(lines)
@@ -92,16 +117,19 @@ local function compute_min_indent(lines)
   return string.rep(" ", min_indent)
 end
 
--- Find enclosing block markers: search up from start_line-1 for prefix and down from end_line+1 for suffix.
--- Returns open_idx, close_idx (both 0-based) or nil,nil.
-local function find_enclosing_block(start_line, end_line, block_prefix, block_suffix)
+-- Search up from start_line-1 for an opening block prefix, and down from end_line+1 for closing suffix.
+-- Returns open_idx, close_idx (0-based) if found such that open_idx < start_line and close_idx > end_line.
+local function find_enclosing_block(start_line, end_line, block_prefix, block_suffix, search_limit)
   local bufnr = 0
   local top = 0
   local bottom = vim.api.nvim_buf_line_count(bufnr) - 1
   local open_idx, close_idx
 
-  -- search up for opening prefix
-  for i = start_line - 1, top, -1 do
+  search_limit = search_limit or 1000 -- limit search distance to avoid scanning huge files; configurable if needed
+
+  -- search up
+  local up_stop = math.max(top, start_line - search_limit)
+  for i = start_line - 1, up_stop, -1 do
     local l = vim.api.nvim_buf_get_lines(0, i, i + 1, false)[1] or ""
     if vim.trim(l):match("^" .. vim.pesc(block_prefix)) then
       open_idx = i
@@ -109,8 +137,9 @@ local function find_enclosing_block(start_line, end_line, block_prefix, block_su
     end
   end
 
-  -- search down for closing suffix
-  for j = end_line + 1, bottom do
+  -- search down
+  local down_stop = math.min(bottom, end_line + search_limit)
+  for j = end_line + 1, down_stop do
     local l = vim.api.nvim_buf_get_lines(0, j, j + 1, false)[1] or ""
     if vim.trim(l):match(vim.pesc(block_suffix) .. "%s*$") then
       close_idx = j
@@ -124,44 +153,23 @@ local function find_enclosing_block(start_line, end_line, block_prefix, block_su
   return nil, nil
 end
 
--- Unwrap enclosing block located at open_idx..close_idx inclusive.
--- Removes padding lines after opening and before closing if BLOCK_PADDING true.
+-- Unwrap block from open_idx .. close_idx inclusive; remove padding lines if present
 local function unwrap_enclosing_block(open_idx, close_idx)
   if not open_idx or not close_idx then
     return false
   end
-  -- fetch entire chunk
   local chunk = vim.api.nvim_buf_get_lines(0, open_idx, close_idx + 1, false)
   for i = 1, #chunk do
     chunk[i] = (chunk[i] or ""):gsub("\r$", "")
   end
 
-  -- find prefix/suffix exact line indices inside chunk (first/last)
-  local prefix_idx_in_chunk, suffix_idx_in_chunk
-  for i, l in ipairs(chunk) do
-    local t = vim.trim(l)
-    if not prefix_idx_in_chunk and t:match("^" .. vim.pesc(chunk[1]:match "^%s*(.*)$" or "")) then
-      -- noop: keep robust, but we'll just search for prefix/suffix values later
-    end
-  end
-
-  -- We need to find the first line matching block prefix and last line matching block suffix
-  local found_pref, found_suff = nil, nil
-  for i, l in ipairs(chunk) do
-    local t = vim.trim(l)
-    -- we do not know block_prefix/suffix here; they can be inferred:
-    -- use trimmed first occurrence of a marker: detect lines that look like a block opener/closer
-    -- but safer approach: identify the first line that begins with a non-alphanumeric char sequence and contains '[' or '*' or '<!' etc.
-    -- Simpler: assume the first and last lines in chunk are the markers (common case) — but we already have open_idx/close_idx so open/close correspond to chunk[1] and chunk[#chunk]
-  end
-
-  -- interior lines are from index 2 .. #chunk-1
+  -- interior is chunk[2 .. #chunk-1] normally; be defensive:
   local interior = {}
   for i = 2, #chunk - 1 do
     table.insert(interior, chunk[i])
   end
 
-  -- Remove padding blank line immediately after opening and immediately before closing if present
+  -- remove BLOCK_PADDING blank lines if set
   if BLOCK_PADDING then
     if #interior > 0 and interior[1]:match "^%s*$" then
       table.remove(interior, 1)
@@ -172,14 +180,12 @@ local function unwrap_enclosing_block(open_idx, close_idx)
   end
 
   interior = normalize_and_trim(interior)
-
   local cur = vim.api.nvim_win_get_cursor(0)
   vim.api.nvim_buf_set_lines(0, open_idx, close_idx + 1, false, interior)
   vim.api.nvim_win_set_cursor(0, cur)
   return true
 end
 
--- check whether body contains exact marker lines
 local function body_contains_exact_markers(body, block_prefix, block_suffix)
   for _, l in ipairs(body) do
     local t = vim.trim(l)
@@ -190,6 +196,21 @@ local function body_contains_exact_markers(body, block_prefix, block_suffix)
   return false
 end
 
+local function strip_internal_block_markers(body, block_prefix, block_suffix)
+  local out = {}
+  local removed = false
+  for _, l in ipairs(body) do
+    local t = vim.trim(l)
+    if t == block_prefix or t == block_suffix then
+      removed = true
+    else
+      table.insert(out, l)
+    end
+  end
+  return out, removed
+end
+
+-- Visual-block handler (rectangular)
 local function handle_visual_block(sline, scol, eline, ecol, prefix, suffix, uncomment)
   scol = math.max(1, scol)
   ecol = math.max(1, ecol)
@@ -223,12 +244,11 @@ local function handle_visual_block(sline, scol, eline, ecol, prefix, suffix, unc
   vim.api.nvim_win_set_cursor(0, cur)
 end
 
--- toggle logic
+-- Core toggle
 local function toggle_comment_range(start_line, end_line, mode)
   local ft = vim.bo.filetype
   local block_variant = block_map[ft]
 
-  -- body exact
   local body = vim.api.nvim_buf_get_lines(0, start_line, end_line + 1, false)
   body = normalize_and_trim(body)
   if #body == 0 then
@@ -236,7 +256,6 @@ local function toggle_comment_range(start_line, end_line, mode)
   end
 
   local line_prefix, line_suffix = get_commentstrings_for_ft(ft)
-
   local use_block = (block_variant ~= nil) and (#body >= BLOCK_THRESHOLD)
 
   if DEV_MODE then
@@ -265,10 +284,9 @@ local function toggle_comment_range(start_line, end_line, mode)
 
   local indent_str = compute_min_indent(body)
 
-  -- if using block mode
   if use_block and block_variant then
-    -- find enclosing markers (searching beyond immediate lines)
-    local open_idx, close_idx = find_enclosing_block(start_line, end_line, block_variant.prefix, block_variant.suffix)
+    -- First, try to find an enclosing block (search up/down within some reasonable limit)
+    local open_idx, close_idx = find_enclosing_block(start_line, end_line, block_variant.prefix, block_variant.suffix, 1000)
     if open_idx and close_idx then
       if unwrap_enclosing_block(open_idx, close_idx) then
         debug "unwrapped enclosing block (found via search)"
@@ -276,24 +294,20 @@ local function toggle_comment_range(start_line, end_line, mode)
       end
     end
 
-    -- if there are internal markers inside selection, strip them (avoid nesting)
+    -- If there are exact markers inside selection, strip them to avoid nesting
     if body_contains_exact_markers(body, block_variant.prefix, block_variant.suffix) then
-      local stripped = {}
-      for _, l in ipairs(body) do
-        local t = vim.trim(l)
-        if not (t == block_variant.prefix or t == block_variant.suffix) then
-          table.insert(stripped, l)
-        end
+      local stripped, removed = strip_internal_block_markers(body, block_variant.prefix, block_variant.suffix)
+      if removed then
+        stripped = normalize_and_trim(stripped)
+        local cur = vim.api.nvim_win_get_cursor(0)
+        vim.api.nvim_buf_set_lines(0, start_line, end_line + 1, false, stripped)
+        vim.api.nvim_win_set_cursor(0, cur)
+        debug "stripped internal markers"
+        return
       end
-      stripped = normalize_and_trim(stripped)
-      local cur = vim.api.nvim_win_get_cursor(0)
-      vim.api.nvim_buf_set_lines(0, start_line, end_line + 1, false, stripped)
-      vim.api.nvim_win_set_cursor(0, cur)
-      debug "stripped internal markers"
-      return
     end
 
-    -- no enclosing markers found -> create fresh block
+    -- No enclosing markers found -> create new block
     local new_lines = {}
     local first_line = indent_str .. block_variant.prefix
     local last_line = indent_str .. block_variant.suffix
@@ -319,7 +333,7 @@ local function toggle_comment_range(start_line, end_line, mode)
     return
   end
 
-  -- linewise
+  -- LINEWISE mode
   local all_commented = true
   for _, line in ipairs(body) do
     local content = line:match "^%s*(.*)$" or ""
@@ -368,7 +382,7 @@ local function toggle_comment_range(start_line, end_line, mode)
   end
 end
 
--- entry points
+-- Entry points -----------------------------------------------------
 local function toggle_comment_normal()
   local l = vim.fn.line "." - 1
   toggle_comment_range(l, l)
@@ -404,10 +418,6 @@ end, { desc = "Toggle comment for current line or block" })
 vim.api.nvim_create_user_command("ToggleCommentVisual", function()
   toggle_comment_visual()
 end, { range = true, desc = "Toggle comment for selection (supports block-visual)" })
-
--- optional keymaps (commented)
--- vim.keymap.set("n", "<leader>/", ":ToggleComment<CR>", { silent = true })
--- vim.keymap.set("v", "<leader>/", ":ToggleCommentVisual<CR>", { silent = true })
 
 M._DEV_MODE = function(val)
   if val == nil then
