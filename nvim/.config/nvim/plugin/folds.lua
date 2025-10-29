@@ -1,12 +1,15 @@
--- ========================
--- Folding Utilities for Neovim
--- Works with Treesitter and fallback methods
--- ========================
+-- folds.lua
+-- Folding utilities for Neovim with Treesitter support and peek preview.
+
+if vim.g.loaded_folds_plugin then
+  return
+end
+vim.g.loaded_folds_plugin = true
 
 local api, fn, cmd = vim.api, vim.fn, vim.cmd
 
 -- ========================
--- Refresh folds (important for Treesitter)
+-- Refresh folds
 -- ========================
 local function refresh_folds()
   cmd "silent! normal! zx"
@@ -39,7 +42,7 @@ local function toggle_all_folds()
 end
 
 -- ========================
--- Peek fold contents in floating window
+-- Peek fold contents
 -- ========================
 local peek_win
 
@@ -54,13 +57,13 @@ local function peek_fold()
   local line = fn.line "."
   local fold_start = fn.foldclosed(line)
 
-  -- Close existing peek
+  -- Toggle off peek
   if peek_win and api.nvim_win_is_valid(peek_win) then
     close_peek()
     return
   end
 
-  -- No fold? → LSP hover fallback
+  -- No fold → fallback to LSP hover
   if fold_start == -1 then
     if vim.lsp.buf.server_ready() then
       vim.lsp.buf.hover()
@@ -83,8 +86,8 @@ local function peek_fold()
 
   local screen_w = api.nvim_get_option_value("columns", {})
   local screen_h = api.nvim_get_option_value("lines", {})
-  local width = math.min(math.floor(screen_w * 0.6), math.max(30, vim.fn.strdisplaywidth(lines[1] or "")))
-  local height = math.min(math.floor(screen_h * 0.4), #lines)
+  local width = math.floor(screen_w * 0.6)
+  local height = math.min(#lines, math.floor(screen_h * 0.5))
 
   local opts = {
     relative = "cursor",
@@ -98,9 +101,9 @@ local function peek_fold()
   }
 
   peek_win = api.nvim_open_win(buf, false, opts)
+  api.nvim_set_option_value("winhl", "Normal:NormalFloat,FloatBorder:FloatBorder", { win = peek_win })
 
-  -- Close on leave
-  api.nvim_create_autocmd({ "BufLeave", "WinLeave" }, {
+  api.nvim_create_autocmd({ "BufLeave", "WinLeave", "BufHidden" }, {
     once = true,
     callback = close_peek,
     desc = "Auto-close fold preview",
@@ -120,13 +123,11 @@ local function toggle_fold_under_cursor()
   local line = fn.line "."
   local fold_start = fn.foldclosed(line)
 
-  -- Closed fold → open
   if fold_start ~= -1 then
     cmd "silent! normal! zo"
     return
   end
 
-  -- Inside an open fold → find header and close
   local fold_level = fn.foldlevel(line)
   if fold_level > 0 then
     local search_line = line
@@ -142,8 +143,10 @@ local function toggle_fold_under_cursor()
 end
 
 -- ========================
--- User Commands
+-- Commands & keymaps
 -- ========================
 api.nvim_create_user_command("ToggleAllFolds", toggle_all_folds, { desc = "Toggle all folds open/closed" })
-api.nvim_create_user_command("ToggleFold", toggle_fold_under_cursor, { desc = "Toggle fold under cursor (with peek)" })
-api.nvim_create_user_command("PeekFold", peek_fold, { desc = "Preview fold contents in floating window" })
+api.nvim_create_user_command("ToggleFold", toggle_fold_under_cursor, { desc = "Toggle fold under cursor" })
+api.nvim_create_user_command("PeekFold", peek_fold, { desc = "Preview fold contents" })
+
+return { toggle_all_folds = toggle_all_folds, peek_fold = peek_fold, toggle_fold = toggle_fold_under_cursor }
