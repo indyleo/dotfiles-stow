@@ -1,97 +1,44 @@
-#!/bin/env bash
-
+#!/usr/bin/env bash
 preview="$1"
-
-# Ensure file exists
 [[ -f "$preview" ]] || exit 1
 
-# Select text previewer
-function txtuse() {
-    if batcat --style=plain --color=always "$preview"; then
-        return 0
-    elif highlight --out-format=ansi "$preview"; then
-        return 0
-    elif cat "$preview"; then
-        return 0
-    else
-        printf "No text previewers succeeded.\nAvailable previewers:\n- batcat\n- highlight\n- cat\n"
-        return 1
-    fi
+txt() {
+    command -v batcat >/dev/null && batcat --style=plain --color=always "$preview" && return
+    command -v bat >/dev/null && bat --style=plain --color=always "$preview" && return
+    command -v highlight >/dev/null && highlight --out-format=ansi "$preview" && return
+    cat "$preview"
 }
 
 case "$preview" in
-        # Images
-    *.png|*.jpg|*.jpeg|*.bmp|*.webp|*.xpm)
-        chafa "$preview" --scale max ||
-        mediainfo "$preview"
+    *.png|*.jpg|*.jpeg|*.bmp|*.webp|*.gif)
+        command -v chafa >/dev/null && chafa "$preview" --scale max && exit
         ;;
-
-        # Videos & Audio
-    *.mkv|*.mp4|*.webm|*.mp3|*.flac|*.wav|*.aac|*.ogg)
-        ffprobe -v error -show_entries format=duration:stream=codec_name -of default=noprint_wrappers=1 "$preview" 2>/dev/null ||
-        exiftool "$preview"
+    *.mp4|*.mkv|*.webm|*.mp3|*.flac|*.ogg|*.wav)
+        command -v ffprobe >/dev/null && ffprobe -hide_banner "$preview" 2>/dev/null && exit
         ;;
-
-        # Archives
-    *.tar) tar -tvf "$preview" ;;
-    *.tar.gz|*.tgz) tar -ztvf "$preview" ;;
-    *.tar.bz2|*.tbz2) tar -jtvf "$preview" ;;
-    *.zip) zipinfo "$preview" ;;
-    *.rar) unrar l "$preview" ;;
-    *.7z) 7z l "$preview" ;;
-
-        # Office/Docs
-    *.pdf) pdftotext "$preview" - 2>/dev/null | head -n 100 ;;
-    *.epub)
-        epub-meta "$preview" 2>/dev/null ||
-        exiftool "$preview"
+    *.tar|*.tar.gz|*.tgz|*.tar.bz2|*.zip|*.rar|*.7z)
+        command -v bsdtar >/dev/null && bsdtar -tf "$preview" 2>/dev/null && exit
         ;;
-    *.docx) docx2txt "$preview" - 2>/dev/null ;;
-
-        # Code and Scripts
-    *.bash*|*.git*|*.sh|*.zsh*|*.py|*.c|*.cpp|*.h|*.js|*.ts|*.css|*.go|*.rs)
-        txtuse
+    *.pdf)
+        command -v pdftotext >/dev/null && pdftotext "$preview" - 2>/dev/null | head -n 80 && exit
         ;;
-
-        # Config
-    *.toml|*.ini|*.lock|*.conf|*.cfg|*.config)
-        txtuse
-        ;;
-
-        # Markdown
     *.md)
-        glow -s dark "$preview" ||
-        txtuse
+        command -v glow >/dev/null && glow -s dark "$preview" && exit
+        txt
         ;;
-
-        # JSON/YAML
     *.json)
-        jq . "$preview" ||
-        txtuse
+        command -v jq >/dev/null && jq . "$preview" 2>/dev/null || txt
         ;;
     *.yml|*.yaml)
-        yq . "$preview" ||
-        txtuse
+        command -v yq >/dev/null && yq . "$preview" 2>/dev/null || txt
         ;;
-
-        # HTML
     *.html|*.htm)
-        lynx -dump "$preview" 2>/dev/null ||
-        w3m -dump "$preview" ||
-        elinks -dump "$preview" ||
-        txtuse
+        command -v lynx >/dev/null && lynx -dump "$preview" 2>/dev/null && exit
+        command -v w3m >/dev/null && w3m -dump "$preview" 2>/dev/null && exit
+        txt
         ;;
-
-        # ISO
-    *.iso)
-        isoinfo -d -i "$preview" 2>/dev/null ||
-        exiftool "$preview"
-        ;;
-    *.bin|*.o|*.obj)
-        xxd -b "$preview" || hexdump -D "$preview" || objdump -d "$preview"
-        ;;
-        # Default text preview
     *)
-        txtuse
+        txt
         ;;
 esac
+

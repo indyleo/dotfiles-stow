@@ -1,603 +1,182 @@
-# Basic Settings
+### BASIC SETTINGS ###
 set previewer ~/.config/lf/preview
 set preview true
 set hidden true
 set drawbox true
 set icons true
 set ignorecase true
+set scrolloff 10
 set shellopts '-eu'
 set ifs "\n"
-set scrolloff 10
 
-### KEYBINDS ###
-# Remove some defaults
+### REMOVE UNUSED DEFAULT BINDS ###
 map m
-map o
 map n
-map "'"
-map '"'
+map o
 map d
 map c
 map e
 map f
+map '"'
+map "'"
 
-# File Operations
-map DD delete
-map dd trash-put
-map md mkdir
-map mf mkfile
-map msc mkscript
-map mss mkscr
-map mnp mkproj
-map mng mkgit
-map mnd setupdocs
-map et toggle-executable
-map ec chmod-custom
-map dr drag
-map ef $echo "$f"
-
-# Basic Operations
-map . set hidden!
+### CORE NAVIGATION ###
+map <enter> open
+map r rename
 map p paste
 map x cut
 map y copy
-map <enter> open
-map r rename
-map H top
-map L bottom
 map R reload
 map C clear
 map U unselect
+map H top
+map L bottom
+map . set hidden!
+map ef $echo "$f"
 
-# Archive Mappings
-map ex extract
-map er archive
-
-# Trash
-map be trash-empty
-map br trash-restore
-
-# Jumping Around The Filesystem
+### COMMON JUMP SHORTCUTS ###
 map gh :cd ~
 map gc :cd ~/.config
 map gd :cd ~/Downloads
 map gD :cd ~/Documents
-map gv :cd ~/Videos
-map gm :cd ~/Music
-map gM :cd /media/indy/
-map gg :cd ~/Github
-map gs :cd ~/Github/dotfiles-stow
-map gC :cd ~/Github/Catalyst
-map gw :cd ~/Pictures/Wallpapers
-map gs :cd ~/Pictures/Screenshots
-map gp :cd ~/Pictures
-map gS :cd ~/Scripts
 map gP :cd ~/Projects
-map gn :cd ~/Documents/Markdown/Notes
-map gf follow-link
+map gs :cd ~/Scripts
+map gp :cd ~/Pictures
+map gm :cd ~/Music
+map gv :cd ~/Videos
+map gg :cd ~/Github
 
-# Notes
-map nn mknotes
-map nf fzf_note
-
-# Fzf
-map fj fzf_jump_dir
-map fk fzf_jump_file
-
-# Executing Scripts
-map Ex $"$f"
-map Ee !"$f"
-
-# Wallpaper
-map bg setbg
-
-### CUSTOM COMMANDS ###
-cmd open ${{
-    mime="$(file --mime-type -Lb "$f")"
-    ext="${f##*.}"
-
-    case "$mime" in
-        text/*|application/json|application/xml)
-            ${EDITOR:-nvim} "$f"
-            ;;
-        image/*)
-            command -v sxiv >/dev/null && sxiv "$f" ||
-            command -v imv  >/dev/null && imv "$f"
-            ;;
-        video/*|audio/*)
-            mpv "$f"
-            ;;
-        application/pdf)
-            command -v zathura >/dev/null && zathura "$f" ||
-            command -v pdftotext >/dev/null && pdftotext "$f" - | less
-            ;;
-        *)
-            # Fallback on extension if MIME is unrecognized
-            case "$ext" in
-                txt|md|json|js|sh|py|cpp|c|java|html|css|lua|ts|rs|go|yml|yaml|toml)
-                    command -v bat >/dev/null && bat "$f" || ${EDITOR:-nvim} "$f"
-                    ;;
-                jpg|jpeg|png|gif|bmp|webp|svg)
-                    command -v sxiv >/dev/null && sxiv "$f" ||
-                    command -v imv  >/dev/null && imv "$f"
-                    ;;
-                mp4|mkv|webm|avi|mov)
-                    mpv "$f"
-                    ;;
-                mp3|flac|wav|ogg)
-                    mpv "$f"
-                    ;;
-                pdf)
-                    command -v zathura >/dev/null && zathura "$f" ||
-                    command -v pdftotext >/dev/null && pdftotext "$f" - | less
-                    ;;
-                iso|img)
-                    command -v caligula >/dev/null && caligula burn "$f"
-                    ;;
-                *)
-                    xdg-open "$f" >/dev/null 2>&1
-                    ;;
-            esac
-            ;;
-    esac
-}}
-
-# File Creation Operations
-cmd mkdir %{{
-  printf " Directory Name: "
-  read -r ans
-  if [ -n "$ans" ]; then
-    mkdir -p -- "$ans" && printf " Created: $ans" || printf " Failed to create directory."
-    lf -remote 'send reload'
-  else
-    printf " No directory name entered."
-  fi
-}}
-
-cmd mkfile %{{
-  clear
-  printf " File Name: "
-  read -r ans
-  if [ -n "$ans" ]; then
-    :> "$ans"  # Touch file safely
-    lf -remote 'send reload'
-  else
-    echo " No file name entered."
-  fi
-}}
-
-cmd mkscript ${{
-  clear
-  mkscript
-  echo "Complex Script created."
-  lf -remote "send $id cd \"$HOME/Scripts\""
-  lf -remote 'send reload'
-}}
-
-cmd mkscr ${{
-  clear
-
-  mkscr
-  echo "Simple Script created."
-  lf -remote "send $id cd \"$HOME/Scripts\""
-  lf -remote 'send reload'
-}}
-
-cmd mknotes ${{
-  notes_dir="$HOME/Documents/Markdown/Notes"
-  clear
-  read -rp "Note Name: " ans
-  if [ -z "$ans" ]; then
-    note=$(gennotes)
-  else
-    note="$(gennotes "$ans")"
-  fi
-  lf -remote "send $id cd \"$notes_dir\""
-  ${EDITOR:-nvim} "$note"
-  lf -remote 'send reload'
-}}
-
-cmd mkproj %{{
-  printf " Project Name: "
+### FILE CREATION ###
+cmd mk %{{
+  printf "Name: "
   read -r name
-  [ -z "$name" ] && printf " No name given." && exit
+  [ -z "$name" ] && exit
 
-  printf " Language (sh/py/lua/c/cpp/rs/go/zig): "
-  read -r lang
-
-  # Normalize input
-  lang="$(echo "$lang" | tr '[:upper:]' '[:lower:]')"
-
-  # Make it in project directory
-  mkdir -pv -- "$HOME/Projects/$name" || exit
-  cd "$HOME/Projects/$name" || exit
-
-  case "$lang" in
-    bash|sh)
-    cat << 'EOF' > "main.sh"
-#!/bin/env bash
-
-set -euo pipefail
-
-function main() {
-    echo "Hello from Bash"
-}
-
-main "\$@"
-
-EOF
-
-    # Replace backslashes with nothing
-    sed -i 's/\\//g' "main.sh"
-
-    # Make file executable
-      chmod +x main.sh
-      ;;
-    python|py)
-    python3 -m venv "../$name" || exit
-      cat << 'EOF' >> "main.py"
-#!/usr/bin/env python3
-"""Doc-String"""
-
-def main():
-		"""Main Function"""
-    print("Hello from Python")
-
-if __name__ == "__main__":
-    main()
-EOF
-      chmod +x main.py
-      ;;
-    lua)
-      mkdir -pv -- "lua/$name/functions" || exit
-      mkdir -pv -- "plugin" || exit
-      cd "lua/$name" || exit
-      cat << 'EOF' > "init.lua"
-local M = {}
-
-function M.setup()
-  print("Hello from Lua")
-end
-
-return M
-EOF
-      chmod a+x init.lua || exit
-      cd ../.. || exit
-      ;;
-    c)
-      cat << 'EOF' > "main.c"
-#include <stdio.h>
-
-int main() {
-    printf("Hello from C\\n");
-    return 0;
-}
-EOF
-      ;;
-    cpp|c++)
-      cat << 'EOF' > "main.cpp"
-#include <iostream>
-
-int main() {
-    std::cout << "Hello from C++" << std::endl;
-    return 0;
-}
-EOF
-      ;;
-    rust|rs)
-      cargo init --name "$name" .
-      ;;
-    go)
-      go mod init "$name"
-			cd "$name"
-      cat << 'EOF' > "main.go"
-package main
-
-import "fmt"
-
-func main() {
-    fmt.Println("Hello from Go")
-}
-EOF
-      ;;
-    zig)
-      zig init
-      ;;
-    *)
-      printf " Unknown language. Created empty folder."
-      ;;
+  printf "Type (dir/file/script/proj): "
+  read -r type
+  case "$type" in
+    dir) mkdir -pv -- "$name" ;;
+    file) :> "$name" ;;
+    script) :> "$name.sh" && chmod +x "$name.sh" ;;
+    proj) mkproj "$name" ;;
+    *) echo "Unknown type." ;;
   esac
-
   lf -remote 'send reload'
 }}
+map mm mk
 
-cmd mkgit %{{
-  if [ -d .git ]; then
-    printf " Git repo already exists here."
-    exit
-  fi
-
-  git init
-  git add .
-  git commit -m "Initial commit"
-
-  printf " Git initialized."
-}}
-
-cmd setupdocs %{{
-  name="$(basename "$PWD")"
-  year="$(date +%Y)"
-  author="$(git config user.name 2>/dev/null || whoami 2>/dev/null || echo 'Unknown Author')"
-
-  if [ -f README.md ]; then
-    printf " README.md already exists."
-  else
-    cat << EOF > "README.md"
-# $name
-
-A new project written in awesome code.
-
-## Usage
-
-\`\`\`bash
-# Run or build instructions go here
-\`\`\`
-
-## License
-
-MIT
-EOF
-    printf " Created README.md"
-
-    # Replace backslashes with nothing
-    sed -i 's/\\//g' "README.md"
-  fi
-
-  if [ -f LICENSE ]; then
-    printf " LICENSE already exists."
-  else
-    cat << EOF > "LICENSE"
-MIT License
-
-Copyright (c) $year $author
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-EOF
-    printf " Created LICENSE (MIT)"
-  fi
-}}
-
-# Filesystem Operations
-cmd toggle-executable %{{
-  if [ -x "$f" ]; then
-    if chmod a-x -- "$f"; then
-      printf " Removed executable permission: $f"
-    else
-      printf " Failed to change permissions."
-    fi
-  else
-    if chmod a+x -- "$f"; then
-      printf " Made executable: $f"
-    else
-      printf " Failed to change permissions."
-    fi
-  fi
+### DELETE / TRASH ###
+cmd del %{{
+  read -p "Move to trash? [y/n] " ans
+  case "$ans" in
+    y|Y) trash-put "$fx" ;;
+    n|N) rm -rf "$fx" ;;
+    *) echo "Cancelled." ;;
+  esac
   lf -remote 'send reload'
 }}
+map dd del
 
-cmd chmod-custom %{{
-  printf " Chmod Bits: "
-  read -r ans
-  if [ -z "$ans" ]; then
-    printf " No chmod bits provided."
-  else
-    if chmod "$ans" -- "$f"; then
-      printf " Changed permissions: $f"
-    else
-      printf " Failed to change permissions."
-    fi
-  fi
+### TOGGLE EXECUTABLE / PERMISSIONS ###
+cmd chmod %{{
+  read -p "Chmod bits (e.g. +x or 644): " bits
+  [ -n "$bits" ] && chmod "$bits" "$f"
   lf -remote 'send reload'
 }}
+map et chmod
 
-# Trashing
-cmd trash-put %{{
-  trash-put $fx
-}}
-
-cmd trash-empty ${{
-    clear
-    echo "Would you like to see what's inside the trash? [y/n]: "
-    read -r ans
-    case "${ans}" in
-        y)
-            clear
-            echo -e "\033[1mContents of your trash:\033[0m"
-            trash-list || echo "Failed to list trash."
-            echo
-            echo "Empty the trash now? [y/n]: "
-            read -r confirm
-            case "${confirm}" in
-                y) trash-empty -f ;;
-                n) echo "Trash not emptied." ;;
-                *) echo "Invalid input. Expected 'y' or 'n'." ;;
-            esac
-            ;;
-        n)
-            trash-empty -f
-            ;;
-        *)
-            echo "Invalid input. Expected 'y' or 'n'."
-            ;;
-    esac
-}}
-
-cmd trash-restore ${{
-  clear
-  trash-restore
-}}
-
-# Extract Archives
+### ARCHIVE / EXTRACT ###
 cmd extract %{{
-  clear
-  if [ -f "$f" ]; then
-      case "$f" in
-          *.tar.bz2) tar xjf "$f"    ;;
-          *.tar.gz)  tar xzf "$f"    ;;
-          *.bz2)     bunzip2 "$f"    ;;
-          *.rar)     unrar x "$f"    ;;
-          *.gz)      gunzip "$f"     ;;
-          *.tar)     tar xf "$f"     ;;
-          *.tbz2)    tar xjf "$f"    ;;
-          *.tgz)     tar xzf "$f"    ;;
-          *.zip)     unzip "$f"      ;;
-          *.Z)       uncompress "$f" ;;
-          *.7z)      7z x "$f"       ;;
-          *.deb)     ar x "$f"       ;;
-          *.tar.xz)  tar xf "$f"     ;;
-          *.tar.zst) unzstd "$f"     ;;
-          *)         printf " '$f' cannot be extracted via extract" ;;
-      esac
-  else
-      printf " '$f' is not a valid file"
-  fi
-}}
-
-# Compressing Current Selected File
-cmd archive %{{
-  clear
-  printf " Archive name (with .tar.gz, .zip, or .rar): "
-  read -r archive_name
-
-  if [ -z "$archive_name" ]; then
-    printf " No archive name provided."
-    exit 1
-  fi
-
-  if [ -e "$archive_name" ]; then
-    printf " Error: Archive '$archive_name' already exists."
-    exit 1
-  fi
-
-  case "$archive_name" in
-    *.tar.gz)
-      tar -czf "$archive_name" $fs ;;
-    *.zip)
-      zip -r "$archive_name" $fs ;;
-    *.rar)
-      if command -v rar > /dev/null; then
-        rar a "$archive_name" $fs
-      else
-        printf " Error: 'rar' is not installed."
-        exit 1
-      fi ;;
-    *)
-      printf " Unsupported format: use .tar.gz, .zip, or .rar"
-      exit 1 ;;
+  case "$f" in
+    *.tar*) tar -xf "$f" ;;
+    *.zip) unzip "$f" ;;
+    *.7z) 7z x "$f" ;;
+    *.rar) unrar x "$f" ;;
+    *) echo "Unsupported archive" ;;
   esac
-
-  if [ $? -eq 0 ]; then
-    printf " Success: Created $archive_name"
-    lf -remote 'send reload'
-  else
-    printf " Failed to create archive."
-  fi
+  lf -remote 'send reload'
 }}
+map ex extract
 
-# Fzf Jump
+cmd archive %{{
+  read -p "Archive name (.tar.gz/.zip): " out
+  [ -z "$out" ] && exit
+  case "$out" in
+    *.tar.gz) tar -czf "$out" $fs ;;
+    *.zip) zip -r "$out" $fs ;;
+    *) echo "Use .tar.gz or .zip" ;;
+  esac
+  lf -remote 'send reload'
+}}
+map er archive
+
+### FZF JUMP ###
 cmd fzf_jump_dir ${{
-    # Find directories up to 3 levels deep (excluding .)
-    res="$(find . -mindepth 1 -maxdepth 3 -type d 2>/dev/null | fzf \
-        --reverse \
-        --header='Jump to directory' \
-        --preview 'eza -a --tree --group-directories-first --color=always --icons {}' \
-        --preview-window=down:10:wrap)"
-
-    # If selected, send 'cd' command to lf
-    if [ -n "$res" ]; then
-        lf -remote "send $id cd \"$res\""
-    fi
+  res=$(fd --type d . 3 | fzf --reverse --preview 'tree -C {} | head -n 20')
+  [ -n "$res" ] && lf -remote "send $id cd '$res'"
 }}
+map fj fzf_jump_dir
 
 cmd fzf_jump_file ${{
-    # Find directories up to 3 levels deep (excluding .)
-    res="$(find . -mindepth 1 -maxdepth 3 -type f 2>/dev/null | fzf \
-        --reverse \
-        --header='Jump to file' \
-        --preview 'batcat --color=always --style=numbers {}' \
-        --preview-window=down:10:wrap)"
-
-    # If selected, send 'cd' command to lf
-    if [ -n "$res" ]; then
-      lf -remote "send $id cd \"$(dirname "$res")\""
-      ${EDITOR:-nvim} "$res"
-    fi
+  res=$(fd --type f . 3 | fzf --reverse --preview 'bat --color=always --style=numbers {} || cat {}')
+  [ -n "$res" ] && lf -remote "send $id cd '$(dirname "$res")'" && ${EDITOR:-nvim} "$res"
 }}
+map fk fzf_jump_file
 
-cmd fzf_note ${{
-  notes_dir="$HOME/Documents/Markdown/Notes"
-  clear
-  lf -remote "send $id cd \"$notes_dir\""
-  fzfnote
-  lf -remote 'send reload'
-}}
-
-# Follow Symlink
+### FOLLOW SYMLINK ###
 cmd follow-link ${{
-    if [ ! -L "$f" ]; then
-        echo "Not a symlink: $f"
-        exit 1
-    fi
-
-    target="$(readlink -f "$f")"
-
-    if [ -d "$target" ]; then
-        # Target is a directory, cd into it
-        lf -remote "send $id cd \"$target\""
-    elif [ -f "$target" ]; then
-        # Target is a file, cd into its parent directory
-        parent_dir=$(dirname "$target")
-        if [ -d "$parent_dir" ]; then
-            lf -remote "send $id cd \"$parent_dir\""
-            ${EDITOR:-nvim} "$target"
-        else
-            echo "Parent directory does not exist: $parent_dir"
-        fi
-    else
-        echo "Target is neither file nor directory: $target"
-    fi
-}}
-
-# Wallpaper
-cmd setbg %{{
-  tmp_wall="$HOME/.config/wall.png"
-
-  if cp -- "$f" "$tmp_wall"; then
-    xwallpaper --stretch "$tmp_wall"
-    rm -f -- "$tmp_wall"
-    lf -remote 'send reload'
-  else
-    printf " Failed to copy wallpaper."
+  [ ! -L "$f" ] && echo "Not a symlink." && exit
+  target=$(readlink -f "$f")
+  if [ -d "$target" ]; then
+    lf -remote "send $id cd '$target'"
+  elif [ -f "$target" ]; then
+    lf -remote "send $id cd '$(dirname "$target")'"
+    ${EDITOR:-nvim} "$target"
   fi
 }}
+map gf follow-link
 
-# Dragon
-cmd drag %{{
-    dragon -a -x -T "$fx"
+### OPEN FILE ###
+cmd open ${{
+  mime=$(file --mime-type -Lb "$f")
+  ext="${f##*.}"
+
+  case "$mime" in
+    text/*|application/json|application/xml)
+      ${EDITOR:-nvim} "$f" ;;
+    image/*)
+      sxiv "$f" 2>/dev/null || imv "$f" 2>/dev/null || chafa "$f" ;;
+    video/*|audio/*)
+      mpv "$f" ;;
+    application/pdf)
+      zathura "$f" 2>/dev/null || pdftotext "$f" - | less ;;
+    *)
+      # fallback based on extension
+      case "$ext" in
+        sh|py|c|cpp|lua|rs|go|js|ts|md|json|yml|yaml)
+          ${EDITOR:-nvim} "$f" ;;
+        jpg|jpeg|png|gif|bmp|webp|svg)
+          sxiv "$f" 2>/dev/null || imv "$f" ;;
+        mp4|mkv|mp3|flac|ogg|wav)
+          mpv "$f" ;;
+        pdf)
+          zathura "$f" 2>/dev/null || pdftotext "$f" - | less ;;
+        *) xdg-open "$f" >/dev/null 2>&1 ;;
+      esac
+      ;;
+  esac
 }}
+map <enter> open
+
+### WALLPAPER ###
+cmd setbg ${{
+  xwallpaper --stretch "$f" 2>/dev/null || echo "Failed to set wallpaper"
+}}
+map bg setbg
+
+### DRAG (DRAGON) ###
+cmd drag ${{
+  dragon -a -x -T "$fx"
+}}
+map dr drag
+
