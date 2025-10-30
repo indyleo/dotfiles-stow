@@ -237,6 +237,7 @@ EOF
     python3 -m venv "../$name" || exit
       cat << 'EOF' >> "main.py"
 #!/usr/bin/env python3
+"""Doc-String"""
 
 def main():
     print("Hello from Python")
