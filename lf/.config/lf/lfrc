@@ -67,7 +67,7 @@ map mm mk
 
 ### DELETE / TRASH ###
 cmd del %{{
-  read -p "Move to trash? [y/n] " ans
+  read -p "Move to trash? [Y/n] " ans
   case "$ans" in
     y|Y) trash-put "$fx" ;;
     n|N) rm -rf "$fx" ;;
@@ -112,13 +112,13 @@ map er archive
 
 ### FZF JUMP ###
 cmd fzf_jump_dir ${{
-  res=$(fd --type d . 3 | fzf --reverse --preview 'tree -C {} | head -n 20')
+  res=$(fdfind --type d . 3 | fzf --reverse --preview 'tree -C {} | head -n 20')
   [ -n "$res" ] && lf -remote "send $id cd '$res'"
 }}
 map fj fzf_jump_dir
 
 cmd fzf_jump_file ${{
-  res=$(fd --type f . 3 | fzf --reverse --preview 'bat --color=always --style=numbers {} || cat {}')
+  res=$(fdfind --type f . 3 | fzf --reverse --preview 'bat --color=always --style=numbers {} || cat {}')
   [ -n "$res" ] && lf -remote "send $id cd '$(dirname "$res")'" && ${EDITOR:-nvim} "$res"
 }}
 map fk fzf_jump_file
