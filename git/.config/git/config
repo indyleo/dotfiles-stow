@@ -7,3 +7,5 @@
 [user]
 	name = Indy
 	email = Indy@debian.org
+[init]
+	defaultBranch = main

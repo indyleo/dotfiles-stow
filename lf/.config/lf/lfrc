@@ -47,7 +47,7 @@ map gv :cd ~/Videos
 map gg :cd ~/Github
 
 ### FILE CREATION ###
-cmd mk %{{
+cmd mk ${{
   printf "Name: "
   read -r name
   [ -z "$name" ] && exit
@@ -57,8 +57,8 @@ cmd mk %{{
   case "$type" in
     dir) mkdir -pv -- "$name" ;;
     file) :> "$name" ;;
-    script) :> "$name.sh" && chmod +x "$name.sh" ;;
-    proj) mkproj "$name" ;;
+    script) mkscipt -n "$name" && lf -remote "send $id cd '~/Scripts/'" ;;
+    proj) projtool mkproj -n "$name" && lf -remote "send $id cd '~/Projects/$name'" ;;
     *) echo "Unknown type." ;;
   esac
   lf -remote 'send reload'
@@ -66,20 +66,21 @@ cmd mk %{{
 map mm mk
 
 ### DELETE / TRASH ###
-cmd del %{{
-  read -p "Move to trash? [Y/n] " ans
-  case "$ans" in
-    y|Y) trash-put "$fx" ;;
-    n|N) rm -rf "$fx" ;;
-    *) echo "Cancelled." ;;
-  esac
+cmd trash %{{
+	trash-put "$fx"
   lf -remote 'send reload'
 }}
-map dd del
+cmd remove %{{
+	rm -rf "$fx"
+  lf -remote 'send reload'
+}}
+map dd trash
+map DD remove
 
 ### TOGGLE EXECUTABLE / PERMISSIONS ###
 cmd chmod %{{
-  read -p "Chmod bits (e.g. +x or 644): " bits
+	printf " Chmod bits (e.g. +x or 644): "
+  read -r bits
   [ -n "$bits" ] && chmod "$bits" "$f"
   lf -remote 'send reload'
 }}
@@ -92,14 +93,15 @@ cmd extract %{{
     *.zip) unzip "$f" ;;
     *.7z) 7z x "$f" ;;
     *.rar) unrar x "$f" ;;
-    *) echo "Unsupported archive" ;;
+    *) echo " Unsupported archive" ;;
   esac
   lf -remote 'send reload'
 }}
 map ex extract
 
 cmd archive %{{
-  read -p "Archive name (.tar.gz/.zip): " out
+  printf " Archive name (.tar.gz/.zip): "
+	read -r out
   [ -z "$out" ] && exit
   case "$out" in
     *.tar.gz) tar -czf "$out" $fs ;;
@@ -112,13 +114,13 @@ map er archive
 
 ### FZF JUMP ###
 cmd fzf_jump_dir ${{
-  res=$(fdfind --type d . 3 | fzf --reverse --preview 'tree -C {} | head -n 20')
+  res=$(fdfind --type d . | fzf --reverse --preview 'eza -a --tree --group-directories-first --color=always --icons {} || tree -C {} | head -n 20')
   [ -n "$res" ] && lf -remote "send $id cd '$res'"
 }}
 map fj fzf_jump_dir
 
 cmd fzf_jump_file ${{
-  res=$(fdfind --type f . 3 | fzf --reverse --preview 'bat --color=always --style=numbers {} || cat {}')
+  res=$(fdfind --type f . | fzf --reverse --preview 'batcat --color=always --style=numbers {} || cat {}')
   [ -n "$res" ] && lf -remote "send $id cd '$(dirname "$res")'" && ${EDITOR:-nvim} "$res"
 }}
 map fk fzf_jump_file
