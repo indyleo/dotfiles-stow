@@ -156,6 +156,8 @@ return {
           "stylua",
           "lua-language-server",
           "luau-lsp",
+          "crlfmt",
+          "staticcheck",
           -- Script / Shell
           "bash-language-server",
           "beautysh",

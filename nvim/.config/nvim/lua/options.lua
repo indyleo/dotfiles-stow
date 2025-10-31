@@ -57,11 +57,12 @@ local str_opts = {
   fileencoding = "utf-8",
   signcolumn = "yes",
   shell = "zsh",
-  mouse = "",
+  mouse = "a",
   titlestring = "Neovim - %t (%{expand('%:p:h')})",
   winborder = "rounded",
   foldmethod = "expr",
   foldexpr = "nvim_treesitter#foldexpr()",
+  foldcolumn = "1",
   completeopt = "menuone,noselect",
 }
 
