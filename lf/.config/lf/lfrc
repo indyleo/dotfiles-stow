@@ -57,7 +57,7 @@ cmd mk ${{
   case "$type" in
     dir) mkdir -pv -- "$name" ;;
     file) :> "$name" ;;
-    script) mkscipt -n "$name" && lf -remote "send $id cd '~/Scripts/'" ;;
+    script) mkscript -n "$name" && lf -remote "send $id cd '~/Scripts/'" ;;
     proj) projtool mkproj -n "$name" && lf -remote "send $id cd '~/Projects/$name'" ;;
     *) echo "Unknown type." ;;
   esac
