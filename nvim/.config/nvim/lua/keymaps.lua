@@ -75,9 +75,13 @@ map("n", "<leader>/", ":ToggleComment<CR>", "Toggle comment")
 map("v", "<leader>/", ":ToggleCommentVisual<CR>", "Toggle comment Visual")
 
 -- Folding
-map("n", "<leader>zr", ":ToggleAllFolds<CR>", "Toggle all folds")
-map("n", "<leader>zt", ":ToggleFold<CR>", "Toggle fold under cursor")
-map("n", "<leader>zk", ":PeekFold<CR>", "Peek folded lines or LSP hover")
+map("n", "<leader>za", ":ToggleAllFolds<CR>", "Toggle all folds")
+map("n", "<leader>zs", ":ToggleFold<CR>", "Toggle fold under cursor")
+map("n", "<leader>zq", ":PeekFold<CR>", "Peek folded lines or LSP hover")
+map("n", "]z", ":NextFold<CR>", "Goes to next fold")
+map("n", "[z", ":PrevFold<CR>", "Goes to previous fold")
+map("n", "<leader>zR", ":FoldsForceRefresh<CR>", "Refresh all folds forcefully")
+map("n", "<leader>zr", ":FoldsRefresh<CR>", "Refresh all folds")
 
 -- Lf file manager
 map("n", "<leader>ee", ":Lf<CR>", "Open file manager")

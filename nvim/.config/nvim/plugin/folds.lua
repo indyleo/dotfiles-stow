@@ -18,12 +18,14 @@ local M = {}
 M.config = {
   excluded_filetypes = { "help", "terminal", "dashboard", "NvimTree", "lazy" },
   max_file_lines = 20000,
-  ft_fallback = { python = "indent", yaml = "indent" },
+  ft_fallback = {},
   foldlevel = 99,
   -- NEW: Treesitter parsing delay
-  ts_fold_delay = 500, -- ms to wait for treesitter parsing (increase for slow machines)
+  ts_fold_delay = 100, -- ms to wait for treesitter parsing (increase for slow machines)
   auto_refresh_folds = true, -- automatically refresh folds on text changes
   fold_refresh_debounce = 500, -- ms to wait after typing before refreshing folds
+  -- NEW: Filetypes that need aggressive fold refresh
+  aggressive_refresh_fts = { "bash", "sh", "zsh", "fish", "go", "zig" }, -- Force refresh on buffer enter
   peek = {
     width_percent = 0.60,
     height_percent = 0.50,
@@ -50,6 +52,14 @@ end
 local ts_parsers = nil
 local ts_cache = {} -- NEW: cache treesitter checks per filetype
 
+-- NEW: Filetype to parser mappings for edge cases
+local ft_to_parser = {
+  sh = "bash",
+  zsh = "bash",
+  fish = "fish",
+  bash = "bash",
+}
+
 local function load_ts_parsers_once()
   if ts_parsers ~= nil then
     return ts_parsers
@@ -70,7 +80,20 @@ local function has_ts_parser(ft)
   end
 
   local p = load_ts_parsers_once()
-  local has_parser = p and p.has_parser and p.has_parser(ft) or false
+  if not p or not p.has_parser then
+    if M.config.cache_ts_check then
+      ts_cache[ft] = false
+    end
+    return false
+  end
+
+  -- Check with filetype name first
+  local has_parser = p.has_parser(ft)
+
+  -- If not found, try mapped parser name
+  if not has_parser and ft_to_parser[ft] then
+    has_parser = p.has_parser(ft_to_parser[ft])
+  end
 
   if M.config.cache_ts_check then
     ts_cache[ft] = has_parser
@@ -158,15 +181,36 @@ local function ensure_folding_with_ts_wait(bufnr)
 
   -- For Treesitter-based folding, wait for parse to complete
   if has_ts_parser(ft) then
-    -- Try to get the parser
     local ok, ts_parsers = pcall(require, "nvim-treesitter.parsers")
     if ok and ts_parsers then
-      -- Schedule folding setup after a short delay to let TS parse
+      -- Check if this filetype needs aggressive refresh
+      local needs_aggressive = vim.tbl_contains(M.config.aggressive_refresh_fts or {}, ft)
+
+      local delay = M.config.ts_fold_delay or 100
+
+      -- First pass: enable folding
       vim.defer_fn(function()
         if safe_buf_valid_loaded(bufnr) then
           ensure_folding(bufnr)
+
+          -- For aggressive filetypes, force multiple refreshes
+          if needs_aggressive then
+            -- Second refresh after a bit longer
+            vim.defer_fn(function()
+              if safe_buf_valid_loaded(bufnr) then
+                vim.cmd "silent! normal! zx"
+
+                -- Third refresh for stubborn parsers (bash/sh/zsh)
+                vim.defer_fn(function()
+                  if safe_buf_valid_loaded(bufnr) then
+                    vim.cmd "silent! normal! zx"
+                  end
+                end, 200)
+              end
+            end, 300)
+          end
         end
-      end, M.config.ts_fold_delay or 100) -- Configurable delay
+      end, delay)
       return
     end
   end
@@ -453,6 +497,49 @@ function M.refresh_folds()
   end
 end
 
+-- NEW: Force deep refresh by re-parsing Treesitter
+function M.force_refresh_folds()
+  local bufnr = api.nvim_get_current_buf()
+  local ft = api.nvim_get_option_value("filetype", { buf = bufnr })
+
+  if not has_ts_parser(ft) then
+    vim.notify(string.format("No Treesitter parser found for '%s'", ft), vim.log.levels.WARN)
+    return
+  end
+
+  -- Try to force Treesitter to re-parse
+  local ok, ts_parsers = pcall(require, "nvim-treesitter.parsers")
+  if ok and ts_parsers then
+    -- Try to get the actual parser name (might be different from filetype)
+    local parser_name = ft_to_parser[ft] or ft
+
+    -- Get parser and force invalidation
+    local parser_ok, parser = pcall(ts_parsers.get_parser, bufnr, parser_name)
+    if parser_ok and parser then
+      if parser.invalidate then
+        parser:invalidate(true)
+      end
+
+      -- Wait for re-parse, then refresh folds multiple times
+      vim.defer_fn(function()
+        vim.cmd "silent! normal! zx"
+        vim.defer_fn(function()
+          vim.cmd "silent! normal! zx"
+        end, 100)
+      end, 200)
+
+      vim.notify(string.format("Forced re-parse for '%s'", parser_name), vim.log.levels.INFO)
+    else
+      -- Fallback: just refresh folds
+      vim.cmd "silent! normal! zx"
+      vim.notify("Refreshed folds (parser not directly accessible)", vim.log.levels.INFO)
+    end
+  else
+    vim.cmd "silent! normal! zx"
+    vim.notify("Folds refreshed", vim.log.levels.INFO)
+  end
+end
+
 -- ========================
 -- Commands & Autocmd (ENHANCED)
 -- ========================
@@ -478,6 +565,10 @@ api.nvim_create_user_command("PrevFold", M.prev_fold, {
 
 api.nvim_create_user_command("FoldsRefresh", M.refresh_folds, {
   desc = "Manually refresh Treesitter folds",
+})
+
+api.nvim_create_user_command("FoldsForceRefresh", M.force_refresh_folds, {
+  desc = "Force Treesitter re-parse and refresh folds (for stubborn files)",
 })
 
 -- IMPROVED: Use augroup for better organization and cleanup
@@ -563,11 +654,103 @@ api.nvim_create_autocmd({ "BufWritePost", "LspAttach" }, {
   end,
 })
 
+-- NEW: Aggressive refresh for shell scripts (bash/sh/zsh)
+-- These parsers are notoriously slow/lazy to compute folds
+api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
+  group = fold_augroup,
+  callback = function(args)
+    local ft = api.nvim_get_option_value("filetype", { buf = args.buf })
+
+    -- Only for aggressive refresh filetypes
+    if vim.tbl_contains(M.config.aggressive_refresh_fts or {}, ft) then
+      if safe_buf_valid_loaded(args.buf) and has_ts_parser(ft) then
+        vim.cmd "silent! normal! zx"
+      end
+    end
+  end,
+})
+
+-- NEW: Force refresh when entering windows with shell scripts
+api.nvim_create_autocmd({ "WinEnter", "BufEnter" }, {
+  group = fold_augroup,
+  callback = function(args)
+    local ft = api.nvim_get_option_value("filetype", { buf = args.buf })
+
+    if vim.tbl_contains(M.config.aggressive_refresh_fts or {}, ft) then
+      vim.defer_fn(function()
+        if safe_buf_valid_loaded(args.buf) and has_ts_parser(ft) then
+          vim.cmd "silent! normal! zx"
+        end
+      end, 50)
+    end
+  end,
+})
+
 -- NEW: Optionally expose cache clearing function
 function M.clear_cache()
   ts_cache = {}
   ts_parsers = nil
   vim.notify("Fold plugin cache cleared", vim.log.levels.INFO)
+end
+
+-- NEW: Debug function to check fold status
+function M.debug_folds()
+  local bufnr = api.nvim_get_current_buf()
+  local ft = api.nvim_get_option_value("filetype", { buf = bufnr })
+
+  -- Check Treesitter status
+  local has_parser = has_ts_parser(ft)
+  local parser_name = ft_to_parser[ft] or ft
+
+  -- Check fold settings
+  local fold_enabled = pcall(api.nvim_get_option_value, "foldenable", { buf = bufnr })
+  local fold_method = pcall(api.nvim_get_option_value, "foldmethod", { buf = bufnr })
+  local fold_expr = pcall(api.nvim_get_option_value, "foldexpr", { buf = bufnr })
+  local fold_level = vim.wo.foldlevel
+
+  -- Try to get actual parser
+  local parser_loaded = false
+  local ok, ts_parsers = pcall(require, "nvim-treesitter.parsers")
+  if ok and ts_parsers then
+    local parser_ok, _ = pcall(ts_parsers.get_parser, bufnr, parser_name)
+    parser_loaded = parser_ok
+  end
+
+  -- Count folds
+  local fold_count = 0
+  local line_count = api.nvim_buf_line_count(bufnr)
+  for l = 1, math.min(line_count, 100) do
+    if fn.foldlevel(l) > 0 then
+      fold_count = fold_count + 1
+    end
+  end
+
+  local info = string.format(
+    [[
+Fold Debug Info:
+  Filetype: %s
+  Parser Name: %s
+  Has Parser: %s
+  Parser Loaded: %s
+  Fold Enabled: %s
+  Fold Method: %s
+  Fold Expr: %s
+  Fold Level: %s
+  Folds Found (first 100 lines): %d
+]],
+    ft,
+    parser_name,
+    has_parser and "✓" or "✗",
+    parser_loaded and "✓" or "✗",
+    fold_enabled and "✓" or "✗",
+    fold_method or "unknown",
+    fold_expr or "none",
+    fold_level,
+    fold_count
+  )
+
+  vim.notify(info, vim.log.levels.INFO)
+  print(info)
 end
 
 api.nvim_create_user_command("FoldsClearCache", M.clear_cache, {

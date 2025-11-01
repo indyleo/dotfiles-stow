@@ -45,6 +45,7 @@ return {
         "sql",
         -- Shell
         "bash",
+        "fish",
         "powershell",
         -- Langs
         "python",
