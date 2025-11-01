@@ -6,6 +6,7 @@ local config = {
   char = "▎",
   show_current_context = true,
   debounce_ms = 100,
+  max_lines = 10000,
 }
 
 -- Get cache directory for theme
@@ -61,6 +62,7 @@ local excluded_filetypes = {
   "query",
   "aerial",
   "packer",
+  "noice",
   "",
 }
 
@@ -70,7 +72,11 @@ local excluded_buftypes = {
   "nofile",
   "quickfix",
   "prompt",
+  "acwrite",
 }
+
+-- Cache for exclusion checks
+local exclusion_cache = {}
 
 -- Check if buffer should be excluded
 local function should_exclude(buf)
@@ -78,9 +84,15 @@ local function should_exclude(buf)
     return true
   end
 
+  -- Check cache first
+  if exclusion_cache[buf] ~= nil then
+    return exclusion_cache[buf]
+  end
+
   -- Check if buffer is too large (performance)
   local line_count = vim.api.nvim_buf_line_count(buf)
-  if line_count > 10000 then
+  if line_count > config.max_lines then
+    exclusion_cache[buf] = true
     return true
   end
 
@@ -90,6 +102,7 @@ local function should_exclude(buf)
   -- Check filetype
   for _, excluded_ft in ipairs(excluded_filetypes) do
     if ft == excluded_ft then
+      exclusion_cache[buf] = true
       return true
     end
   end
@@ -97,12 +110,25 @@ local function should_exclude(buf)
   -- Check buftype
   for _, excluded_bt in ipairs(excluded_buftypes) do
     if bt == excluded_bt then
+      exclusion_cache[buf] = true
       return true
     end
   end
 
+  exclusion_cache[buf] = false
   return false
 end
+
+-- Clear exclusion cache when buffer is deleted
+vim.api.nvim_create_autocmd("BufDelete", {
+  callback = function(ev)
+    exclusion_cache[ev.buf] = nil
+    if timers[ev.buf] then
+      timers[ev.buf]:stop()
+      timers[ev.buf] = nil
+    end
+  end,
+})
 
 -- Set highlight groups
 local theme_colors = colors[theme] or colors.gruvbox
@@ -153,6 +179,7 @@ local function get_context_range(buf, cursor_line)
   -- If it has MORE indent than cursor, we're on a definition line
   local scope_indent = cursor_indent
   local start_line = cursor_line
+  local is_definition = false
 
   for i = cursor_line + 1, math.min(cursor_line + 10, #lines) do
     local line = lines[i]
@@ -162,8 +189,9 @@ local function get_context_range(buf, cursor_line)
         -- Next line is more indented, so cursor is on definition line
         -- Use the next line's indent as scope
         scope_indent = next_indent
-        break
+        is_definition = true
       end
+      break
     end
   end
 
@@ -173,23 +201,29 @@ local function get_context_range(buf, cursor_line)
   end
 
   -- If we're inside a block (not on definition), use cursor indent as scope
-  if scope_indent == cursor_indent and cursor_indent > 0 then
-    -- Find parent scope start
-    for i = cursor_line - 1, 1, -1 do
-      local line = lines[i]
-      if not line:match "^%s*$" then
-        local indent = line:match("^%s*"):len()
-        if indent < cursor_indent then
-          start_line = i
-          break
+  if not is_definition then
+    if cursor_indent > 0 then
+      scope_indent = cursor_indent
+      -- Find parent scope start
+      for i = cursor_line - 1, 1, -1 do
+        local line = lines[i]
+        if not line:match "^%s*$" then
+          local indent = line:match("^%s*"):len()
+          if indent < cursor_indent then
+            start_line = i
+            break
+          end
         end
       end
+    else
+      -- At root level but not a definition, no context
+      return nil, nil, nil
     end
   end
 
   -- Find end of scope
   local end_line = #lines
-  local target_indent = scope_indent > cursor_indent and cursor_indent or (cursor_indent - shiftwidth)
+  local target_indent = is_definition and cursor_indent or (cursor_indent - shiftwidth)
 
   for i = cursor_line + 1, #lines do
     local line = lines[i]
@@ -305,6 +339,11 @@ local group = vim.api.nvim_create_augroup("IndentLines", { clear = true })
 vim.api.nvim_create_autocmd({ "BufWinEnter", "FileType" }, {
   group = group,
   callback = function(ev)
+    -- Clear cache on FileType change
+    if ev.event == "FileType" then
+      exclusion_cache[ev.buf] = nil
+    end
+
     if should_exclude(ev.buf) then
       vim.api.nvim_buf_clear_namespace(ev.buf, ns, 0, -1)
     else
@@ -338,12 +377,14 @@ vim.api.nvim_create_user_command("IndentLinesToggle", function()
   if config.enabled then
     local buf = vim.api.nvim_get_current_buf()
     draw_indent_lines(buf)
-    print "Indent lines enabled"
+    vim.notify("Indent lines enabled", vim.log.levels.INFO)
   else
     for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-      vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
+      if vim.api.nvim_buf_is_valid(buf) then
+        vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
+      end
     end
-    print "Indent lines disabled"
+    vim.notify("Indent lines disabled", vim.log.levels.INFO)
   end
 end, {})
 
@@ -352,5 +393,9 @@ vim.api.nvim_create_user_command("IndentLinesToggleContext", function()
   config.show_current_context = not config.show_current_context
   local buf = vim.api.nvim_get_current_buf()
   draw_indent_lines(buf)
-  print("Context highlighting " .. (config.show_current_context and "enabled" or "disabled"))
+  local status = config.show_current_context and "enabled" or "disabled"
+  vim.notify("Context highlighting " .. status, vim.log.levels.INFO)
 end, {})
+
+-- Expose config for user customization
+_G.IndentLinesConfig = config
