@@ -32,7 +32,6 @@ map U unselect
 map H top
 map L bottom
 map . set hidden!
-map ef $echo "$f"
 
 ### COMMON JUMP SHORTCUTS ###
 map gh :cd ~
