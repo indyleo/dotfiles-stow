@@ -654,22 +654,6 @@ api.nvim_create_autocmd({ "BufWritePost", "LspAttach" }, {
   end,
 })
 
--- NEW: Aggressive refresh for shell scripts (bash/sh/zsh)
--- These parsers are notoriously slow/lazy to compute folds
-api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
-  group = fold_augroup,
-  callback = function(args)
-    local ft = api.nvim_get_option_value("filetype", { buf = args.buf })
-
-    -- Only for aggressive refresh filetypes
-    if vim.tbl_contains(M.config.aggressive_refresh_fts or {}, ft) then
-      if safe_buf_valid_loaded(args.buf) and has_ts_parser(ft) then
-        vim.cmd "silent! normal! zx"
-      end
-    end
-  end,
-})
-
 -- NEW: Force refresh when entering windows with shell scripts
 api.nvim_create_autocmd({ "WinEnter", "BufEnter" }, {
   group = fold_augroup,
