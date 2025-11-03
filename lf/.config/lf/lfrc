@@ -66,11 +66,11 @@ map mm mk
 
 ### DELETE / TRASH ###
 cmd trash %{{
-	trash-put "$fx"
+	printf '%s\n' $fx | xargs -d '\n' trash-put
   lf -remote 'send reload'
 }}
 cmd remove %{{
-	rm -rf "$fx"
+	printf '%s\n' $fx | xargs -d '\n' rm -rf
   lf -remote 'send reload'
 }}
 map dd trash
