@@ -1,44 +1,121 @@
 #!/usr/bin/env bash
+# lf preview script
+# Preview files in lf with color, format awareness, and graceful fallbacks
+
 preview="$1"
+max_lines="${LF_HEIGHT:-80}"
+max_cols="${LF_WIDTH:-120}"
+
+# Ensure target file exists
 [[ -f "$preview" ]] || exit 1
 
-txt() {
-    command -v batcat >/dev/null && batcat --style=plain --color=always "$preview" && return
-    command -v bat >/dev/null && bat --style=plain --color=always "$preview" && return
-    command -v highlight >/dev/null && highlight --out-format=ansi "$preview" && return
-    cat "$preview"
+# Limit long output for performance
+function headlimit() {
+    awk -v max="$max_lines" 'NR<=max'
 }
 
-case "$preview" in
-    *.png|*.jpg|*.jpeg|*.bmp|*.webp|*.gif)
-        command -v chafa >/dev/null && chafa "$preview" --scale max && exit
+# Color-aware text display
+function txtuse() {
+    if command -v batcat >/dev/null 2>&1; then
+        batcat --style=plain --color=always --paging=never "$preview" | headlimit && return
+    elif command -v bat >/dev/null 2>&1; then
+        bat --style=plain --color=always --paging=never "$preview" | headlimit && return
+    elif command -v highlight >/dev/null 2>&1; then
+        highlight --out-format=ansi "$preview" | headlimit && return
+    else
+        cat "$preview" | headlimit && return
+    fi
+    echo "No text previewer succeeded."
+}
+
+# Image preview (fallback to metadata)
+function imguse() {
+    if command -v chafa >/dev/null 2>&1; then
+        chafa --size="${max_cols}x${max_lines}" --fill=block "$preview" && return
+    elif command -v viu >/dev/null 2>&1; then
+        viu -w "$max_cols" -h "$max_lines" "$preview" && return
+    fi
+    command -v mediainfo >/dev/null 2>&1 && mediainfo "$preview"
+}
+
+# Main type-based preview logic
+case "${preview,,}" in
+    *.png|*.jpg|*.jpeg|*.bmp|*.webp|*.xpm|*.gif)
+        imguse
         ;;
-    *.mp4|*.mkv|*.webm|*.mp3|*.flac|*.ogg|*.wav)
-        command -v ffprobe >/dev/null && ffprobe -hide_banner "$preview" 2>/dev/null && exit
+
+    *.mkv|*.mp4|*.webm|*.mp3|*.flac|*.wav|*.aac|*.ogg)
+        ffprobe -hide_banner -loglevel error \
+            -show_entries format=duration,bit_rate:stream=codec_name,width,height \
+            -of default=noprint_wrappers=1 "$preview" 2>/dev/null ||
+        exiftool "$preview"
         ;;
-    *.tar|*.tar.gz|*.tgz|*.tar.bz2|*.zip|*.rar|*.7z)
-        command -v bsdtar >/dev/null && bsdtar -tf "$preview" 2>/dev/null && exit
-        ;;
+
+    *.tar) tar -tvf "$preview" | headlimit ;;
+    *.tar.gz|*.tgz) tar -ztvf "$preview" | headlimit ;;
+    *.tar.bz2|*.tbz2) tar -jtvf "$preview" | headlimit ;;
+    *.zip) zipinfo -1 "$preview" | headlimit ;;
+    *.rar) unrar l "$preview" | headlimit ;;
+    *.7z) 7z l "$preview" | headlimit ;;
+
     *.pdf)
-        command -v pdftotext >/dev/null && pdftotext "$preview" - 2>/dev/null | head -n 80 && exit
+        pdftotext "$preview" - 2>/dev/null | headlimit ||
+        pdftoppm -jpeg -singlefile "$preview" /tmp/lfpdf && viu /tmp/lfpdf.jpg
         ;;
+
+    *.epub)
+        epub-meta "$preview" 2>/dev/null ||
+        exiftool "$preview"
+        ;;
+    *.docx)
+        docx2txt "$preview" - 2>/dev/null | headlimit ||
+        unzip -p "$preview" | strings | headlimit
+        ;;
+
     *.md)
-        command -v glow >/dev/null && glow -s dark "$preview" && exit
-        txt
+        if command -v glow >/dev/null 2>&1; then
+            glow -s dark "$preview" | headlimit
+        else
+            txtuse
+        fi
         ;;
+
     *.json)
-        command -v jq >/dev/null && jq . "$preview" 2>/dev/null || txt
+        jq . "$preview" 2>/dev/null | headlimit || txtuse
         ;;
-    *.yml|*.yaml)
-        command -v yq >/dev/null && yq . "$preview" 2>/dev/null || txt
+    *.yaml|*.yml)
+        yq . "$preview" 2>/dev/null | headlimit || txtuse
         ;;
+
+    *.toml|*.ini|*.conf|*.cfg|*.config|*.lock)
+        txtuse
+        ;;
+
     *.html|*.htm)
-        command -v lynx >/dev/null && lynx -dump "$preview" 2>/dev/null && exit
-        command -v w3m >/dev/null && w3m -dump "$preview" 2>/dev/null && exit
-        txt
+        lynx -dump "$preview" 2>/dev/null ||
+        w3m -dump "$preview" 2>/dev/null ||
+        elinks -dump "$preview" 2>/dev/null ||
+        txtuse
         ;;
+
+    *.iso)
+        isoinfo -d -i "$preview" 2>/dev/null ||
+        exiftool "$preview"
+        ;;
+
+    *.o|*.obj|*.bin)
+        xxd "$preview" | headlimit ||
+        hexdump -C "$preview" | headlimit
+        ;;
+
+        # Scripts and code files
+    *.bash*|*.git*|*.sh|*.zsh*|*.py|*.c|*.cpp|*.h|*.js|*.ts|*.go|*.rs|*.css|*.jsonnet|*.lua)
+        txtuse
+        ;;
+
+        # Default fallback
     *)
-        txt
+        txtuse
         ;;
 esac
 
