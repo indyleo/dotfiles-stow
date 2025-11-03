@@ -66,7 +66,17 @@ map mm mk
 
 ### DELETE / TRASH ###
 cmd trash %{{
-	printf '%s\n' $fx | xargs -d '\n' trash-put
+  printf '%s\n' $fx | while IFS= read -r file; do
+    trash put "$file"
+  done
+  lf -remote 'send reload'
+}}
+cmd trash-restore ${{
+  trash restore
+  lf -remote 'send reload'
+}}
+cmd trash-empty %{{
+  trash empty
   lf -remote 'send reload'
 }}
 cmd remove %{{
@@ -74,6 +84,8 @@ cmd remove %{{
   lf -remote 'send reload'
 }}
 map dd trash
+map dt trash-restore
+map de trash-empty
 map DD remove
 
 ### TOGGLE EXECUTABLE / PERMISSIONS ###
@@ -87,26 +99,18 @@ map et chmod
 
 ### ARCHIVE / EXTRACT ###
 cmd extract %{{
-  case "$f" in
-    *.tar*) tar -xf "$f" ;;
-    *.zip) unzip "$f" ;;
-    *.7z) 7z x "$f" ;;
-    *.rar) unrar x "$f" ;;
-    *) echo " Unsupported archive" ;;
-  esac
+  for f in $fx; do
+    archives extract "$f"
+  done
   lf -remote 'send reload'
 }}
 map ex extract
 
 cmd archive %{{
-  printf " Archive name (.tar.gz/.zip): "
-	read -r out
+  printf " Archive name (.tar.gz/.zip/.rar): "
+  read -r out
   [ -z "$out" ] && exit
-  case "$out" in
-    *.tar.gz) tar -czf "$out" $fs ;;
-    *.zip) zip -r "$out" $fs ;;
-    *) echo "Use .tar.gz or .zip" ;;
-  esac
+  archives archive "$out" $fx
   lf -remote 'send reload'
 }}
 map er archive
