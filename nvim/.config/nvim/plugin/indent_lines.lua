@@ -119,6 +119,9 @@ local function should_exclude(buf)
   return false
 end
 
+-- Debounce timer
+local timers = {}
+
 -- Clear exclusion cache when buffer is deleted
 vim.api.nvim_create_autocmd("BufDelete", {
   callback = function(ev)
@@ -239,9 +242,6 @@ local function get_context_range(buf, cursor_line)
 
   return start_line, end_line, scope_indent
 end
-
--- Debounce timer
-local timers = {}
 
 -- Draw indent guides
 local function draw_indent_lines(buf)
