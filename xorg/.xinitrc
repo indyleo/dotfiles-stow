@@ -9,15 +9,16 @@ PROCS=(
     udiskie
     medianotify
     bar.py
-    organizer
 )
 ARG_PROCS=(
     xwall
     clipmgr
+    organizer
 )
 ARG_LIST=(
     "timexwalr ${HOME}/Pictures/Wallpapers/${THEME_CURRENT:-other} 900"
     "daemon"
+    "--daemon"
 )
 
 # Functions
