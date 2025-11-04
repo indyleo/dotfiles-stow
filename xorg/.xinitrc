@@ -4,7 +4,6 @@
 XRANDR_OUTPUT=$(xrandr -q)
 THEME_CURRENT="$(cat ${XDG_CACHE_HOME:-$HOME/.cache}/theme)"
 PROCS=(
-    clipmenud
     dunst
     lxpolkit
     udiskie
@@ -14,9 +13,11 @@ PROCS=(
 )
 ARG_PROCS=(
     xwall
+    clipmgr
 )
 ARG_LIST=(
     "timexwalr ${HOME}/Pictures/Wallpapers/${THEME_CURRENT:-other} 900"
+    "daemon"
 )
 
 # Functions
