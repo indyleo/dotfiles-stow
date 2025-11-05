@@ -70,14 +70,31 @@ cmd trash %{{
     trash put "$file"
   done
   lf -remote 'send reload'
+    set -f
+    trash put $fx
+    lf -remote "send $id reload"
+}}
+cmd trash-list ${{
+    trash list | moar
 }}
 cmd trash-restore ${{
   trash restore
   lf -remote 'send reload'
+    trash restore
+    lf -remote "send $id reload"
 }}
 cmd trash-empty %{{
   trash empty
   lf -remote 'send reload'
+    trash empty
+}}
+cmd trash-empty-old %{{
+    printf " Delete items older than how many days?: "
+    read days
+    trash empty "$days"
+}}
+cmd trash-size ${{
+    trash size | moar
 }}
 cmd remove %{{
 	printf '%s\n' $fx | xargs -d '\n' rm -rf
@@ -86,6 +103,10 @@ cmd remove %{{
 map dd trash
 map dt trash-restore
 map de trash-empty
+map do trash-empty-old
+map ds trash-size
+map dt trash-restore
+map dl trash-list
 map DD remove
 
 ### TOGGLE EXECUTABLE / PERMISSIONS ###
