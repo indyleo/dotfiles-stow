@@ -21,6 +21,9 @@ end
 
 local theme_current = read_theme(theme_file) or "gruvbox"
 
+-- Conditional styling based on Neovide - try removing ALL gui attributes
+local gui_attr = (vim.g.neovide or vim.g.neovide_version) and "gui=NONE cterm=NONE" or "gui=bold"
+
 -- Watch theme file for changes
 if uv.fs_stat(theme_file) then
   local fs_event = uv.new_fs_event()
@@ -31,8 +34,8 @@ if uv.fs_stat(theme_file) then
       theme_current = read_theme(theme_file) or "gruvbox"
       local colors = themes[theme_current] or themes.gruvbox
       for name, col in pairs(colors) do
-        local group = "StatusLine" .. name:gsub("^%l", string.upper)
-        vim.cmd(string.format("highlight! %s guifg=%s guibg=%s gui=bold", group, col.fg, col.bg))
+        local group = "StatusLine" .. name:gsub("^%l", string.upper):gsub("_", "")
+        vim.cmd(string.format("highlight! %s guifg=%s guibg=%s %s", group, col.fg, col.bg, gui_attr))
       end
       vim.cmd.redrawstatus()
     end)
@@ -84,7 +87,7 @@ local colors = themes[theme_current] or themes.gruvbox
 -- ========================
 for name, col in pairs(colors) do
   local group = "StatusLine" .. name:gsub("^%l", string.upper):gsub("_", "")
-  vim.cmd(string.format("highlight! %s guifg=%s guibg=%s gui=bold", group, col.fg, col.bg))
+  vim.cmd(string.format("highlight! %s guifg=%s guibg=%s %s", group, col.fg, col.bg, gui_attr))
 end
 
 -- ========================
