@@ -66,48 +66,49 @@ map mm mk
 
 ### DELETE / TRASH ###
 cmd trash %{{
-  printf '%s\n' $fx | while IFS= read -r file; do
-    trash put "$file"
-  done
-  lf -remote 'send reload'
-    set -f
-    trash put $fx
-    lf -remote "send $id reload"
+    for f in $fx; do
+        trash put "$f"
+    done
+}}
+cmd trash-force %{{
+    for f in $fx; do
+    	yes | trash put "$f"
+    done
 }}
 cmd trash-list ${{
     trash list | moar
 }}
 cmd trash-restore ${{
-  trash restore
-  lf -remote 'send reload'
     trash restore
-    lf -remote "send $id reload"
 }}
 cmd trash-empty %{{
-  trash empty
-  lf -remote 'send reload'
     trash empty
 }}
 cmd trash-empty-old %{{
-    printf " Delete items older than how many days?: "
-    read days
-    trash empty "$days"
+    printf "🧹 Enter the minimum age of files to delete (in days): "
+    read -r ans
+    if [ -n "$ans" ]; then
+        trash empty "$ans"
+    else
+        echo "⚠️ No input provided, aborting."
+    fi
 }}
-cmd trash-size ${{
-    trash size | moar
+cmd trash-size %{{
+    trash size
 }}
 cmd remove %{{
-	printf '%s\n' $fx | xargs -d '\n' rm -rf
-  lf -remote 'send reload'
+    for f in $fx; do
+        rm -rfv "$f"
+    done
 }}
-map dd trash
-map dt trash-restore
-map de trash-empty
-map do trash-empty-old
-map ds trash-size
-map dt trash-restore
-map dl trash-list
 map DD remove
+map dd trash
+map dD trash-force
+map tt trash-list
+map tr trash-restore
+map te trash-empty
+map to trash-empty-old
+map ts trash-size
 
 ### TOGGLE EXECUTABLE / PERMISSIONS ###
 cmd chmod %{{
