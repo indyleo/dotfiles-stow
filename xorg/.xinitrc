@@ -13,7 +13,7 @@ PROCS=(
 ARG_PROCS=(
     xwall
     clipmgr
-    organizer
+    organizer.py
 )
 ARG_LIST=(
     "timexwalr ${HOME}/Pictures/Wallpapers/${THEME_CURRENT:-other} 900"
