@@ -82,82 +82,8 @@ elif command_exists apt; then
     }
 fi
 
-# Archive Extraction
-function extract() {
-    if [[ "$#" -lt 1 ]]; then
-        echo "Usage: extract <archive_file>"
-        return 1
-    fi
-
-    if [[ -f "$1" ]]; then
-        case $1 in
-            *.tar.bz2) tar xjf "$1"    ;;
-            *.tar.gz)  tar xzf "$1"    ;;
-            *.bz2)     bunzip2 "$1"    ;;
-            *.rar)     unrar x "$1"    ;;
-            *.gz)      gunzip "$1"     ;;
-            *.tar)     tar xf "$1"     ;;
-            *.tbz2)    tar xjf "$1"    ;;
-            *.tgz)     tar xzf "$1"    ;;
-            *.zip)     unzip "$1"      ;;
-            *.Z)       uncompress "$1" ;;
-            *.7z)      7z x "$1"       ;;
-            *.deb)     ar x "$1"       ;;
-            *.tar.xz)  tar xf "$1"     ;;
-            *.tar.zst) unzstd "$1"     ;;
-            *)         echo "'$1' cannot be extracted via extract" ;;
-        esac
-    else
-        echo "'$1' is not a valid file"
-    fi
-}
-
-# Archiving
-function archive() {
-    if [[ "$#" -lt 2 ]]; then
-        echo "Usage: archive <archive_name.tar.gz|archive_name.zip|archive_name.rar> <file1> [file2 ... fileN]"
-        return 1
-    fi
-
-    archive_name="$1"
-    shift
-
-    if [[ -e "$archive_name" ]]; then
-        echo "Error: Archive '$archive_name' already exists."
-        return 1
-    fi
-
-    case "$archive_name" in
-        *.tar.gz)
-            tar -czf "$archive_name" "$@"
-            ;;
-        *.zip)
-            zip -r "$archive_name" "$@"
-            ;;
-        *.rar)
-            if command -v rar > /dev/null; then
-                rar a "$archive_name" "$@"
-            else
-                echo "Error: 'rar' command not found. Please install RAR to create .rar archives."
-                return 1
-            fi
-            ;;
-        *)
-            echo "Error: Unsupported archive format. Supported formats are .tar.gz, .zip, and .rar."
-            return 1
-            ;;
-    esac
-
-    if [[ $? -eq 0 ]]; then
-        echo "Success: Archive created: $archive_name"
-    else
-        echo "Error: Failed to create archive."
-        return 1
-    fi
-}
-
 function massrename() {
-    local prefix="${1:-wall}"
+    local prefix="${1:-file}"
     for f in *.*; do
         ext="${f##*.}"
         mv -f -- "$f" "${prefix}${n}.$ext"
