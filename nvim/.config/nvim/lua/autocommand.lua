@@ -69,6 +69,21 @@ autocmd("TermClose", {
   group = augroup "SilentKill",
   callback = function()
     vim.cmd "silent! bd!" -- Close the buffer silently
+
+    -- Restore statusline after buffer deletion
+    vim.schedule(function()
+      -- Reapply statusline to all windows
+      for _, win in ipairs(vim.api.nvim_list_wins()) do
+        if vim.api.nvim_win_is_valid(win) then
+          local bufnr = vim.api.nvim_win_get_buf(win)
+          -- Skip if it's a terminal buffer
+          if vim.api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].buftype ~= "terminal" then
+            vim.wo[win].statusline = "%!v:lua.status_line()"
+          end
+        end
+      end
+      vim.cmd.redrawstatus()
+    end)
   end,
 })
 
