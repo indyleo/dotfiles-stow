@@ -15,7 +15,7 @@ wsl = false
 
 [font]
 normal = [
-  "CaskaydiaCove NF",
+	"CaskaydiaCove NF",
 ] # Will use the bundled Fira Code Nerd Font by default
 size = 14.0
 
