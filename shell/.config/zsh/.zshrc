@@ -94,6 +94,7 @@ bindkey -s '^f' 'chtsh\n'
 bindkey -s '^g' 'chtsh lang\n'
 bindkey -s '^b' 'mkscript -b\n'
 bindkey -s '^n' 'mkscript -a\n'
+bindkey -s '^a' 'fzftmux\n'
 
 # Search history
 bindkey '^[[A' history-substring-search-up
