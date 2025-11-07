@@ -140,7 +140,8 @@ fi
 # Random Aliases
 alias tmodserver="~/.steam/debian-installation/steamapps/common/tModLoader/start-tModLoaderServer.sh"
 alias tmodport="ngrok tcp 7777"
-alias fusee="sudo fusee-nano ~/Downloads/Bin/hekate_ctcaer_*.bin"
+alias fusee="sudo fusee-nano ~/Bin/hekate_ctcaer_*.bin"
+alias ns="java -jar ~/Code/ns-usbloader-*.jar"
 
 # For Vim Users
 # vim:ft=sh
