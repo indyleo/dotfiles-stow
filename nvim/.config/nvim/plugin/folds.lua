@@ -629,7 +629,11 @@ api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
           -- Force treesitter to update folds
           vim.schedule(function()
             if api.nvim_buf_is_valid(bufnr) then
-              vim.cmd "silent! normal! zx" -- Update folds without changing cursor
+              -- Skip fold refresh if in insert mode
+              if vim.fn.mode():match "^[iR]" then
+                return
+              end
+              vim.cmd "silent! normal! zx"
             end
           end)
         end
