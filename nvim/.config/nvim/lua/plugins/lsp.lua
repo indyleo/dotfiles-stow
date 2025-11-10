@@ -60,7 +60,8 @@ return {
         "cmake",
         "lua_ls",
         "pyright",
-        "rust_analyzer",
+        "rust-analyzer",
+        "bacon",
         "bashls",
         "luau-lsp",
       }
@@ -152,6 +153,7 @@ return {
           "prettier",
           "pylint",
           "rustfmt",
+          "rust-analyzer",
           "selene",
           "stylua",
           "lua-language-server",
