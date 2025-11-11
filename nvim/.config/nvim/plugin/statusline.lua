@@ -4,46 +4,7 @@
 local api, fn, uv = vim.api, vim.fn, vim.loop or vim.uv
 
 -- ========================
--- Theme reading with file watcher
--- ========================
-local cache_home = os.getenv "XDG_CACHE_HOME" or (os.getenv "HOME" .. "/.cache")
-local theme_file = cache_home .. "/theme"
-
-local function read_theme(path)
-  local f = io.open(path, "r")
-  if not f then
-    return nil
-  end
-  local theme = f:read "*l"
-  f:close()
-  return theme and theme:lower()
-end
-
-local theme_current = read_theme(theme_file) or "gruvbox"
-
--- Conditional styling based on Neovide - try removing ALL gui attributes
-local gui_attr = (vim.g.neovide or vim.g.neovide_version) and "gui=NONE cterm=NONE" or "gui=bold"
-
--- Watch theme file for changes
-if uv.fs_stat(theme_file) then
-  local fs_event = uv.new_fs_event()
-  fs_event:start(
-    theme_file,
-    {},
-    vim.schedule_wrap(function()
-      theme_current = read_theme(theme_file) or "gruvbox"
-      local colors = themes[theme_current] or themes.gruvbox
-      for name, col in pairs(colors) do
-        local group = "StatusLine" .. name:gsub("^%l", string.upper):gsub("_", "")
-        vim.cmd(string.format("highlight! %s guifg=%s guibg=%s %s", group, col.fg, col.bg, gui_attr))
-      end
-      vim.cmd.redrawstatus()
-    end)
-  )
-end
-
--- ========================
--- Theme color definitions
+-- Theme color definitions (MOVED BEFORE file watcher)
 -- ========================
 local themes = {
   gruvbox = {
@@ -80,15 +41,56 @@ local themes = {
   },
 }
 
+-- ========================
+-- Theme reading with file watcher
+-- ========================
+local cache_home = os.getenv "XDG_CACHE_HOME" or (os.getenv "HOME" .. "/.cache")
+local theme_file = cache_home .. "/theme"
+
+local function read_theme(path)
+  local f = io.open(path, "r")
+  if not f then
+    return nil
+  end
+  local theme = f:read "*l"
+  f:close()
+  return theme and theme:lower()
+end
+
+local theme_current = read_theme(theme_file) or "gruvbox"
+
+-- Conditional styling based on Neovide
+local gui_attr = (vim.g.neovide or vim.g.neovide_version) and "gui=NONE cterm=NONE" or "gui=bold"
+
+-- Function to apply highlights (DRY principle)
+local function apply_highlights()
+  local colors = themes[theme_current] or themes.gruvbox
+  for name, col in pairs(colors) do
+    local group = "StatusLine" .. name:gsub("^%l", string.upper):gsub("_", "")
+    vim.cmd(string.format("highlight! %s guifg=%s guibg=%s %s", group, col.fg, col.bg, gui_attr))
+  end
+end
+
+-- Watch theme file for changes
+if uv.fs_stat(theme_file) then
+  local fs_event = uv.new_fs_event()
+  fs_event:start(
+    theme_file,
+    {},
+    vim.schedule_wrap(function()
+      theme_current = read_theme(theme_file) or "gruvbox"
+      apply_highlights()
+      vim.cmd.redrawstatus()
+    end)
+  )
+end
+
 local colors = themes[theme_current] or themes.gruvbox
 
 -- ========================
--- Highlights
+-- Initial highlights
 -- ========================
-for name, col in pairs(colors) do
-  local group = "StatusLine" .. name:gsub("^%l", string.upper):gsub("_", "")
-  vim.cmd(string.format("highlight! %s guifg=%s guibg=%s %s", group, col.fg, col.bg, gui_attr))
-end
+apply_highlights()
 
 -- ========================
 -- Mode mapping

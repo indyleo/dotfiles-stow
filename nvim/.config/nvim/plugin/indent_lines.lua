@@ -24,9 +24,6 @@ local function read_theme(path)
   return nil
 end
 
--- Get current theme
-local theme = read_theme(theme_file) or "gruvbox"
-
 -- Theme colors with context color
 local colors = {
   gruvbox = {
@@ -38,6 +35,9 @@ local colors = {
     context = "#4C566A",
   },
 }
+
+-- Current theme (mutable)
+local theme_current = read_theme(theme_file) or "gruvbox"
 
 -- Filetypes to exclude
 local excluded_filetypes = {
@@ -78,7 +78,13 @@ local excluded_buftypes = {
 -- Cache for exclusion checks
 local exclusion_cache = {}
 
--- Check if buffer should be excluded
+-- Debounce timer
+local timers = {}
+
+-- Namespace for extmarks
+local ns = vim.api.nvim_create_namespace "indent_lines"
+
+-- Check if buffer should be excluded (MOVED UP)
 local function should_exclude(buf)
   if not vim.api.nvim_buf_is_valid(buf) then
     return true
@@ -118,36 +124,6 @@ local function should_exclude(buf)
   exclusion_cache[buf] = false
   return false
 end
-
--- Debounce timer
-local timers = {}
-
--- Clear exclusion cache when buffer is deleted
-vim.api.nvim_create_autocmd("BufDelete", {
-  callback = function(ev)
-    exclusion_cache[ev.buf] = nil
-    if timers[ev.buf] then
-      timers[ev.buf]:stop()
-      timers[ev.buf] = nil
-    end
-  end,
-})
-
--- Set highlight groups
-local theme_colors = colors[theme] or colors.gruvbox
-local palette = theme_colors.normal
-local context_color = theme_colors.context
-
--- Normal indent line highlights
-for i, color in ipairs(palette) do
-  vim.api.nvim_set_hl(0, "IndentLine" .. i, { fg = color })
-end
-
--- Single context indent line highlight
-vim.api.nvim_set_hl(0, "IndentLineContext", { fg = context_color })
-
--- Namespace for extmarks
-local ns = vim.api.nvim_create_namespace "indent_lines"
 
 -- Get the context range (start and end line of current code block)
 local function get_context_range(buf, cursor_line)
@@ -261,6 +237,10 @@ local function draw_indent_lines(buf)
     shiftwidth = 2
   end
 
+  -- Get current theme colors
+  local theme_colors = colors[theme_current] or colors.gruvbox
+  local palette = theme_colors.normal
+
   -- Get current cursor position and context
   local cursor_line = nil
   local context_start, context_end, context_indent
@@ -320,6 +300,55 @@ local function draw_indent_lines(buf)
     end
   end
 end
+
+-- Function to apply highlight groups
+local function apply_highlights()
+  local theme_colors = colors[theme_current] or colors.gruvbox
+  local palette = theme_colors.normal
+  local context_color = theme_colors.context
+
+  -- Normal indent line highlights
+  for i, color in ipairs(palette) do
+    vim.api.nvim_set_hl(0, "IndentLine" .. i, { fg = color })
+  end
+
+  -- Single context indent line highlight
+  vim.api.nvim_set_hl(0, "IndentLineContext", { fg = context_color })
+end
+
+-- Apply initial highlights
+apply_highlights()
+
+-- Watch theme file for changes
+local uv = vim.loop or vim.uv
+if uv.fs_stat(theme_file) then
+  local fs_event = uv.new_fs_event()
+  fs_event:start(
+    theme_file,
+    {},
+    vim.schedule_wrap(function()
+      theme_current = read_theme(theme_file) or "gruvbox"
+      apply_highlights()
+      -- Redraw all visible buffers
+      for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.api.nvim_buf_is_valid(buf) and not should_exclude(buf) then
+          draw_indent_lines(buf)
+        end
+      end
+    end)
+  )
+end
+
+-- Clear exclusion cache when buffer is deleted
+vim.api.nvim_create_autocmd("BufDelete", {
+  callback = function(ev)
+    exclusion_cache[ev.buf] = nil
+    if timers[ev.buf] then
+      timers[ev.buf]:stop()
+      timers[ev.buf] = nil
+    end
+  end,
+})
 
 -- Debounced draw function
 local function draw_debounced(buf)
