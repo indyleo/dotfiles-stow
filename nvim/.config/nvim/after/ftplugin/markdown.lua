@@ -4,14 +4,16 @@ vim.api.nvim_create_autocmd("BufEnter", {
   callback = function(args)
     local keymap = vim.keymap.set
     local bufnr = args.buf
+    local winid = vim.api.nvim_get_current_win()
+
     local mdopts = function(desc)
       return { desc = "Markdown: " .. desc, buffer = bufnr, noremap = true, silent = true }
     end
 
-    -- Markdown Code Extration
-    keymap("n", "<leader>em", ":MarkdownCode<CR>", mdopts "Markdown Code Block Extration")
+    -- Markdown Code Extraction
+    keymap("n", "<leader>em", ":MarkdownCode<CR>", mdopts "Markdown Code Block Extraction")
 
-    -- Set word wrap
-    vim.bo[bufnr].wrap = true
+    -- Set word wrap (window-local!)
+    vim.wo[winid].wrap = true
   end,
 })
