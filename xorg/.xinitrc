@@ -8,7 +8,7 @@ PROCS=(
     lxpolkit
     udiskie
     medianotify
-    bar.py
+    dwmblocks
 )
 ARG_PROCS=(
     xwall
