@@ -12,7 +12,7 @@ PROCS=(
 )
 ARG_PROCS=(
     xwall
-    clipmgr
+    clipmgr.py
     organizer.py
 )
 ARG_LIST=(
