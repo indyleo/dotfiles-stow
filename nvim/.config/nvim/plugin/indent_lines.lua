@@ -1,13 +1,32 @@
 -- nvim/plugin/indent-lines.lua
-
--- Configuration
+-- ============================================================================
+-- USER CONFIGURATION - Edit these values to customize the plugin
+-- ============================================================================
 local config = {
-  enabled = true,
-  char = "▎",
-  show_current_context = true,
-  debounce_ms = 100,
-  max_lines = 10000,
+  enabled = true, -- Enable/disable the plugin
+  char = "▎", -- Character for indent lines (try: "│", "▏", "▎", "▍")
+  show_current_context = true, -- Highlight the current code block scope
+  debounce_ms = 100, -- Delay before redrawing (lower = more responsive, higher = better performance)
+  max_lines = 10000, -- Don't draw indent lines for files larger than this
 }
+
+-- Available themes: "gruvbox", "nord", "catppuccin", "tokyonight", "onedark"
+-- Set your preferred theme here or it will be read from ~/.cache/theme file
+local preferred_theme = "gruvbox" -- Change this to your preferred theme
+
+-- Add custom excluded filetypes here
+local custom_excluded_filetypes = {
+  -- "markdown",
+  -- "text",
+}
+
+-- Add custom excluded buftypes here
+local custom_excluded_buftypes = {
+  -- "help",
+}
+-- ============================================================================
+-- END OF USER CONFIGURATION
+-- ============================================================================
 
 -- Get cache directory for theme
 local cache_home = os.getenv "XDG_CACHE_HOME" or os.getenv "HOME" .. "/.cache"
@@ -37,7 +56,7 @@ local colors = {
 }
 
 -- Current theme (mutable)
-local theme_current = read_theme(theme_file) or "gruvbox"
+local theme_current = read_theme(theme_file) or preferred_theme
 
 -- Filetypes to exclude
 local excluded_filetypes = {
@@ -66,6 +85,11 @@ local excluded_filetypes = {
   "",
 }
 
+-- Add custom excluded filetypes
+for _, ft in ipairs(custom_excluded_filetypes) do
+  table.insert(excluded_filetypes, ft)
+end
+
 -- Buftypes to exclude
 local excluded_buftypes = {
   "terminal",
@@ -75,16 +99,49 @@ local excluded_buftypes = {
   "acwrite",
 }
 
+-- Add custom excluded buftypes
+for _, bt in ipairs(custom_excluded_buftypes) do
+  table.insert(excluded_buftypes, bt)
+end
+
 -- Cache for exclusion checks
 local exclusion_cache = {}
 
 -- Debounce timer
 local timers = {}
 
+-- Theme change debounce timer
+local theme_debounce_timer = nil
+
 -- Namespace for extmarks
 local ns = vim.api.nvim_create_namespace "indent_lines"
 
--- Check if buffer should be excluded (MOVED UP)
+-- Context cache for performance
+local context_cache = {
+  buf = -1,
+  line = -1,
+  start = nil,
+  end_line = nil,
+  indent = nil,
+}
+
+-- Validate configuration
+local function validate_config()
+  if config.debounce_ms < 0 then
+    config.debounce_ms = 0
+  end
+  if config.max_lines < 100 then
+    config.max_lines = 100
+  end
+  if not colors[theme_current] then
+    theme_current = preferred_theme
+  end
+  if type(config.char) ~= "string" or config.char == "" then
+    config.char = "▎"
+  end
+end
+
+-- Check if buffer should be excluded
 local function should_exclude(buf)
   if not vim.api.nvim_buf_is_valid(buf) then
     return true
@@ -129,7 +186,6 @@ end
 local function get_context_range(buf, cursor_line)
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   local shiftwidth = vim.bo[buf].shiftwidth
-
   if shiftwidth == 0 then
     shiftwidth = vim.bo[buf].tabstop
   end
@@ -219,6 +275,23 @@ local function get_context_range(buf, cursor_line)
   return start_line, end_line, scope_indent
 end
 
+-- Get context range with caching
+local function get_context_range_cached(buf, cursor_line)
+  if context_cache.buf == buf and context_cache.line and math.abs(context_cache.line - cursor_line) <= 1 then
+    return context_cache.start, context_cache.end_line, context_cache.indent
+  end
+
+  local start, end_line, indent = get_context_range(buf, cursor_line)
+  context_cache = {
+    buf = buf,
+    line = cursor_line,
+    start = start,
+    end_line = end_line,
+    indent = indent,
+  }
+  return start, end_line, indent
+end
+
 -- Draw indent guides
 local function draw_indent_lines(buf)
   if not config.enabled or should_exclude(buf) then
@@ -229,7 +302,6 @@ local function draw_indent_lines(buf)
 
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   local shiftwidth = vim.bo[buf].shiftwidth
-
   if shiftwidth == 0 then
     shiftwidth = vim.bo[buf].tabstop
   end
@@ -249,7 +321,7 @@ local function draw_indent_lines(buf)
     local wins = vim.fn.win_findbuf(buf)
     if #wins > 0 then
       cursor_line = vim.api.nvim_win_get_cursor(wins[1])[1]
-      context_start, context_end, context_indent = get_context_range(buf, cursor_line)
+      context_start, context_end, context_indent = get_context_range_cached(buf, cursor_line)
     end
   end
 
@@ -261,7 +333,18 @@ local function draw_indent_lines(buf)
     local is_blank = line:match "^%s*$"
 
     if is_blank then
+      -- Look backwards for indent
       indent = prev_indent
+      -- Also look forward to handle sections of blank lines better
+      if indent == 0 then
+        for future_lnum = lnum + 1, math.min(lnum + 5, #lines) do
+          local future_line = lines[future_lnum]
+          if not future_line:match "^%s*$" then
+            indent = future_line:match("^%s*"):len()
+            break
+          end
+        end
+      end
     else
       indent = line:match("^%s*"):len()
       prev_indent = indent
@@ -316,6 +399,15 @@ local function apply_highlights()
   vim.api.nvim_set_hl(0, "IndentLineContext", { fg = context_color })
 end
 
+-- Redraw all visible buffers
+local function redraw_all_buffers()
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_valid(buf) and not should_exclude(buf) then
+      draw_indent_lines(buf)
+    end
+  end
+end
+
 -- Apply initial highlights
 apply_highlights()
 
@@ -327,14 +419,19 @@ if uv.fs_stat(theme_file) then
     theme_file,
     {},
     vim.schedule_wrap(function()
-      theme_current = read_theme(theme_file) or "gruvbox"
-      apply_highlights()
-      -- Redraw all visible buffers
-      for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-        if vim.api.nvim_buf_is_valid(buf) and not should_exclude(buf) then
-          draw_indent_lines(buf)
-        end
+      if theme_debounce_timer then
+        theme_debounce_timer:stop()
       end
+      theme_debounce_timer = vim.defer_fn(function()
+        local new_theme = read_theme(theme_file) or "gruvbox"
+        if new_theme ~= theme_current then
+          theme_current = new_theme
+          validate_config()
+          apply_highlights()
+          redraw_all_buffers()
+        end
+        theme_debounce_timer = nil
+      end, 200)
     end)
   )
 end
@@ -347,6 +444,10 @@ vim.api.nvim_create_autocmd("BufDelete", {
       timers[ev.buf]:stop()
       timers[ev.buf] = nil
     end
+    -- Clear context cache if it's for this buffer
+    if context_cache.buf == ev.buf then
+      context_cache = { buf = -1, line = -1, start = nil, end_line = nil, indent = nil }
+    end
   end,
 })
 
@@ -355,7 +456,6 @@ local function draw_debounced(buf)
   if timers[buf] then
     timers[buf]:stop()
   end
-
   timers[buf] = vim.defer_fn(function()
     draw_indent_lines(buf)
     timers[buf] = nil
@@ -372,7 +472,6 @@ vim.api.nvim_create_autocmd({ "BufWinEnter", "FileType" }, {
     if ev.event == "FileType" then
       exclusion_cache[ev.buf] = nil
     end
-
     if should_exclude(ev.buf) then
       vim.api.nvim_buf_clear_namespace(ev.buf, ns, 0, -1)
     else
@@ -426,5 +525,40 @@ vim.api.nvim_create_user_command("IndentLinesToggleContext", function()
   vim.notify("Context highlighting " .. status, vim.log.levels.INFO)
 end, {})
 
--- Expose config for user customization
+-- Command to switch themes
+vim.api.nvim_create_user_command("IndentLinesTheme", function(opts)
+  local theme = opts.args
+  if colors[theme] then
+    theme_current = theme
+    validate_config()
+    apply_highlights()
+    redraw_all_buffers()
+    vim.notify("Theme changed to: " .. theme, vim.log.levels.INFO)
+  else
+    local available = table.concat(vim.tbl_keys(colors), ", ")
+    vim.notify("Unknown theme: " .. theme .. ". Available: " .. available, vim.log.levels.ERROR)
+  end
+end, {
+  nargs = 1,
+  complete = function()
+    return vim.tbl_keys(colors)
+  end,
+})
+
+-- Command to reload configuration
+vim.api.nvim_create_user_command("IndentLinesReload", function()
+  validate_config()
+  apply_highlights()
+  redraw_all_buffers()
+  vim.notify("Indent lines reloaded", vim.log.levels.INFO)
+end, {})
+
+-- Expose config for runtime access (optional, for advanced users)
 _G.IndentLinesConfig = config
+
+-- Validate config on startup
+vim.api.nvim_create_autocmd("VimEnter", {
+  callback = function()
+    vim.defer_fn(validate_config, 50)
+  end,
+})
