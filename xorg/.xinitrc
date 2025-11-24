@@ -80,6 +80,5 @@ picom -b
 systemctl --user import-environment DISPLAY
 StartProc
 ArgStart
-StartFlat
 
 exec dwm
