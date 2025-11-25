@@ -19,6 +19,10 @@ if [[ -d "$HOME/.local/bin" ]]; then
     PATH="$HOME/.local/bin:$PATH"
 fi
 
+if [[ -d "$HOME/Applications" ]]; then
+    PATH="$HOME/Applications:$PATH"
+fi
+
 if [[ -d "/usr/games" ]]; then
     PATH="/usr/games:$PATH"
 fi
