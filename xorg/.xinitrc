@@ -26,6 +26,10 @@ function command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+if command_exists sunshine; then
+    PROCS+=("sunshine")
+fi
+
 if command_exists solaar; then
     ARG_PROCS+=("solaar")
     ARG_LIST+=("--window hide")
