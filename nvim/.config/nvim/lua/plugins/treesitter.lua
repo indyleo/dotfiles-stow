@@ -61,6 +61,7 @@ return {
         "cpp",
         "vim",
         "vimdoc",
+        "arduino",
       },
       incremental_selection = {
         enable = true,
