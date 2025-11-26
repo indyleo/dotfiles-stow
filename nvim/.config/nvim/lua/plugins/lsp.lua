@@ -64,6 +64,7 @@ return {
         "bacon",
         "bashls",
         "luau-lsp",
+        "arduino-language-server",
       }
 
       local lspconfig = vim.lsp.config
@@ -160,6 +161,7 @@ return {
           "luau-lsp",
           "crlfmt",
           "staticcheck",
+          "arduino-language-server",
           -- Script / Shell
           "bash-language-server",
           "beautysh",
