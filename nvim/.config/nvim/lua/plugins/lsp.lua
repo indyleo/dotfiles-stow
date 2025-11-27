@@ -38,7 +38,18 @@ return {
       --------------------------------------------------------------------------
       -- ⚙️ Capabilities
       --------------------------------------------------------------------------
+      --[[
+
       local capabilities = vim.lsp.protocol.make_client_capabilities()
+      capabilities.textDocument.foldingRange = { dynamicRegistration = true, lineFoldingOnly = true }
+      capabilities.textDocument.semanticTokens = capabilities.textDocument.semanticTokens or {}
+      capabilities.textDocument.semanticTokens.multilineTokenSupport = true
+      capabilities.textDocument.completion.completionItem.snippetSupport = true
+
+      ]]
+      --
+
+      local capabilities = require("blink.cmp").get_lsp_capabilities(vim.lsp.protocol.make_client_capabilities())
       capabilities.textDocument.foldingRange = { dynamicRegistration = true, lineFoldingOnly = true }
       capabilities.textDocument.semanticTokens = capabilities.textDocument.semanticTokens or {}
       capabilities.textDocument.semanticTokens.multilineTokenSupport = true
@@ -60,10 +71,9 @@ return {
         "cmake",
         "lua_ls",
         "pyright",
-        "rust-analyzer",
-        "bacon",
+        "rust_analyzer",
         "bashls",
-        "luau-lsp",
+        "luau_lsp",
         "arduino-language-server",
       }
 
@@ -86,6 +96,20 @@ return {
               telemetry = { enable = false },
               completion = { callSnippet = "Replace" },
             },
+          }
+        end
+
+        if server == "arduino_language_server" then
+          default_config.cmd = {
+            "arduino-language-server",
+            "-cli-config",
+            vim.fn.expand "~/.arduino15/arduino-cli.yaml",
+            "-fqbn",
+            "arduino:avr:uno", -- Change to your board
+            "-cli",
+            "arduino-cli",
+            "-clangd",
+            "clangd",
           }
         end
 
