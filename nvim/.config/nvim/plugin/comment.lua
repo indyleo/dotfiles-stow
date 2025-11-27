@@ -71,6 +71,7 @@ local comment_map = {
   erlang = "% %s",
   tex = "% %s",
   plaintex = "% %s",
+  arduino = "// %s",
 }
 
 local block_map = {
