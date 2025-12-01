@@ -108,7 +108,7 @@ map("t", "<Esc><Esc>", "<C-\\><C-n>", "Exit terminal to normal mode")
 
 -- Terminal toggles
 map({ "n", "t" }, "<leader>tr", ":ToggleTerm<CR>", "Toggle terminal")
-map({ "n", "t" }, "<leader>tg", ":ToggleLazygit<CR>", "Toggle lazygit")
+map({ "n", "t" }, "<leader>tg", ":ToggleGit<CR>", "Toggle fzf_git.py")
 
 -- Cword/Case replace
 map("n", "<leader>sw", ":SwapNext<CR>", "Cword replace next")
