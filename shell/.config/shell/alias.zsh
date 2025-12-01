@@ -102,8 +102,8 @@ alias push='git push origin'
 alias stat='git status'
 alias tag='git tag'
 alias newtag='git tag -a'
-alias lg="lazygit"
-alias lastcommit="git for-each-ref --sort=-committerdate refs/heads/ --format='%(refname:short) - %(committerdate:relative)'"
+alias lazy="lazygit"
+alias lg="fzf_git.py"
 
 # Shell Aliases
 alias srcz='source ~/.zshrc'
