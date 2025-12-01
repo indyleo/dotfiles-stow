@@ -2,7 +2,6 @@
 
 # Vars
 XRANDR_OUTPUT=$(xrandr -q)
-THEME_CURRENT="$(cat "${XDG_CACHE_HOME:-$HOME/.cache}"/theme)"
 PROCS=(
     dunst
     lxpolkit
@@ -11,12 +10,12 @@ PROCS=(
     dwmblocks
 )
 ARG_PROCS=(
-    xwall
+    desktopctl
     clipmgr.py
     organizer.py
 )
 ARG_LIST=(
-    "timexwalr ${HOME}/Pictures/Wallpapers/${THEME_CURRENT:-other} 900"
+    "wallpaper theme-time"
     "daemon"
     "--daemon"
 )
