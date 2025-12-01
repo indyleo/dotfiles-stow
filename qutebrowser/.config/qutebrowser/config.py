@@ -119,6 +119,7 @@ c.tabs.title.format = "{audio}{current_title}"
 # --- Search engines ---
 c.url.searchengines = {
     "DEFAULT": "https://searxng.linuxlab.work/search?q={}",
+    "!br": "https://search.brave.com/search?q={}",
     "!ar": "https://aur.archlinux.org/packages?O=0&K={}",
     "!ah": "https://archlinux.org/packages/?sort=&q={}",
     "!aw": "https://wiki.archlinux.org/?search={}",
@@ -211,8 +212,8 @@ config.bind("cs", "config-source ;; message-info 'Config & theme reloaded'")
 config.bind("cp", f"message-info 'Current theme: {theme_name}'")
 config.bind("ct", "config-cycle colors.webpage.darkmode.enabled true false")
 
-config.bind("Pm", "mode-enter insert ;; spawn --detach dmenu_pass")
-config.bind("Pb", "spawn --detach dmenu_bm qutebrowser")
+config.bind("Pm", "mode-enter insert ;; spawn --detach bitwarden.py")
+config.bind("Pb", "spawn --detach bookmarks.py qutebrowser")
 config.bind("T", "hint links")
 config.bind("tt", "cmd-set-text -s :open -t")
 config.bind("tw", "cmd-set-text -s :open -w")
@@ -222,6 +223,6 @@ config.bind("tc", "open -t -- {clipboard}")
 config.bind("th", "history")
 config.bind("<", "back")
 config.bind(">", "forward")
-config.bind("P?", "config-cycle tabs.width 12% 4%")
+config.bind("P?", "config-cycle tabs.width 16% 4%")
 config.bind("Pf", "fullscreen")
 config.bind("PP", "spawn --detach qutebrowser_private")
