@@ -102,8 +102,7 @@ alias push='git push origin'
 alias stat='git status'
 alias tag='git tag'
 alias newtag='git tag -a'
-alias lazy="lazygit"
-alias lg="fzf_git.py"
+alias lg="lazygit"
 
 # Shell Aliases
 alias srcz='source ~/.zshrc'

@@ -1,0 +1,27 @@
+customCommands:
+  - key: "C"
+    description: "Commit with conventional type"
+    context: "files"
+    prompts:
+      - type: "menu"
+        title: "Commit type"
+        key: "Type"
+        options:
+          - name: "feat"
+            value: "feat"
+          - name: "fix"
+            value: "fix"
+          - name: "docs"
+            value: "docs"
+          - name: "chore"
+            value: "chore"
+          - name: "refactor"
+            value: "refactor"
+          - name: "test"
+            value: "test"
+          - name: "style"
+            value: "style"
+      - type: "input"
+        title: "Commit message"
+        key: "Message"
+    command: 'git commit -m "{{.Form.Type}}: {{.Form.Message}}"'
