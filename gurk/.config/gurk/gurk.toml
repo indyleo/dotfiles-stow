@@ -2,7 +2,7 @@ first_name_only = false
 show_receipts = true
 notifications = false
 bell = true
-colored_messages = false
+colored_messages = true
 default_keybindings = false
 
 [user]
