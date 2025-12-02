@@ -46,5 +46,7 @@
 *.color14: gruvbraqua         ! bright cyan
 *.color15: gruvbrwhite        ! bright white (same as fg)
 
+Xcursor.theme: Capitaine Cursors (Gruvbox)
+Xcursor.size: 24
 *.font: Ubuntu:style=bold:size=11
 Xft.dpi: 96
