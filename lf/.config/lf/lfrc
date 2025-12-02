@@ -44,6 +44,12 @@ map gp :cd ~/Pictures
 map gm :cd ~/Music
 map gv :cd ~/Videos
 map gg :cd ~/Github
+map gM media
+
+# Go to media dir
+cmd media ${{
+  lf -remote "send $id cd '/media/$USER/'"
+}}
 
 ### FILE CREATION ###
 cmd mk ${{
