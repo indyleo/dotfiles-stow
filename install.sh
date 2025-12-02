@@ -1,5 +1,4 @@
 #!/bin/env bash
-ORIGINAL_DIR=$(pwd)
 REPO_URL="https://github.com/indyleo/dotfiles-stow"
 REPO_NAME="dotfiles-stow"
 
