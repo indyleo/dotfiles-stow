@@ -3,6 +3,8 @@ c = c  # noqa: F821 pylint: disable=E0602,C0103
 config = config  # noqa: F821 pylint: disable=E0602,C0103
 
 import os
+import threading
+import time
 
 
 # --- Helper function to load theme ---
@@ -66,6 +68,91 @@ def load_theme():
         }
 
     return theme_name, palette, tabs
+
+
+def apply_theme(theme_name, palette, tabs):
+    """Apply theme colors to qutebrowser config."""
+    # --- Transparent Tabs ---
+    c.tabs.width = "4%" if theme_name == "gruvbox" else "5%"
+
+    c.colors.tabs.bar.bg = "transparent"
+    c.colors.tabs.odd.bg = list(tabs.values())[0]
+    c.colors.tabs.even.bg = list(tabs.values())[1]
+
+    accent = palette["blue"]
+    c.colors.tabs.selected.odd.bg = accent + "99"
+    c.colors.tabs.selected.even.bg = accent + "99"
+    c.colors.tabs.selected.odd.fg = palette["fg0"]
+    c.colors.tabs.selected.even.fg = palette["fg0"]
+    c.colors.tabs.odd.fg = palette["fg1"]
+    c.colors.tabs.even.fg = palette["fg1"]
+
+    # --- Completion ---
+    c.colors.completion.category.bg = palette["bg2"]
+    c.colors.completion.category.fg = palette["fg1"]
+    c.colors.completion.even.bg = palette["bg0"]
+    c.colors.completion.odd.bg = palette["bg1"]
+    c.colors.completion.item.selected.bg = palette["blue"]
+    c.colors.completion.item.selected.fg = palette["fg2"]
+    c.colors.completion.item.selected.border.top = palette["blue"]
+    c.colors.completion.item.selected.border.bottom = palette["blue"]
+    c.colors.completion.match.fg = palette.get("orange", palette["yellow"])
+    c.colors.completion.scrollbar.bg = palette["bg1"]
+    c.colors.completion.scrollbar.fg = palette["bg3"]
+
+    # --- Statusbar ---
+    c.colors.statusbar.normal.bg = palette["bg2"]
+    c.colors.statusbar.insert.bg = palette["green"]
+    c.colors.statusbar.passthrough.bg = palette["yellow"]
+    c.colors.statusbar.private.bg = palette["purple"]
+    c.colors.statusbar.command.bg = palette["bg1"]
+    c.colors.statusbar.url.success.http.fg = palette["fg1"]
+    c.colors.statusbar.url.success.https.fg = palette["green"]
+    c.colors.statusbar.url.error.fg = palette["red"]
+    c.colors.statusbar.url.warn.fg = palette["yellow"]
+    c.colors.statusbar.url.hover.fg = palette["blue"]
+
+    # --- Hints, Messages, Downloads, Prompts ---
+    c.colors.hints.bg = palette["yellow"]
+    c.colors.hints.fg = palette["bg0"]
+    c.colors.hints.match.fg = palette["red"]
+
+    c.colors.messages.error.bg = palette["red"]
+    c.colors.messages.warning.bg = palette.get("orange", palette["yellow"])
+    c.colors.messages.info.bg = palette["blue"]
+
+    c.colors.downloads.bar.bg = palette["bg2"]
+    c.colors.downloads.start.bg = palette["blue"]
+    c.colors.downloads.stop.bg = palette["green"]
+    c.colors.downloads.error.bg = palette["red"]
+
+    c.colors.prompts.bg = palette["bg1"]
+    c.colors.prompts.fg = palette["fg1"]
+    c.colors.prompts.border = f"1px solid {palette['blue']}"
+
+
+def watch_theme_file():
+    """Watch ~/.cache/theme for changes and reload config."""
+    theme_file = os.path.expanduser("~/.cache/theme")
+    last_mtime = None
+
+    try:
+        last_mtime = os.path.getmtime(theme_file)
+    except FileNotFoundError:
+        pass
+
+    while True:
+        time.sleep(1)  # Check every second
+        try:
+            current_mtime = os.path.getmtime(theme_file)
+            if current_mtime != last_mtime:
+                last_mtime = current_mtime
+                theme_name, palette, tabs = load_theme()
+                apply_theme(theme_name, palette, tabs)
+        except FileNotFoundError:
+            pass
+        except Exception:
+            pass
 
 
 # --- Load theme dynamically ---
@@ -142,62 +229,9 @@ c.completion.open_categories = [
 c.window.transparent = True
 c.tabs.indicator.width = 0
 c.tabs.padding = {"top": 5, "bottom": 5, "left": 7, "right": 7}
-c.tabs.width = "4%" if theme_name == "gruvbox" else "5%"
 
-c.colors.tabs.bar.bg = "transparent"
-c.colors.tabs.odd.bg = list(tabs.values())[0]
-c.colors.tabs.even.bg = list(tabs.values())[1]
-
-accent = palette["blue"]
-c.colors.tabs.selected.odd.bg = accent + "99"  # 60% opacity
-c.colors.tabs.selected.even.bg = accent + "99"
-c.colors.tabs.selected.odd.fg = palette["fg0"]
-c.colors.tabs.selected.even.fg = palette["fg0"]
-c.colors.tabs.odd.fg = palette["fg1"]
-c.colors.tabs.even.fg = palette["fg1"]
-
-# --- Completion ---
-c.colors.completion.category.bg = palette["bg2"]
-c.colors.completion.category.fg = palette["fg1"]
-c.colors.completion.even.bg = palette["bg0"]
-c.colors.completion.odd.bg = palette["bg1"]
-c.colors.completion.item.selected.bg = palette["blue"]
-c.colors.completion.item.selected.fg = palette["fg2"]
-c.colors.completion.item.selected.border.top = palette["blue"]
-c.colors.completion.item.selected.border.bottom = palette["blue"]
-c.colors.completion.match.fg = palette.get("orange", palette["yellow"])
-c.colors.completion.scrollbar.bg = palette["bg1"]
-c.colors.completion.scrollbar.fg = palette["bg3"]
-
-# --- Statusbar ---
-c.colors.statusbar.normal.bg = palette["bg2"]
-c.colors.statusbar.insert.bg = palette["green"]
-c.colors.statusbar.passthrough.bg = palette["yellow"]
-c.colors.statusbar.private.bg = palette["purple"]
-c.colors.statusbar.command.bg = palette["bg1"]
-c.colors.statusbar.url.success.http.fg = palette["fg1"]
-c.colors.statusbar.url.success.https.fg = palette["green"]
-c.colors.statusbar.url.error.fg = palette["red"]
-c.colors.statusbar.url.warn.fg = palette["yellow"]
-c.colors.statusbar.url.hover.fg = palette["blue"]
-
-# --- Hints, Messages, Downloads, Prompts ---
-c.colors.hints.bg = palette["yellow"]
-c.colors.hints.fg = palette["bg0"]
-c.colors.hints.match.fg = palette["red"]
-
-c.colors.messages.error.bg = palette["red"]
-c.colors.messages.warning.bg = palette.get("orange", palette["yellow"])
-c.colors.messages.info.bg = palette["blue"]
-
-c.colors.downloads.bar.bg = palette["bg2"]
-c.colors.downloads.start.bg = palette["blue"]
-c.colors.downloads.stop.bg = palette["green"]
-c.colors.downloads.error.bg = palette["red"]
-
-c.colors.prompts.bg = palette["bg1"]
-c.colors.prompts.fg = palette["fg1"]
-c.colors.prompts.border = f"1px solid {palette['blue']}"
+# Apply initial theme
+apply_theme(theme_name, palette, tabs)
 
 # --- Fonts ---
 c.fonts.default_family = '"SauceCodePro NF"'
@@ -208,7 +242,7 @@ c.fonts.prompts = "default_size sans-serif"
 c.fonts.statusbar = '11pt "SauceCodePro NF"'
 
 # --- Keybindings ---
-config.bind("cs", "config-source ;; message-info 'Config & theme reloaded'")
+config.bind("cs", "config-source ;; message-info 'Config reloaded!'")
 config.bind("cp", f"message-info 'Current theme: {theme_name}'")
 config.bind("ct", "config-cycle colors.webpage.darkmode.enabled true false")
 
@@ -226,3 +260,7 @@ config.bind(">", "forward")
 config.bind("P?", "config-cycle tabs.width 16% 4%")
 config.bind("Pf", "fullscreen")
 config.bind("PP", "spawn --detach qutebrowser_private")
+
+# --- Start theme file watcher in background thread ---
+watcher_thread = threading.Thread(target=watch_theme_file, daemon=True)
+watcher_thread.start()
