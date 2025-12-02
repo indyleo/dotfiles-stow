@@ -90,46 +90,27 @@ if [[ -d "$HOME/.local/share/figletfonts" ]]; then
     command rm -rfv "$HOME/.local/share/figletfonts"
 fi
 
-echo "Stowing dotfiles..."
-# Check if the clone was successful
-if [[ $? -eq 0 ]]; then
-    cd "$REPO_NAME" || exit
-
-    # Stowing
-    stow --target="$HOME" -v figletfonts
-    stow --target="$HOME" -v shell
-    stow --target="$HOME" -v xdg
-    stow --target="$HOME" -v git
-    stow --target="$HOME" -v yazi
-    stow --target="$HOME" -v tmux
-    stow --target="$HOME" -v nvim
-    stow --target="$HOME" -v neovide
-    stow --target="$HOME" -v ohmyposh
-    stow --target="$HOME" -v alacritty
-    stow --target="$HOME" -v fastfetch
-    stow --target="$HOME" -v espanso
-    stow --target="$HOME" -v xorg
-    stow --target="$HOME" -v picom
-    stow --target="$HOME" -v dunst
-    stow --target="$HOME" -v qutebrowser
-    stow --target="$HOME" -v discordo
-    stow --target="$HOME" -v Thunar
-    stow --target="$HOME" -v lf
-    stow --target="$HOME" -v pipewire
-    stow --target="$HOME" -v gurk
-    stow --target="$HOME" -v twt
-    stow --target="$HOME" -v lazygit
-
-    # Macking sure zshenv gets loaded
-    if [[ -f "$HOME/.config/zsh/.zshenv" ]]; then
-        ln -s "$HOME/.config/zsh/.zshenv" "$HOME/.zshenv"
-    else
-        echo ".zshenv not found, HOW?"
-        exit 1
-    fi
-
-    cd "$ORIGINAL_DIR" || exit
-else
-    echo "Failed to clone the repository."
-    exit 1
-fi
+# Stowing
+stow --target="$HOME" -v figletfonts
+stow --target="$HOME" -v shell
+stow --target="$HOME" -v xdg
+stow --target="$HOME" -v git
+stow --target="$HOME" -v yazi
+stow --target="$HOME" -v tmux
+stow --target="$HOME" -v nvim
+stow --target="$HOME" -v neovide
+stow --target="$HOME" -v ohmyposh
+stow --target="$HOME" -v alacritty
+stow --target="$HOME" -v fastfetch
+stow --target="$HOME" -v espanso
+stow --target="$HOME" -v xorg
+stow --target="$HOME" -v picom
+stow --target="$HOME" -v dunst
+stow --target="$HOME" -v qutebrowser
+stow --target="$HOME" -v discordo
+stow --target="$HOME" -v Thunar
+stow --target="$HOME" -v lf
+stow --target="$HOME" -v pipewire
+stow --target="$HOME" -v gurk
+stow --target="$HOME" -v twt
+stow --target="$HOME" -v lazygit
