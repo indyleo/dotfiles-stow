@@ -34,6 +34,7 @@ _comp_options+=(globdots)		# Include hidden files.
 eval "$(gh completion -s zsh)"
 eval "$(syncthing install-completions)"
 eval "$(rustup completions zsh)"
+eval "$(wezterm shell-completion --shell zsh)"
 fpath+=$PLUGINDIR/zsh-completions/src
 
 # Startup
