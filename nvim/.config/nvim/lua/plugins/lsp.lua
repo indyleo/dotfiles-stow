@@ -74,7 +74,7 @@ return {
         "rust_analyzer",
         "bashls",
         "luau_lsp",
-        "arduino-language-server",
+        "arduino_language_server",
       }
 
       local lspconfig = vim.lsp.config
