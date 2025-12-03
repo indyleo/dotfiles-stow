@@ -38,6 +38,7 @@ FILES_HOME=(
 
 DIRS_CONFIG=(
     alacritty
+    wezterm
     neovide
     tmux
     nvim
@@ -100,6 +101,7 @@ stow --target="$HOME" -v nvim
 stow --target="$HOME" -v neovide
 stow --target="$HOME" -v ohmyposh
 stow --target="$HOME" -v alacritty
+stow --target="$HOME" -v wezterm
 stow --target="$HOME" -v fastfetch
 stow --target="$HOME" -v espanso
 stow --target="$HOME" -v xorg
