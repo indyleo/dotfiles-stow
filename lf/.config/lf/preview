@@ -3,11 +3,18 @@
 # Preview files in lf with color, format awareness, and graceful fallbacks
 
 preview="$1"
-max_lines="${LF_HEIGHT:-80}"
-max_cols="${LF_WIDTH:-120}"
+width="$2"
+height="$3"
+max_lines="${height:-80}"
+max_cols="${width:-120}"
 
 # Ensure target file exists
 [[ -f "$preview" ]] || exit 1
+
+# Cache directory for thumbnails
+CACHE_DIR="$HOME/.cache/lf"
+mkdir -p "$CACHE_DIR"
+CACHE="$CACHE_DIR/thumbnail.$(stat --printf '%n\0%i\0%F\0%s\0%W\0%Y' -- "$(readlink -f "$preview")" | sha256sum | awk '{print $1}')"
 
 # Limit long output for performance
 function headlimit() {
@@ -16,73 +23,167 @@ function headlimit() {
 
 # Color-aware text display
 function txtuse() {
-    if command -v batcat >/dev/null 2>&1; then
-        batcat --style=plain --color=always --paging=never "$preview" | headlimit && return
-    elif command -v bat >/dev/null 2>&1; then
-        bat --style=plain --color=always --paging=never "$preview" | headlimit && return
+    if command -v bat >/dev/null 2>&1; then
+        bat --color=always --style=plain --pager=never "$preview" | headlimit && return
+    elif command -v batcat >/dev/null 2>&1; then
+        batcat --color=always --style=plain --pager=never "$preview" | headlimit && return
     elif command -v highlight >/dev/null 2>&1; then
         highlight --out-format=ansi "$preview" | headlimit && return
     else
         cat "$preview" | headlimit && return
     fi
-    echo "No text previewer succeeded."
 }
 
 # Image preview (fallback to metadata)
 function imguse() {
+    local img="${1:-$preview}"
     if command -v chafa >/dev/null 2>&1; then
-        chafa --size="${max_cols}x${max_lines}" --fill=block "$preview" && return
+        local geometry="$((width-2))x${height}"
+        chafa "$img" -f sixel -s "$geometry" --animate false && return
     elif command -v viu >/dev/null 2>&1; then
-        viu -w "$max_cols" -h "$max_lines" "$preview" && return
+        viu -w "$max_cols" -h "$max_lines" "$img" && return
     fi
-    command -v mediainfo >/dev/null 2>&1 && mediainfo "$preview"
+    command -v mediainfo >/dev/null 2>&1 && mediainfo "$img"
 }
 
 # Main type-based preview logic
 case "${preview,,}" in
-    *.png|*.jpg|*.jpeg|*.bmp|*.webp|*.xpm|*.gif)
+    *.bmp|*.jpg|*.jpeg|*.png|*.xpm|*.webp|*.tiff|*.gif|*.jfif|*.ico)
         imguse
         ;;
 
-    *.mkv|*.mp4|*.webm|*.mp3|*.flac|*.wav|*.aac|*.ogg)
-        ffprobe -hide_banner -loglevel error \
-            -show_entries format=duration,bit_rate:stream=codec_name,width,height \
-            -of default=noprint_wrappers=1 "$preview" 2>/dev/null ||
-        exiftool "$preview"
-        ;;
-
-    *.tar) tar -tvf "$preview" | headlimit ;;
-    *.tar.gz|*.tgz) tar -ztvf "$preview" | headlimit ;;
-    *.tar.bz2|*.tbz2) tar -jtvf "$preview" | headlimit ;;
-    *.zip) zipinfo -1 "$preview" | headlimit ;;
-    *.rar) unrar l "$preview" | headlimit ;;
-    *.7z) 7z l "$preview" | headlimit ;;
-
-    *.pdf)
-        pdftotext "$preview" - 2>/dev/null | headlimit ||
-        pdftoppm -jpeg -singlefile "$preview" /tmp/lfpdf && viu /tmp/lfpdf.jpg
-        ;;
-
-    *.epub)
-        epub-meta "$preview" 2>/dev/null ||
-        exiftool "$preview"
-        ;;
-    *.docx)
-        docx2txt "$preview" - 2>/dev/null | headlimit ||
-        unzip -p "$preview" | strings | headlimit
-        ;;
-
-    *.md)
-        if command -v glow >/dev/null 2>&1; then
-            glow -s dark "$preview" | headlimit
+    *.svg)
+        if [ ! -f "${CACHE}.jpg" ]; then
+            convert "$preview" "${CACHE}.jpg" 2>/dev/null
+        fi
+        if [ -f "${CACHE}.jpg" ]; then
+            imguse "${CACHE}.jpg"
         else
             txtuse
         fi
         ;;
 
+    *.avi|*.mp4|*.wmv|*.dat|*.3gp|*.ogv|*.mkv|*.mpg|*.mpeg|*.vob|*.flv|*.flic|*.m2v|*.mov|*.webm|*.ts|*.mts|*.m4v|*.ram|*.qt|*.divx)
+        if [ ! -f "${CACHE}.jpg" ]; then
+            ffmpegthumbnailer -i "$preview" -o "${CACHE}.jpg" -s 0 -q 5 2>/dev/null
+        fi
+        if [ -f "${CACHE}.jpg" ]; then
+            imguse "${CACHE}.jpg"
+        else
+            ffprobe -hide_banner -loglevel error \
+                -show_entries format=duration,bit_rate:stream=codec_name,width,height \
+                -of default=noprint_wrappers=1 "$preview" 2>/dev/null ||
+            exiftool "$preview"
+        fi
+        ;;
+
+    *.wav|*.mp3|*.flac|*.m4a|*.wma|*.ape|*.ac3|*.ogg|*.oga|*.ogx|*.spx|*.opus|*.asx|*.asf|*.mka|*.aac)
+        exiftool "$preview" 2>/dev/null ||
+        ffprobe -hide_banner -loglevel error \
+            -show_entries format=duration,bit_rate:stream=codec_name \
+            -of default=noprint_wrappers=1 "$preview" 2>/dev/null
+        ;;
+
+    *.pdf)
+        if [ ! -f "${CACHE}.jpg" ]; then
+            pdftoppm -jpeg -f 1 -singlefile "$preview" "$CACHE" 2>/dev/null
+        fi
+        if [ -f "${CACHE}.jpg" ]; then
+            imguse "${CACHE}.jpg"
+        else
+            pdftotext "$preview" - 2>/dev/null | headlimit
+        fi
+        ;;
+
+    *.epub)
+        if [ ! -f "$CACHE" ]; then
+            epub-thumbnailer "$preview" "$CACHE" 1024 2>/dev/null
+        fi
+        if [ -f "$CACHE" ]; then
+            imguse "$CACHE"
+        else
+            epub-meta "$preview" 2>/dev/null || exiftool "$preview"
+        fi
+        ;;
+
+    *.cbz|*.cbr|*.cbt)
+        if [ ! -f "$CACHE" ]; then
+            comicthumb "$preview" "$CACHE" 1024 2>/dev/null
+        fi
+        if [ -f "$CACHE" ]; then
+            imguse "$CACHE"
+        else
+            exiftool "$preview" 2>/dev/null
+        fi
+        ;;
+
+    *.tgz|*.tar.gz) tar tzf "$preview" | headlimit ;;
+    *.tar.bz2|*.tbz2) tar tjf "$preview" | headlimit ;;
+    *.tar.xz|*.txz) xz --list "$preview" | headlimit ;;
+    *.tar) tar tf "$preview" | headlimit ;;
+    *.zip|*.jar|*.war|*.ear|*.oxt) unzip -l "$preview" | headlimit ;;
+    *.rar) unrar l "$preview" | headlimit ;;
+    *.7z) 7z l "$preview" | headlimit ;;
+
+    *.md)
+        if command -v glow >/dev/null 2>&1; then
+            glow -s dark "$preview" | headlimit
+        elif command -v mdcat >/dev/null 2>&1; then
+            mdcat "$preview" | headlimit
+        else
+            txtuse
+        fi
+        ;;
+
+    *.[1-8])
+        man "$preview" | col -b | headlimit
+        ;;
+
+    *.torrent)
+        transmission-show "$preview" 2>/dev/null | headlimit ||
+        exiftool "$preview"
+        ;;
+
+    *.iso)
+        iso-info --no-header -l "$preview" 2>/dev/null | headlimit ||
+        isoinfo -d -i "$preview" 2>/dev/null | headlimit ||
+        exiftool "$preview"
+        ;;
+
+    *.odt|*.ods|*.odp|*.sxw)
+        odt2txt "$preview" 2>/dev/null | headlimit ||
+        exiftool "$preview"
+        ;;
+
+    *.doc)
+        catdoc "$preview" 2>/dev/null | headlimit ||
+        exiftool "$preview"
+        ;;
+
+    *.docx)
+        docx2txt "$preview" - 2>/dev/null | headlimit ||
+        unzip -p "$preview" | strings | headlimit
+        ;;
+
+    *.xls|*.xlsx)
+        if command -v ssconvert >/dev/null 2>&1; then
+            ssconvert --export-type=Gnumeric_stf:stf_csv "$preview" "fd://1" 2>/dev/null | headlimit
+        else
+            exiftool "$preview"
+        fi
+        ;;
+
+    *.xml|*.html|*.htm)
+        w3m -dump "$preview" 2>/dev/null | headlimit ||
+        lynx -dump "$preview" 2>/dev/null | headlimit ||
+        elinks -dump "$preview" 2>/dev/null | headlimit ||
+        txtuse
+        ;;
+
     *.json)
         jq . "$preview" 2>/dev/null | headlimit || txtuse
         ;;
+
     *.yaml|*.yml)
         yq . "$preview" 2>/dev/null | headlimit || txtuse
         ;;
@@ -91,21 +192,24 @@ case "${preview,,}" in
         txtuse
         ;;
 
-    *.html|*.htm)
-        lynx -dump "$preview" 2>/dev/null ||
-        w3m -dump "$preview" 2>/dev/null ||
-        elinks -dump "$preview" 2>/dev/null ||
-        txtuse
+    *.o|*.obj)
+        nm "$preview" 2>/dev/null | headlimit ||
+        xxd "$preview" | headlimit
         ;;
 
-    *.iso)
-        isoinfo -d -i "$preview" 2>/dev/null ||
-        exiftool "$preview"
-        ;;
-
-    *.o|*.obj|*.bin)
+    *.bin)
         xxd "$preview" | headlimit ||
         hexdump -C "$preview" | headlimit
+        ;;
+
+    *.ino)
+        if command -v bat >/dev/null 2>&1; then
+            bat --color=always --style=plain --pager=never --language=cpp "$preview" | headlimit
+        elif command -v batcat >/dev/null 2>&1; then
+            batcat --color=always --style=plain --pager=never --language=cpp "$preview" | headlimit
+        else
+            txtuse
+        fi
         ;;
 
         # Scripts and code files
@@ -119,3 +223,4 @@ case "${preview,,}" in
         ;;
 esac
 
+exit 0
