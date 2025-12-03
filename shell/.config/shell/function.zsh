@@ -129,25 +129,28 @@ function lc() {
 function scrky() {
     local theme
     theme="$(cat ${XDG_CACHE_HOME:-$HOME/.cache}/theme)"
+
+    # Get screen width and calculate X position for top-right
+    local screen_width=$(xrandr | grep '*' | awk '{print $1}' | cut -d 'x' -f1 | head -n1)
+    local window_width=250
+    local x_pos=$((screen_width - window_width - 10))
+
     if [[ "$theme" == "nord" ]]; then
         screenkey --no-systray --opacity 0.85 \
-            --bg-color "#3b4252" --font-color "#d8dee9" \
-            -p fixed -g 627x40+1283+35 &
+            --bg-color "#2e3440" --font-color "#d8dee9" \
+            -p fixed -g ${window_width}x40+${x_pos}+10 &
     elif [[ "$theme" == "gruvbox" ]]; then
         screenkey --no-systray --opacity 0.85 \
             --bg-color "#282828" --font-color "#ebdbb2" \
-            -p fixed -g 627x40+1283+35 &
+            -p fixed -g ${window_width}x40+${x_pos}+10 &
     fi
-
     SCREENKEY_PID=$!
-
     if [[ -n $ZSH_VERSION ]]; then
         echo "Press enter to close screenkey"
         read
     else
         read -p "Press enter to close screenkey"
     fi
-
     kill "$SCREENKEY_PID" 2>/dev/null
 }
 
