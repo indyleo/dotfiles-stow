@@ -74,7 +74,6 @@ return {
         "rust_analyzer",
         "bashls",
         "luau_lsp",
-        "arduino_language_server",
       }
 
       local lspconfig = vim.lsp.config
@@ -96,20 +95,6 @@ return {
               telemetry = { enable = false },
               completion = { callSnippet = "Replace" },
             },
-          }
-        end
-
-        if server == "arduino_language_server" then
-          default_config.cmd = {
-            "arduino-language-server",
-            "-cli-config",
-            vim.fn.expand "~/.arduino15/arduino-cli.yaml",
-            "-fqbn",
-            "arduino:avr:uno", -- Change to your board
-            "-cli",
-            "arduino-cli",
-            "-clangd",
-            "clangd",
           }
         end
 
