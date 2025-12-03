@@ -104,18 +104,11 @@ map("x", "P", '"_dP', "Paste over selection without overwriting register")
 -- Terminal Mode --
 map("t", "<Esc><Esc>", "<C-\\><C-n>", "Exit terminal to normal mode")
 
----- Plugins ----
-
 -- Terminal toggles
 map({ "n", "t" }, "<leader>tr", ":ToggleTerm<CR>", "Toggle terminal")
 map({ "n", "t" }, "<leader>tg", ":ToggleGit<CR>", "Toggle fzf_git.py")
 
--- Cword/Case replace
-map("n", "<leader>sw", ":SwapNext<CR>", "Cword replace next")
-map("n", "<leader>sW", ":SwapPrev<CR>", "Cword replace previous")
-map("n", "<leader>sc", ":SwapCNext<CR>", "Case replace next")
-map("n", "<leader>sC", ":SwapCPrev<CR>", "Case replace previous")
-map("n", "<leader>sr", ":SwapReload<CR>", "Reload swap groups")
+---- Plugins ----
 
 -- Noice
 map("n", "<leader>nh", ":NoiceDismiss<CR>", "Dismiss noice notifications")
