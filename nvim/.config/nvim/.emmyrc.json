@@ -1,0 +1,60 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EmmyLuaLs/emmylua-analyzer-rust/refs/heads/main/crates/emmylua_code_analysis/resources/schema.json",
+  "runtime": {
+    "version": "LuaJIT",
+    "extensions": [".lua"],
+    "requirePattern": ["?.lua", "?/init.lua"]
+  },
+  "diagnostics": {
+    "enable": true,
+    "globals": ["vim"],
+    "globalsRegex": [],
+    "disable": ["undefined-global", "incomplete-signature-doc"],
+    "severity": {
+      "unused": "hint",
+      "redefined-local": "warning"
+    },
+    "diagnosticInterval": 500
+  },
+  "workspace": {
+    "library": ["$VIMRUNTIME", "$VIMRUNTIME/lua"],
+    "ignoreDir": [".git", "node_modules", ".vscode"],
+    "ignoreGlobs": ["**/.git/**", "**/node_modules/**"],
+    "enableReindex": false,
+    "reindexDuration": 5000
+  },
+  "completion": {
+    "enable": true,
+    "autoRequire": true,
+    "autoRequireFunction": "require",
+    "autoRequireSeparator": ".",
+    "callSnippet": true,
+    "postfix": "@"
+  },
+  "hint": {
+    "enable": true,
+    "paramHint": true,
+    "localHint": false,
+    "indexHint": true,
+    "overrideHint": true,
+    "metaCallHint": true,
+    "enumParamHint": true
+  },
+  "hover": {
+    "enable": true
+  },
+  "doc": {
+    "syntax": "md",
+    "privateName": ["_*", "m_*"]
+  },
+  "semanticTokens": {
+    "enable": true,
+    "renderDocumentationMarkup": true
+  },
+  "codeLens": {
+    "enable": true
+  },
+  "format": {
+    "externalTool": null
+  }
+}

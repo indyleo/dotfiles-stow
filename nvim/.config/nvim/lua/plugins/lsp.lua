@@ -38,17 +38,6 @@ return {
       --------------------------------------------------------------------------
       -- ⚙️ Capabilities
       --------------------------------------------------------------------------
-      --[[
-
-      local capabilities = vim.lsp.protocol.make_client_capabilities()
-      capabilities.textDocument.foldingRange = { dynamicRegistration = true, lineFoldingOnly = true }
-      capabilities.textDocument.semanticTokens = capabilities.textDocument.semanticTokens or {}
-      capabilities.textDocument.semanticTokens.multilineTokenSupport = true
-      capabilities.textDocument.completion.completionItem.snippetSupport = true
-
-      ]]
-      --
-
       local capabilities = require("blink.cmp").get_lsp_capabilities(vim.lsp.protocol.make_client_capabilities())
       capabilities.textDocument.foldingRange = { dynamicRegistration = true, lineFoldingOnly = true }
       capabilities.textDocument.semanticTokens = capabilities.textDocument.semanticTokens or {}
@@ -69,10 +58,10 @@ return {
         "htmx",
         "clangd",
         "cmake",
-        "lua_ls",
         "pyright",
         "rust_analyzer",
         "bashls",
+        "emmylua_ls",
         "luau_lsp",
       }
 
@@ -82,21 +71,6 @@ return {
         local default_config = {
           capabilities = capabilities,
         }
-
-        if server == "lua_ls" then
-          default_config.settings = {
-            Lua = {
-              runtime = { version = "LuaJIT", path = vim.split(package.path, ";") },
-              diagnostics = { globals = { "vim" } },
-              workspace = {
-                checkThirdParty = false,
-                library = { vim.api.nvim_get_runtime_file("", true), vim.env.VIMRUNTIME },
-              },
-              telemetry = { enable = false },
-              completion = { callSnippet = "Replace" },
-            },
-          }
-        end
 
         -- 🧱 Declarative registration
         lspconfig[server] = { default_config = default_config }
@@ -166,7 +140,7 @@ return {
           "rust-analyzer",
           "selene",
           "stylua",
-          "lua-language-server",
+          "emmylua_ls",
           "luau-lsp",
           "crlfmt",
           "staticcheck",
