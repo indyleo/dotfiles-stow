@@ -15,6 +15,7 @@ DAEMON_PROCS=(
 )
 ONESHOT_CMDS=(
     "desktopctl wallpaper theme-time"
+    "xss-lock slock"
 )
 
 # Functions
