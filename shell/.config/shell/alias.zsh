@@ -125,15 +125,15 @@ alias 777='chmod -R 777'
 if [[ -f /usr/bin/apt ]]; then
     alias aptin='sudo apt install'
     alias aptup='sudo apt update && sudo apt upgrade'
-    alias aptud='sudo apt update'
-    alias aptug='sudo apt upgrade'
     alias aptrm='sudo apt remove'
     alias aptpu='sudo apt purge'
+    alias aptse='apt search'
 elif [[ -f /usr/bin/pacman ]]; then
     alias pacin='sudo pacman -S'
     alias pacup='sudo pacman -Syu'
     alias pacrm='sudo pacman -R'
     alias pacpu='sudo pacman -Rns'
+    alias pacse='pacman -Qs'
 fi
 
 # Random Aliases
