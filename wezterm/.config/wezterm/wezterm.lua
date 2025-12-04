@@ -108,6 +108,11 @@ config.mouse_bindings = {
 		mods = "NONE",
 		action = wezterm.action.PasteFrom("Clipboard"),
 	},
+	{
+		event = { Up = { streak = 1, button = "Left" } },
+		mods = "CTRL",
+		action = wezterm.action.OpenLinkAtMouseCursor,
+	},
 }
 
 config.automatically_reload_config = true
