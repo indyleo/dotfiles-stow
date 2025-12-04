@@ -187,6 +187,21 @@ config.keys = {
 		mods = "CTRL|SHIFT",
 		action = wezterm.action.Search({ CaseSensitiveString = "" }),
 	},
+
+	----------------------------------------------------------
+	-- Vim-like Normal Mode (Copy Mode)
+	----------------------------------------------------------
+	-- Enter Normal/Copy Mode with CTRL-Space
+	{ key = "n", mods = "CTRL", action = wezterm.action.ActivateCopyMode },
+
+	-- Leave Copy Mode with Escape
+	{
+		key = "Escape",
+		mods = "CTRL",
+		action = wezterm.action.Multiple({
+			wezterm.action.CopyMode("Close"),
+		}),
+	},
 }
 
 return config
