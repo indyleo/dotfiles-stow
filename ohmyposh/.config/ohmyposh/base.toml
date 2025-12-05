@@ -1,3 +1,4 @@
+"$schema" = "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json"
 console_title_template = '{{ .Folder }}'
 version = 3
 final_space = true
@@ -32,7 +33,7 @@ max_depth = 3
 
 [[blocks.segments]]
 template = ' {{ .HEAD }}{{ if or (.Working.Changed) (.Staging.Changed) }} ·{{ end }}{{ if gt .Behind 0 }} ↓{{ end }}{{ if gt .Ahead 0 }} ↑{{ end }}'
-foreground = 'brightblack'
+foreground = 'gray'
 background = 'transparent'
 type = 'git'
 style = 'plain'
@@ -53,7 +54,7 @@ type = 'executiontime'
 style = 'plain'
 [blocks.segments.properties]
 threshold = 3000
-style = 'round'
+style = 'austin'
 
 [[blocks]]
 type = 'prompt'
