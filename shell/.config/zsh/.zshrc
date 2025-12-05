@@ -80,14 +80,13 @@ preexec() { echo -ne '\e[5 q' ;} # Use beam shape cursor for each new prompt.
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^e' edit-command-line
 
-# Choose single-line or multiline prompt
-USE_MULTILINE_PROMPT=true
-
-# Load aliases, functions, hooks, and prompt if exists.
+# Load aliases, functions, and hooks if exists.
 [[ -f "$SDOTDIR/alias.zsh" ]] && source "$SDOTDIR/alias.zsh"
 [[ -f "$SDOTDIR/function.zsh" ]] && source "$SDOTDIR/function.zsh"
-[[ -f "$SDOTDIR/prompt.zsh" ]] && source "$SDOTDIR/prompt.zsh"
 [[ -f "$SDOTDIR/hooks.zsh" ]] && source "$SDOTDIR/hooks.zsh"
+
+# Oh my posh
+eval "$(oh-my-posh --init --shell zsh --config ~/.config/ohmyposh/base.toml)"
 
 # Bindkeys
 bindkey -s '^x' 'lc\n'
