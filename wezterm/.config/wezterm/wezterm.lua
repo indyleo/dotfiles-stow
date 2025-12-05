@@ -192,7 +192,7 @@ config.keys = {
 	-- Vim-like Normal Mode (Copy Mode)
 	----------------------------------------------------------
 	-- Enter Normal/Copy Mode with CTRL-Space
-	{ key = "n", mods = "CTRL", action = wezterm.action.ActivateCopyMode },
+	{ key = "Space", mods = "CTRL|ALT", action = wezterm.action.ActivateCopyMode },
 
 	-- Leave Copy Mode with Escape
 	{
