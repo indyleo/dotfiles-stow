@@ -38,6 +38,7 @@ type = 'git'
 style = 'plain'
 [blocks.segments.properties]
 branch_icon = ''
+commit_icon = '@'
 fetch_status = true
 
 [[blocks]]
