@@ -1,3 +1,6 @@
+# Add to top of .zshrc to profile:
+# zmodload zsh/zprof
+
 # If not running interactively, don't do anything
 [[ $- != *i* ]] && return
 
@@ -119,3 +122,6 @@ source $PLUGINDIR/zsh-autopair/autopair.zsh 2>/dev/null
 source $PLUGINDIR/zsh-history-substring-search/zsh-history-substring-search.zsh 2>/dev/null
 source $PLUGINDIR/zsh-you-should-use/you-should-use.plugin.zsh 2>/dev/null
 source $PLUGINDIR/zsh-vi-mode/zsh-vi-mode.plugin.zsh 2>/dev/null
+
+# Add to bottom:
+# zprof > ~/.zprof
