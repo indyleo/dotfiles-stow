@@ -53,6 +53,7 @@ type = 'executiontime'
 style = 'plain'
 [blocks.segments.properties]
 threshold = 3000
+style = 'round'
 
 [[blocks]]
 type = 'prompt'
