@@ -95,7 +95,7 @@ eval "$(oh-my-posh --init --shell zsh --config ~/.config/ohmyposh/base.toml)"
 # Bindkeys
 bindkey -s '^x' 'lc\n'
 bindkey -s '^f' 'chtsh\n'
-bindkey -s '^a' 'fzftmux\n'
+bindkey -s '^g' 'fzftmux\n'
 
 # Search history
 bindkey '^[[A' history-substring-search-up
