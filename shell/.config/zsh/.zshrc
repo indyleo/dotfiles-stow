@@ -109,6 +109,9 @@ eval "$(zoxide init zsh --cmd cd)"
 # ALT-c  = fzf cd
 eval "$(fzf --zsh)"
 
+# ZVM
+ZVM_SYSTEM_CLIPBOARD_ENABLED=true
+
 # Loading zsh plugins (LAST)
 source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh 2>/dev/null
 source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh 2>/dev/null
