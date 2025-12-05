@@ -100,6 +100,11 @@ config.enable_scroll_bar = false
 config.enable_tab_bar = true
 config.hide_tab_bar_if_only_one_tab = true
 config.use_fancy_tab_bar = true
+config.audible_bell = "Disabled"
+config.visual_bell = {
+	fade_in_duration_ms = 0,
+	fade_out_duration_ms = 0,
+}
 
 config.mouse_bindings = {
 	-- Right-click paste (Alacritty style)
