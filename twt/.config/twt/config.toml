@@ -37,7 +37,16 @@ twitch_emotes = false
 betterttv_emotes = false
 seventv_emotes = false
 frankerfacez_emotes = false
-favorite_channels = []
+favorite_channels = [
+	"indy_leo",
+	"jaybirder",
+	"Nordic_Nio",
+	"taytokitten",
+	"G10_Gaming",
+	"gloomyarcher383",
+	"KyleStreak",
+	"Da_Boom232",
+]
 recent_channel_count = 5
 border_type = "plain"
 hide_chat_border = false
