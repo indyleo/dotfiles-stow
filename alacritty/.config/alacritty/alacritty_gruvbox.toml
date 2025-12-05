@@ -114,6 +114,24 @@ key = "End"
 mode = "~Alt"
 mods = "Shift"
 
+# --------------------------------------------------
+# Vi Mode / Copy Mode bindings
+# --------------------------------------------------
+
+[[keyboard.bindings]]
+action = "ToggleViMode"
+key = "Space"
+mods = "Control"
+
+[[keyboard.bindings]]
+action = "ToggleViMode"
+key = "Escape"
+mods = "Control"
+mode = "Vi"
+# (Only works inside Vi mode)
+
+# --------------------------------------------------
+
 [scrolling]
 history = 5000
 
