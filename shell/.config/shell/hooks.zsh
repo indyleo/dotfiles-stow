@@ -1,7 +1,7 @@
 function on_directory_change() {
-    #  Git auto-pull
+    #  Git auto-pull
     if [[ -d ".git" ]] && git rev-parse --is-inside-work-tree &>/dev/null; then
-        echo " Git repo detected in $PWD, running git pull..."
+        echo " Git repo detected in $PWD, running git pull..."
         git pull --ff-only &>/dev/null &!
     fi
 
