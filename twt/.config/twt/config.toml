@@ -48,7 +48,7 @@ favorite_channels = [
 	"Da_Boom232",
 	"MoriahPlaz",
 ]
-recent_channel_count = 5
+recent_channel_count = 9
 border_type = "plain"
 hide_chat_border = false
 right_align_usernames = false
