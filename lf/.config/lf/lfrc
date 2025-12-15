@@ -201,6 +201,14 @@ cmd open ${{
 }}
 map <enter> open
 
+# Iso Burner
+cmd burn ${{
+    [ -z "$f" ] && echo "No file selected." && exit
+		echo "🔥 Burning ISO: $f"
+    caligula burn "$f"
+}}
+map bi burn
+
 ### WALLPAPER ###
 cmd setbg ${{
   xwallpaper --stretch "$f" 2>/dev/null || echo "Failed to set wallpaper"
