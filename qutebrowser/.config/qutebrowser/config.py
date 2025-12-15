@@ -242,24 +242,37 @@ c.fonts.prompts = "default_size sans-serif"
 c.fonts.statusbar = '11pt "SauceCodePro NF"'
 
 # --- Keybindings ---
+
+# Themes
 config.bind("cs", "config-source ;; message-info 'Config reloaded!'")
 config.bind("cp", f"message-info 'Current theme: {theme_name}'")
 config.bind("ct", "config-cycle colors.webpage.darkmode.enabled true false")
 
+# Helpers
 config.bind("Pm", "mode-enter insert ;; spawn --detach bitwarden.py")
 config.bind("Pb", "spawn --detach bookmarks.py qutebrowser")
-config.bind("T", "hint links")
-config.bind("tt", "cmd-set-text -s :open -t")
-config.bind("tw", "cmd-set-text -s :open -w")
+config.bind("PP", "spawn --detach qutebrowser_private")
+config.bind("Pv", "spawn --detach pipwm {url}")
+config.bind("PV", "spawn --detach mpv --volume=45 {url}")
+
+# Open Links
 config.bind("tP", "open -- {primary}")
 config.bind("tp", "open -- {clipboard}")
 config.bind("tc", "open -t -- {clipboard}")
+config.bind("T", "hint links")
 config.bind("th", "history")
+
+# Tabs
+config.bind("tt", "cmd-set-text -s :open -t")
+config.bind("tw", "cmd-set-text -s :open -w")
+
+# Navigation
 config.bind("<", "back")
 config.bind(">", "forward")
+
+# Misc
 config.bind("P?", "config-cycle tabs.width 16% 4%")
 config.bind("Pf", "fullscreen")
-config.bind("PP", "spawn --detach qutebrowser_private")
 
 # --- Start theme file watcher in background thread ---
 watcher_thread = threading.Thread(target=watch_theme_file, daemon=True)
