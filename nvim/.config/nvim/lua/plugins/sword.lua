@@ -7,7 +7,6 @@ return {
       mappings = true, -- Enable default keymappings
       custom_groups = { -- Add your own swap groups
         { "foo", "bar", "baz" },
-        { "public", "private", "protected" },
       },
     }
   end,
@@ -22,7 +21,6 @@ return {
         mappings = true, -- Enable default keymappings
         custom_groups = { -- Add your own swap groups
           { "foo", "bar", "baz" },
-          { "public", "private", "protected" },
         },
       }
     end,
