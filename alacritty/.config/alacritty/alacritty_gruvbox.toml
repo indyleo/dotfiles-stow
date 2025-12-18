@@ -120,15 +120,8 @@ mods = "Shift"
 
 [[keyboard.bindings]]
 action = "ToggleViMode"
-key = "Space"
-mods = "Control"
-
-[[keyboard.bindings]]
-action = "ToggleViMode"
 key = "Escape"
 mods = "Control"
-mode = "Vi"
-# (Only works inside Vi mode)
 
 # --------------------------------------------------
 
