@@ -206,15 +206,19 @@ c.tabs.title.format = "{audio}{current_title}"
 # --- Search engines ---
 c.url.searchengines = {
     "DEFAULT": "https://searxng.linuxlab.work/search?q={}",
-    "!br": "https://search.brave.com/search?q={}",
+    "!dp": "https://packages.debian.org/search?keywords={}&searchon=names&suite=testing&section=all",
+    "!fp": "https://packages.fedoraproject.org/search?query={}",
+    "!fc": "https://copr.fedorainfracloud.org/coprs/fulltext/?fulltext={}",
+    "!aw": "https://wiki.archlinux.org/?search={}",
     "!ar": "https://aur.archlinux.org/packages?O=0&K={}",
     "!ah": "https://archlinux.org/packages/?sort=&q={}",
-    "!aw": "https://wiki.archlinux.org/?search={}",
-    "!dp": "https://packages.debian.org/search?keywords={}&searchon=names&suite=testing&section=all",
     "!fh": "https://flathub.org/apps/search?q={}",
     "!np": "https://search.nixos.org/packages?channel=24.11&from=0&size=50&sort=relevance&type=packages&query={}",
+    "!br": "https://search.brave.com/search?q={}",
+    "!wiki": "https://https://en.wikipedia.org/wiki/{}",
     "!pd": "https://www.protondb.com/search?q={}",
     "!yt": "https://www.youtube.com/search?q={}",
+    "!tv": "https://www.twitch.tv/search?term={}",
 }
 
 c.completion.open_categories = [
