@@ -1,6 +1,7 @@
 deb https://www.debian.org/
 fedora https://fedoraproject.org/
-opensuse https://get.opensuse.org/tumbleweed/
+tumbleweed https://get.opensuse.org/tumbleweed/#download
+leap https://get.opensuse.org/leap/16.0/#download
 arch https://www.archlinux.org/
 nixos https://nixos.org/download/
 git https://github.com/indyleo/
