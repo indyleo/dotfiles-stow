@@ -1,5 +1,6 @@
 deb https://www.debian.org/
-fedora https://fedoraproject.org//
+fedora https://fedoraproject.org/
+opensuse https://get.opensuse.org/tumbleweed/
 arch https://www.archlinux.org/
 nixos https://nixos.org/download/
 git https://github.com/indyleo/
