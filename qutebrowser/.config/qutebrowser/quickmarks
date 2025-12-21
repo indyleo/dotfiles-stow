@@ -2,7 +2,7 @@ deb https://www.debian.org/
 fedora https://fedoraproject.org/
 tumbleweed https://get.opensuse.org/tumbleweed/#download
 leap https://get.opensuse.org/leap/16.0/#download
-arch https://www.archlinux.org/
+arch https://archlinux.org/download/
 nixos https://nixos.org/download/
 git https://github.com/indyleo/
 sp file:///home/indy/Github/portfilio/startpage/index.html
