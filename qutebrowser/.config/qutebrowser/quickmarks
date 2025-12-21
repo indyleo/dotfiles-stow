@@ -1,5 +1,6 @@
+deb https://www.debian.org/
+fedora https://fedoraproject.org//
 arch https://www.archlinux.org/
-aur https://aur.archlinux.org/
 git https://github.com/indyleo/
 sp file:///home/indy/Github/portfilio/startpage/index.html
 vault https://vaultwarden.linuxlab.work/
