@@ -213,6 +213,7 @@ c.url.searchengines = {
     "!aw": "https://wiki.archlinux.org/?search={}",
     "!ar": "https://aur.archlinux.org/packages?O=0&K={}",
     "!ah": "https://archlinux.org/packages/?sort=&q={}",
+    "!gw": "https://wiki.gentoo.org/index.php?search={}",
     "!fh": "https://flathub.org/apps/search?q={}",
     "!np": "https://search.nixos.org/packages?channel=24.11&from=0&size=50&sort=relevance&type=packages&query={}",
     "!br": "https://search.brave.com/search?q={}",
