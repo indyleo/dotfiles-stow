@@ -206,10 +206,10 @@ c.tabs.title.format = "{audio}{current_title}"
 # --- Search engines ---
 c.url.searchengines = {
     "DEFAULT": "https://searxng.linuxlab.work/search?q={}",
-    "!dp": "https://packages.debian.org/search?keywords={}&searchon=names&suite=testing&section=all",
+    "!dp": "https://packages.debian.org/search?keywords={}",
     "!fp": "https://packages.fedoraproject.org/search?query={}",
     "!fc": "https://copr.fedorainfracloud.org/coprs/fulltext/?fulltext={}",
-    "!op": "https://software.opensuse.org/search?q={}&baseproject=openSUSE%3AFactory",
+    "!op": "https://software.opensuse.org/search?q={}",
     "!aw": "https://wiki.archlinux.org/?search={}",
     "!ar": "https://aur.archlinux.org/packages?O=0&K={}",
     "!ah": "https://archlinux.org/packages/?sort=&q={}",
