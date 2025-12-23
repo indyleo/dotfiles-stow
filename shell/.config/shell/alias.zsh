@@ -128,6 +128,11 @@ if [[ -f /usr/bin/apt ]]; then
     alias aptrm='sudo apt remove'
     alias aptpu='sudo apt purge'
     alias aptse='apt search'
+elif [[ -f /usr/bin/dnf ]]; then
+    alias dnfin='sudo dnf install'
+    alias dnfup='sudo dnf update'
+    alias dnfrm='sudo dnf remove'
+    alias dnfse='dnf search'
 elif [[ -f /usr/bin/pacman ]]; then
     alias pacin='sudo pacman -S'
     alias pacup='sudo pacman -Syu'

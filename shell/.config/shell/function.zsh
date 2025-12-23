@@ -80,6 +80,22 @@ elif command_exists apt; then
                 ;;
         esac
     }
+elif command_exists dnf; then
+    function dnf() {
+        if [[ -z "$1" ]]; then
+            command dnf --help
+            return
+        fi
+
+        case "$1" in
+            install|update|upgrade|remove)
+                command sudo dnf "$@"
+                ;;
+            *)
+                command dnf "$@"
+                ;;
+        esac
+    }
 fi
 
 function massrename() {
