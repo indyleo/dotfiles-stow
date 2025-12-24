@@ -1,150 +1,175 @@
-# -- Sxhkd Config -- #
+# ============================================================================
+# SXHKD Configuration - Converted from DWM
+# ============================================================================
 
 # Reload the config
 super + shift + Escape
 	pkill -USR1 -x sxhkd && notify-send "Reloading the keybinds..."
 
-# -- Dmenu -- #
+# ----------------------------------------------------------------------------
+# Launchers & Dmenu
+# ----------------------------------------------------------------------------
 
-# Run prompt
+# Run launcher
 super + r
-  dmenu_run
+    rofi -show run
 
-# Window Switcher
+# Alt-Tab switcher
 alt + Tab
-  dmenu_alttab
+    dmenu_alttab
 
-# Flatpak Launcher
+# Flatpak launcher
 super + p
-  dmenu_flatpak
+    dmenu_flatpak
 
-# Clipboard
-super + shift + c
-  dmenu_clip
+# Clipboard manager
+super + shift + {c,v}
+    clipmgr.py {select,pin}
 
-# Emoji
+# Emoji picker
 super + shift + e
-  dmenu_emoji
+    dmenu_emoji.py
 
-# Nerd Fonts
+# Nerd font picker
 super + alt + e
-  dmenu_nerdfont
+    dmenu_nerdfont.py
 
-# Powermenu
+# Power menu
 super + shift + p
-  dmenu_power
+    dmenu_power
 
-# Notes
+# Notebook launcher
 super + n
-  dmenu_notebook
+    dmenu_notebook
 
-# Dmenu menu
-super + alt + m
-  dmenu_menu
+# Screen layout
+super + alt + r
+    dmenu_screen
 
-# -- System -- #
+# ----------------------------------------------------------------------------
+# System Controls
+# ----------------------------------------------------------------------------
 
-# Brightness
-XF86MonBrightness{Up,Down}
-  brightnessctrl {--inc,--dec} 5
+# Lock screen
+super + shift + l
+    slock
 
-# -- Media -- #
+# Brightness control
+{XF86MonBrightnessUp,XF86MonBrightnessDown}
+    sysctl bri {-i,-d} 5
 
-# Volume
-super + {Up,Down}
-  volumectrl {--inc,--dec} 5
+# Toggle WiFi
+XF86WLAN
+    sysctl wifi --toggle
 
-super + shift + Down
-  volumectrl --togglemute
+# Toggle Bluetooth
+XF86Bluetooth
+    sysctl bt --toggle
 
-XF86Audio{Raise,Lower}Volume
-  volumectrl {--inc,--dec} 5
+# ----------------------------------------------------------------------------
+# Audio Controls
+# ----------------------------------------------------------------------------
 
-XF86AudioMute
-  volumectrl --togglemute
+# Volume control (keyboard shortcuts)
+super + alt + {Up,Down,m}
+    sysctl vol {-i 5,-d 5,--toggle}
 
-# Music
-super + {Right,Left}
-  songctrl {--skip,--previous}
+# Volume control (media keys)
+alt + {XF86AudioRaiseVolume,XF86AudioLowerVolume,XF86AudioMute}
+    sysctl vol {-i 5,-d 5,--toggle}
 
-super + Pause
-  songctrl --togglepause
+# Microphone control (media keys)
+shift + {XF86AudioRaiseVolume,XF86AudioLowerVolume,XF86AudioMicMute}
+    sysctl mic {-i 5,-d 5,--toggle}
 
-super + s
-  songctrl --togglepause
+# Microphone control (keyboard shortcuts)
+super + shift + {Up,Down,m}
+    sysctl mic {-i 5,-d 5,--toggle}
 
-XF86Audio{Next,Prev}
-  songctrl {--skip,--previous}
+# ----------------------------------------------------------------------------
+# Media Player Controls
+# ----------------------------------------------------------------------------
 
-XF86AudioPlay
-  songctrl --togglepause
+# Music player controls (keyboard)
+super + {Right,Left,s}
+    mediactl --source song {next,previous,play-pause}
 
-# Browser
-super + alt + {Right,Left}
-  browserctrl {--skip,--previous}
+# Music player controls (media keys)
+{XF86AudioNext,XF86AudioPrev,XF86AudioPlay}
+    mediactl --source song {next,previous,play-pause}
 
-super + alt + Pause
-  browserctrl --togglepause
+# Browser media controls (keyboard)
+super + alt + {Right,Left,s}
+    mediactl --source browser {next,previous,play-pause}
 
-super + alt + s
-  browserctrl --togglepause
+# Browser media controls (media keys)
+alt + {XF86AudioNext,XF86AudioPrev,XF86AudioPlay}
+    mediactl --source browser {next,previous,play-pause}
 
-alt + XF86Audio{Next,Prev}
-  browserctrl {--skip,--previous}
-
-alt + XF86AudioPlay
-  browserctrl --togglepause
-
-# -- Applications -- #
+# ----------------------------------------------------------------------------
+# Applications
+# ----------------------------------------------------------------------------
 
 # Terminal
 super + Return
-  $TERMINAL
+    alacritty
 
-# File Manager
+# File manager
 super + f
-  $GUIF
+    thunar
 
-# Browser
+# Web browser
 super + b
-  $BROWSER
+    qutebrowser
 
-# Neovide
+# Text editor
 super + e
-  $GEDIT
+    neovide
 
-# Discord
+# Discord (Vesktop)
 super + shift + d
-  flatpak run dev.vencord.Vesktop
+    flatpak run dev.vencord.Vesktop
 
 # Signal
 super + shift + g
-	signal-desktop
+    signal-desktop
 
-# -- Record/Screen -- #
+# Audio control (PulseAudio)
+super + shift + a
+    pavucontrol
 
-# Record Screen
+# ----------------------------------------------------------------------------
+# Recording & Screenshots
+# ----------------------------------------------------------------------------
+
+# Toggle recording
 super + alt + r
-	record-toggle
+    record-toggle
 
-# Screenshot
+# Screenshot selection
 Print
-	sstool --select
+    sstool --select
 
+# Screenshot current screen
 super + Print
-	sstool --screen
+    sstool --screen
 
+# Screenshot fullscreen
 super + shift + Print
-	sstool --fullscreen
+    sstool --fullscreen
 
+# Screenshot window
 super + ctrl + Print
-	sstool --window
+    sstool --window
 
+# Color picker
 super + alt + Print
-  sstool --colorpicker
+    sstool --colorpicker
 
-# -- Wallpaper -- #
+# ----------------------------------------------------------------------------
+# Wallpaper
+# ----------------------------------------------------------------------------
 
-# Set Wallpaper
+# Change wallpaper theme
 super + shift + w
-	xwall themewall ~/Pictures/Wallpapers
+    desktopctl wallpaper theme
