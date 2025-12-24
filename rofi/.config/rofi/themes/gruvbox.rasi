@@ -1,0 +1,176 @@
+/**
+ * Gruvbox rofi theme
+ *
+ * Gruvbox Color palette imported from https://github.com/morhetz/gruvbox
+ *
+ */
+
+* {
+    /* Gruvbox Dark Color Palette */
+    bg0-hard:     #1d2021;
+    bg0:          #282828;
+    bg0-soft:     #32302f;
+    bg1:          #3c3836;
+    bg2:          #504945;
+    bg3:          #665c54;
+    bg4:          #7c6f64;
+
+    fg0:          #fbf1c7;
+    fg1:          #ebdbb2;
+    fg2:          #d5c4a1;
+    fg3:          #bdae93;
+    fg4:          #a89984;
+
+    gray:         #928374;
+
+    red:          #cc241d;
+    green:        #98971a;
+    yellow:       #d79921;
+    blue:         #458588;
+    purple:       #b16286;
+    aqua:         #689d6a;
+    orange:       #d65d0e;
+
+    red-bright:   #fb4934;
+    green-bright: #b8bb26;
+    yellow-bright:#fabd2f;
+    blue-bright:  #83a598;
+    purple-bright:#d3869b;
+    aqua-bright:  #8ec07c;
+    orange-bright:#fe8019;
+
+    /* Theme Variables */
+    foreground: @fg1;
+    background-color: transparent;
+    transparent: rgba(40, 40, 40, 0);
+
+    /* Default Text Properties */
+    text-color: @foreground;
+}
+
+window {
+    location: center;
+    anchor: center;
+    transparency: "real";
+    padding: 2px;
+    border: 0px;
+    border-radius: 6px;
+    border-color: @orange;
+    background-color: @transparent;
+    spacing: 0;
+    children: [mainbox];
+    orientation: horizontal;
+}
+
+mainbox {
+    spacing: 0;
+    children: [inputbar, message, listview];
+    background-color: transparent;
+}
+
+message {
+    padding: 5px;
+    border: 0px 2px 2px 2px;
+    border-color: @orange;
+    border-radius: 0px;
+    background-color: @aqua-bright;
+    text-color: @bg0;
+}
+
+inputbar {
+    padding: 11px;
+    border: 1px;
+    border-radius: 6px 6px 0px 0px;
+    border-color: @orange;
+    background-color: @bg1;
+    text-color: @fg1;
+    spacing: 0;
+    children: [prompt, entry];
+}
+
+prompt {
+    margin: 0px 1em 0px 0px;
+    text-color: @yellow-bright;
+    background-color: transparent;
+}
+
+entry {
+    text-color: inherit;
+    background-color: transparent;
+}
+
+case-indicator {
+    text-color: inherit;
+    background-color: transparent;
+}
+
+listview {
+    padding: 8px;
+    border: 0px 1px 1px 1px;
+    border-radius: 0px 0px 6px 6px;
+    border-color: @orange;
+    background-color: rgba(40, 40, 40, 0.95);
+    dynamic: false;
+    spacing: 2px;
+}
+
+element {
+    padding: 5px;
+    border-radius: 4px;
+    background-color: transparent;
+    text-color: @fg2;
+    vertical-align: 0.5;
+}
+
+element normal.normal {
+    background-color: transparent;
+    text-color: @fg2;
+}
+
+element selected.normal {
+    background-color: @orange;
+    text-color: @bg0;
+}
+
+element alternate.normal {
+    background-color: transparent;
+    text-color: @fg2;
+}
+
+element-text {
+    background-color: inherit;
+    text-color: inherit;
+}
+
+element-icon {
+    background-color: inherit;
+    text-color: inherit;
+    size: 1em;
+}
+
+button {
+    padding: 6px;
+    border: 2px 0px 2px 2px;
+    border-radius: 4px 0px 0px 4px;
+    border-color: @orange;
+    background-color: transparent;
+    text-color: @foreground;
+    horizontal-align: 0.5;
+}
+
+button selected.normal {
+    border: 2px 0px 2px 2px;
+    border-color: @orange;
+    background-color: @orange;
+    text-color: @bg0;
+}
+
+textbox {
+    padding: 8px;
+    border: 1px;
+    border-radius: 6px;
+    border-color: @orange;
+    background-color: rgba(40, 40, 40, 0.95);
+    text-color: @fg1;
+    vertical-align: 0.5;
+}

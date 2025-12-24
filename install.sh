@@ -59,6 +59,7 @@ DIRS_CONFIG=(
     gurk
     twt
     lazygit
+    rofi
 )
 
 FILES_CONFIG=(
@@ -90,28 +91,34 @@ if [[ -d "$HOME/.local/share/figletfonts" ]]; then
     command rm -rfv "$HOME/.local/share/figletfonts"
 fi
 
+# Quick function to stow things with right args
+stowq() {
+    stow --target="$HOME" -v "$1"
+}
+
 # Stowing
-stow --target="$HOME" -v figletfonts
-stow --target="$HOME" -v shell
-stow --target="$HOME" -v xdg
-stow --target="$HOME" -v git
-stow --target="$HOME" -v yazi
-stow --target="$HOME" -v tmux
-stow --target="$HOME" -v nvim
-stow --target="$HOME" -v neovide
-stow --target="$HOME" -v ohmyposh
-stow --target="$HOME" -v alacritty
-stow --target="$HOME" -v wezterm
-stow --target="$HOME" -v fastfetch
-stow --target="$HOME" -v espanso
-stow --target="$HOME" -v xorg
-stow --target="$HOME" -v picom
-stow --target="$HOME" -v dunst
-stow --target="$HOME" -v qutebrowser
-stow --target="$HOME" -v discordo
-stow --target="$HOME" -v Thunar
-stow --target="$HOME" -v lf
-stow --target="$HOME" -v pipewire
-stow --target="$HOME" -v gurk
-stow --target="$HOME" -v twt
-stow --target="$HOME" -v lazygit
+stowq figletfonts
+stowq shell
+stowq xdg
+stowq git
+stowq yazi
+stowq tmux
+stowq nvim
+stowq neovide
+stowq ohmyposh
+stowq alacritty
+stowq wezterm
+stowq fastfetch
+stowq espanso
+stowq xorg
+stowq picom
+stowq dunst
+stowq qutebrowser
+stowq discordo
+stowq Thunar
+stowq lf
+stowq pipewire
+stowq gurk
+stowq twt
+stowq lazygit
+stowq rofi
