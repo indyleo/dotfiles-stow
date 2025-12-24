@@ -36,4 +36,15 @@
 	<patterns>*</patterns>
 	<directories/>
 </action>
+<action>
+	<icon>sxiv</icon>
+	<name>Set As Wallpaper </name>
+	<submenu></submenu>
+	<unique-id>1766603952323181-1</unique-id>
+	<command>xwallpaper --stretch %f</command>
+	<description>Setting the wallpaper with xwallpaper</description>
+	<range>*</range>
+	<patterns>*</patterns>
+	<image-files/>
+</action>
 </actions>

@@ -218,6 +218,7 @@ c.url.searchengines = {
     "!np": "https://search.nixos.org/packages?query={}",
     "!nw": "https://wiki.nixos.org/w/index.php?search={}",
     "!br": "https://search.brave.com/search?q={}",
+    "!wh": "https://wallhaven.cc/search?q={}",
     "!wiki": "https://https://en.wikipedia.org/wiki/{}",
     "!pd": "https://www.protondb.com/search?q={}",
     "!yt": "https://www.youtube.com/search?q={}",
