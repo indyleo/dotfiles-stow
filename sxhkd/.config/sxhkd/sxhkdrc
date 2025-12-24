@@ -7,7 +7,7 @@ super + shift + Escape
 	pkill -USR1 -x sxhkd && notify-send "Reloading the keybinds..."
 
 # ----------------------------------------------------------------------------
-# Launchers & Dmenu
+# Launchers & Rofi
 # ----------------------------------------------------------------------------
 
 # Run launcher
@@ -16,11 +16,11 @@ super + r
 
 # Alt-Tab switcher
 alt + Tab
-    dmenu_alttab
+    rofi_alttab
 
 # Flatpak launcher
 super + p
-    dmenu_flatpak
+    rofi_flatpak
 
 # Clipboard manager
 super + shift + {c,v}
@@ -28,23 +28,23 @@ super + shift + {c,v}
 
 # Emoji picker
 super + shift + e
-    dmenu_emoji.py
+    rofi_emoji.py
 
 # Nerd font picker
 super + alt + e
-    dmenu_nerdfont.py
+    rofi_nerdfont.py
 
 # Power menu
 super + shift + p
-    dmenu_power
+    rofi_power
 
 # Notebook launcher
 super + n
-    dmenu_notebook
+    rofi_notebook
 
 # Screen layout
 super + alt + r
-    dmenu_screen
+    rofi_screen
 
 # ----------------------------------------------------------------------------
 # System Controls
