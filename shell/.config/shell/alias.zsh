@@ -24,7 +24,7 @@ alias psmem='ps auxf | sort -nr -k 4'
 alias pscpu='ps auxf | sort -nr -k 3'
 
 # Confirm Before Doing Something Or The Output Being Verbose Or Both
-alias rm='trash-put'
+alias rm='trash-put -iv'
 alias trashl='trash-list'
 alias trashr='trash-restore'
 alias trashe='trash-empty'
@@ -138,7 +138,7 @@ elif [[ -f /usr/bin/pacman ]]; then
     alias pacrm='sudo pacman -R'
     alias pacpu='sudo pacman -Rns'
     alias pacse='pacman -Qs'
-		alias pcs='pacseek'
+    alias pcs='pacseek'
 fi
 
 # Random Aliases
