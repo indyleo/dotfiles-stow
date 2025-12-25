@@ -73,31 +73,17 @@ map mm mk
 ### DELETE / TRASH ###
 cmd trash %{{
     for f in $fx; do
-        trash put "$f"
-    done
-}}
-cmd trash-force %{{
-    for f in $fx; do
-    	yes | trash put "$f"
+        trash-put -vr "$f"
     done
 }}
 cmd trash-list ${{
-    trash list | moar
+    trash-list | moar
 }}
 cmd trash-restore ${{
-    trash restore
+    trash-restore
 }}
 cmd trash-empty %{{
-    trash empty
-}}
-cmd trash-empty-old %{{
-    printf "🧹 Enter the minimum age of files to delete (in days): "
-    read -r ans
-    if [ -n "$ans" ]; then
-        trash empty "$ans"
-    else
-        echo "⚠️ No input provided, aborting."
-    fi
+    trash-empty
 }}
 cmd remove %{{
     for f in $fx; do
@@ -106,11 +92,9 @@ cmd remove %{{
 }}
 map DD remove
 map dd trash
-map dD trash-force
 map tt trash-list
 map tr trash-restore
 map te trash-empty
-map to trash-empty-old
 
 ### TOGGLE EXECUTABLE / PERMISSIONS ###
 cmd chmod %{{
