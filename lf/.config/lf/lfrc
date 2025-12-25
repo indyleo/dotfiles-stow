@@ -99,9 +99,6 @@ cmd trash-empty-old %{{
         echo "⚠️ No input provided, aborting."
     fi
 }}
-cmd trash-size %{{
-    trash size
-}}
 cmd remove %{{
     for f in $fx; do
         rm -rfv "$f"
@@ -114,7 +111,6 @@ map tt trash-list
 map tr trash-restore
 map te trash-empty
 map to trash-empty-old
-map ts trash-size
 
 ### TOGGLE EXECUTABLE / PERMISSIONS ###
 cmd chmod %{{

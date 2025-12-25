@@ -55,19 +55,18 @@ fi
 # Some Nice Exports
 export EDITOR="nvim"
 export VISUAL="nvim"
-export PAGER="moar"
-export MANPAGER="moar"
+export PAGER="moor"
+export MANPAGER="moor"
 export TERM="xterm-256color"
 export COLORTERM="truecolor"
 export OPENER="xdg-open"
-export BROWSER="qutebrowser"
-export TERMINAL="st"
-export READER="zathura"
+export BROWSER="librewolf"
+export TERMINAL="alacritty"
 export TUIF="lf"
 export GUIF="thunar"
 export GEDIT="neovide"
 export READER="zathura"
-export LOCKER="slock"
+export LOCKER="hyprlock"
 
 # Setting ZDOTDIR
 export ZDOTDIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"
@@ -94,10 +93,7 @@ export QT_QPA_PLATFORMTHEME="qt6ct"
 # Discordo (Discord TUI)
 [[ -f "$HOME/Documents/pass/discord" ]] && export DISCORDO_TOKEN="$(cat "$HOME/Documents/pass/discord")"
 
-# RustUp
-[[ -f "$HOME/.cargo/env" ]] || . "$HOME/.cargo/env"
-
 # Start WM
 if [[ "$(tty)" = /dev/tty1 ]];then
-    pgrep dwm || startx
+    pgrep Hyprland || Hyprland
 fi

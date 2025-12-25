@@ -1,0 +1,52 @@
+# --- Global / Base (Normal Urgency) ---
+font=SauceCodePro Nerd Font 10
+width=350
+# Mako height is pixels, not number of notifications
+max-visible=7
+margin=32,13
+padding=10
+border-size=2
+
+# Nord "Frost" Blue for the frame
+border-color=#5E81ACFF
+# Nord "Polar Night" (Nord1) with 90% opacity
+background-color=#3B4252E6
+# Nord "Snow Storm" (Nord5)
+text-color=#E5E9F0FF
+
+text-alignment=center
+line-height=1.2
+markup=1
+format=<b>%s %p</b>\n%b
+
+# Icons
+icon-path=/usr/share/icons/Papirus-Dark/16x16/status/:/usr/share/icons/Papirus-Dark/16x16/devices/
+max-icon-size=64
+icon-location=left
+
+# Behavior
+default-timeout=4000
+ignore-borders=0
+sort=-time
+anchor=top-right
+
+# --- Urgency Rules ---
+
+[urgency=low]
+# Nord "Polar Night" (Nord0)
+background-color=#2E3440E6
+# Nord "Snow Storm" (Nord4)
+text-color=#D8DEE9FF
+default-timeout=4000
+
+[urgency=high]
+# Nord "Polar Night" (Nord0)
+background-color=#2E3440E6
+# Nord "Aurora" Orange (Nord12) for critical alerts
+text-color=#D08770FF
+border-color=#BF616AFF
+default-timeout=0
+
+# --- Specific App Overrides (Optional) ---
+[app-name=Spotify]
+group-index=1

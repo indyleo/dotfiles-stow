@@ -20,80 +20,9 @@ else
     git clone "$REPO_URL"
 fi
 
-FILES_HOME=(
-    .zshrc
-    .zshenv
-    .zprofile
-    .zlogout
-    .bash_logout
-    .profile
-    .bashrc
-    .bash_profile
-    .hooksrc
-    .aliasrc
-    .functionrc
-    .Xresources
-    .xinitrc
-)
-
-DIRS_CONFIG=(
-    alacritty
-    wezterm
-    neovide
-    tmux
-    nvim
-    ohmyposh
-    fastfetch
-    yazi
-    git
-    espanso
-    picom
-    dunst
-    qutebrowser
-    discordo
-    Thunar
-    lf
-    shell
-    zsh
-    pipewire
-    gurk
-    twt
-    lazygit
-    rofi
-)
-
-FILES_CONFIG=(
-    mimeapps.list
-    user-dirs.dirs
-    user-dirs.locale
-)
-
-echo "Removing old dotfiles..."
-for file in "${FILES_HOME[@]}"; do
-    if [[ -f "$HOME/$file" ]]; then
-        command rm -fv "$HOME/$file"
-    fi
-done
-
-for dir in "${DIRS_CONFIG[@]}"; do
-    if [[ -d "$HOME/.config/$dir" ]]; then
-        command rm -rfv "$HOME/.config/$dir"
-    fi
-done
-
-for file in "${FILES_CONFIG[@]}"; do
-    if [[ -f "$HOME/.config/$file" ]]; then
-        command rm -fv "$HOME/.config/$file"
-    fi
-done
-
-if [[ -d "$HOME/.local/share/figletfonts" ]]; then
-    command rm -rfv "$HOME/.local/share/figletfonts"
-fi
-
 # Quick function to stow things with right args
 stowq() {
-    stow --target="$HOME" -v "$1"
+    stow --target="$HOME" --adopt -v "$1"
 }
 
 # Stowing
@@ -122,3 +51,6 @@ stowq gurk
 stowq twt
 stowq lazygit
 stowq rofi
+stowq quickshell
+stowq hypr
+stowq mako

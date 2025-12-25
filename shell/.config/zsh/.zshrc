@@ -36,9 +36,7 @@ _comp_options+=(globdots)		# Include hidden files.
 
 # Completions
 eval "$(gh completion -s zsh)"
-eval "$(syncthing install-completions)"
 eval "$(rustup completions zsh)"
-eval "$(wezterm shell-completion --shell zsh)"
 fpath+=$PLUGINDIR/zsh-completions/src
 
 # Startup
@@ -116,8 +114,8 @@ eval "$(fzf --zsh)"
 ZVM_SYSTEM_CLIPBOARD_ENABLED=true
 
 # Loading zsh plugins (LAST)
-source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh 2>/dev/null
-source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh 2>/dev/null
+source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh 2>/dev/null
+source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh 2>/dev/null
 source $PLUGINDIR/zsh-autopair/autopair.zsh 2>/dev/null
 source $PLUGINDIR/zsh-history-substring-search/zsh-history-substring-search.zsh 2>/dev/null
 source $PLUGINDIR/zsh-you-should-use/you-should-use.plugin.zsh 2>/dev/null
