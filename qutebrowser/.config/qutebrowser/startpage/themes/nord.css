@@ -1,0 +1,9 @@
+:root {
+  --bg: #2e3440;
+  --bg-alt: #3b4252;
+  --fg: #eceff4;
+  --border: #8fbcbb;
+  --accent: #88c0d0;
+  --matrix-fade: rgba(67, 76, 94, 0.1);
+  --matrix-green: #a3be8c;
+}

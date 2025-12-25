@@ -194,13 +194,16 @@ c.content.blocking.adblock.lists = [
     "https://secure.fanboy.co.nz/fanboy-cookiemonster.txt",
 ]
 
+# Startpage
+startpage = "file://" + os.path.expanduser("~/.config/qutebrowser/startpage/index.html")
+
 # --- UI ---
 c.downloads.location.directory = "~/Downloads"
 c.tabs.position = "left"
 c.tabs.show = "always"
 c.statusbar.show = "in-mode"
-c.url.default_page = "file:///home/indy/Github/portfilio/startpage/index.html"
-c.url.start_pages = "file:///home/indy/Github/portfilio/startpage/index.html"
+c.url.default_page = startpage
+c.url.start_pages = [startpage]
 c.tabs.title.format = "{audio}{current_title}"
 
 # --- Search engines ---
