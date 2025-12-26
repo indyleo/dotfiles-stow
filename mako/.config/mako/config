@@ -1,53 +1,52 @@
-# Global Configuration
-max-history=50
+# --- Global Settings ---
+max-history=20
 sort=-time
-layer=overlay
+# Mako uses 'anchor' instead of 'geometry' coordinates
+# top-right with margin covers your "-13+32" offset logic
 anchor=top-right
 
-# Style Options
-font=Inter 10
-width=350
-height=150
-margin=10
-padding=15
+# --- Text & Appearance ---
+font=SauceCodePro Nerd Font 10
+text-alignment=center
+padding=8
 border-size=2
-border-radius=8
-icons=1
-max-icon-size=48
+border-radius=10
 markup=1
-actions=1
 
-# Nord Colors with Transparency (Alpha BF = ~75%)
-# Background: nord0
-background-color=#2e3440bf
-# Text: nord4
-text-color=#d8dee9ff
-# Border: nord3
-border-color=#4c566abf
-# Progress: nord8 (Frost Cyan)
-progress-color=over #88c0d0ff
+# --- Progress & Icons ---
+# Your format included %p twice, Mako handles progress via progress-color
+progress-color=over #5E81ACbf
+icons=1
+max-icon-size=128
+icon-path=/usr/share/icons/Papirus-Dark/16x16/status/:/usr/share/icons/Papirus-Dark/16x16/devices/
 
-# Formatting
-format=<b>%s</b>\n%b
-default-timeout=5000
+# --- Colors & Transparency ---
+# Your Dunst config used ~60% alpha (90/99 in hex).
+# I've applied '99' (~60%) to match your provided file.
+background-color=#2E344099
+text-color=#D8DEE9ff
+border-color=#5E81ACff
 
-# --- Specific Urgency Rules ---
+# --- Urgency Overrides ---
 
-# Low Urgency (Muted)
 [urgency=low]
-border-color=#3b4252bf
-default-timeout=2000
+background-color=#2E344090
+text-color=#D8DEE9ff
+default-timeout=4000
 
-# Normal Urgency (Nord Frost Blue)
 [urgency=normal]
-border-color=#81a1c1bf
+background-color=#3B425299
+text-color=#E5E9F0ff
+border-color=#5E81ACff
+default-timeout=4000
 
-# Critical Urgency (Nord Aurora Red)
 [urgency=critical]
-border-color=#bf616abf
+background-color=#2E344099
+text-color=#D08770ff
+border-color=#BF616Aff
 default-timeout=0
 
-# --- Interactive Bindings ---
+# --- Bindings ---
 on-button-left=dismiss
-on-button-middle=invoke-default-action
 on-button-right=dismiss-all
+on-button-middle=invoke-default-action
