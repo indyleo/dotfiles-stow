@@ -1,1 +1,164 @@
-/home/indy/.config/rofi/themes/nord.rasi
+/**
+ * Nordic rofi theme
+ * Adapted by undiabler <undiabler@gmail.com>
+ *
+ * Nord Color palette imported from https://www.nordtheme.com/
+ *
+ */
+
+* {
+    /* Nord Color Palette */
+    nord0:  #2e3440;
+    nord1:  #3b4252;
+    nord2:  #434c5e;
+    nord3:  #4c566a;
+    nord4:  #d8dee9;
+    nord5:  #e5e9f0;
+    nord6:  #eceff4;
+    nord7:  #8fbcbb;
+    nord8:  #88c0d0;
+    nord9:  #81a1c1;
+    nord10: #5e81ac;
+    nord11: #bf616a;
+    nord12: #d08770;
+    nord13: #ebcb8b;
+    nord14: #a3be8c;
+    nord15: #b48ead;
+
+    /* Theme Variables */
+    foreground: @nord9;
+    backlight: #ccffeedd;
+    background-color: transparent;
+    highlight: underline bold #eceff4;
+    transparent: rgba(46, 52, 64, 0);
+
+    /* Default Text Properties */
+    text-color: @foreground;
+}
+
+window {
+    location: center;
+    anchor: center;
+    transparency: "real";
+    padding: 2px;
+    border: 0px;
+    border-radius: 6px;
+    border-color: @nord10;
+    background-color: @transparent;
+    spacing: 0;
+    children: [mainbox];
+    orientation: horizontal;
+}
+
+mainbox {
+    spacing: 0;
+    children: [inputbar, message, listview];
+    background-color: transparent;
+}
+
+message {
+    padding: 5px;
+    border: 0px 2px 2px 2px;
+    border-color: @foreground;
+    border-radius: 0px;
+    background-color: @nord7;
+    text-color: @nord0;
+}
+
+inputbar {
+    padding: 11px;
+    border: 1px;
+    border-radius: 6px 6px 0px 0px;
+    border-color: @nord10;
+    background-color: @nord1;
+    text-color: @nord6;
+    spacing: 0;
+    children: [prompt, entry];
+}
+
+prompt {
+    margin: 0px 1em 0px 0px;
+    text-color: inherit;
+    background-color: transparent;
+}
+
+entry {
+    text-color: inherit;
+    background-color: transparent;
+}
+
+case-indicator {
+    text-color: inherit;
+    background-color: transparent;
+}
+
+listview {
+    padding: 8px;
+    border: 0px 1px 1px 1px;
+    border-radius: 0px 0px 6px 6px;
+    border-color: @nord10;
+    background-color: rgba(46, 52, 64, 0.9);
+    dynamic: false;
+    spacing: 2px;
+}
+
+element {
+    padding: 5px;
+    border-radius: 4px;
+    background-color: transparent;
+    text-color: @nord4;
+    vertical-align: 0.5;
+}
+
+element normal.normal {
+    background-color: transparent;
+    text-color: @nord4;
+}
+
+element selected.normal {
+    background-color: @nord7;
+    text-color: @nord0;
+}
+
+element alternate.normal {
+    background-color: transparent;
+    text-color: @nord4;
+}
+
+element-text {
+    background-color: inherit;
+    text-color: inherit;
+}
+
+element-icon {
+    background-color: inherit;
+    text-color: inherit;
+    size: 1em;
+}
+
+button {
+    padding: 6px;
+    border: 2px 0px 2px 2px;
+    border-radius: 4px 0px 0px 4px;
+    border-color: @foreground;
+    background-color: transparent;
+    text-color: @foreground;
+    horizontal-align: 0.5;
+}
+
+button selected.normal {
+    border: 2px 0px 2px 2px;
+    border-color: @foreground;
+    background-color: @nord7;
+    text-color: @nord0;
+}
+
+textbox {
+    padding: 8px;
+    border: 1px;
+    border-radius: 6px;
+    border-color: @nord10;
+    background-color: rgba(46, 52, 64, 0.9);
+    text-color: @backlight;
+    vertical-align: 0.5;
+}

@@ -2,51 +2,8 @@ local wezterm = require("wezterm")
 local config = wezterm.config_builder()
 
 ------------------------------------------------------------
--- Read theme from file
-------------------------------------------------------------
-local function read_theme()
-	local handle = io.open(os.getenv("HOME") .. "/.cache/theme", "r")
-	if handle then
-		local theme = handle:read("*a"):gsub("%s+", "")
-		handle:close()
-		return theme
-	end
-	return "gruvbox"
-end
-
-------------------------------------------------------------
 -- Color Schemes
 ------------------------------------------------------------
-local gruvbox = {
-	foreground = "#ebdbb2",
-	background = "#282828",
-	cursor_bg = "#ebdbb2",
-	cursor_fg = "#282828",
-	cursor_border = "#ebdbb2",
-	selection_fg = "#282828",
-	selection_bg = "#ebdbb2",
-	ansi = {
-		"#282828",
-		"#cc241d",
-		"#98971a",
-		"#d79921",
-		"#458588",
-		"#b16286",
-		"#689d6a",
-		"#a89984",
-	},
-	brights = {
-		"#928374",
-		"#fb4934",
-		"#b8bb26",
-		"#fabd2f",
-		"#83a598",
-		"#d3869b",
-		"#8ec07c",
-		"#ebdbb2",
-	},
-}
-
 local nord = {
 	foreground = "#d8dee9",
 	background = "#2e3440",
@@ -77,11 +34,8 @@ local nord = {
 	},
 }
 
-local theme_name = read_theme()
-local colors = theme_name == "nord" and nord or gruvbox
+local colors = "nord"
 config.colors = colors
-
-wezterm.add_to_config_reload_watch_list(os.getenv("HOME") .. "/.cache/theme")
 
 ------------------------------------------------------------
 -- Terminal identity + shell
