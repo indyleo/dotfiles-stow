@@ -12,7 +12,7 @@ local config = {
 
 -- Available themes: "gruvbox", "nord", "catppuccin", "tokyonight", "onedark"
 -- Set your preferred theme here or it will be read from ~/.cache/theme file
-local preferred_theme = "gruvbox" -- Change this to your preferred theme
+local preferred_theme = "nord" -- Change this to your preferred theme
 
 -- Add custom excluded filetypes here
 local custom_excluded_filetypes = {
@@ -28,27 +28,8 @@ local custom_excluded_buftypes = {
 -- END OF USER CONFIGURATION
 -- ============================================================================
 
--- Get cache directory for theme
-local cache_home = os.getenv "XDG_CACHE_HOME" or os.getenv "HOME" .. "/.cache"
-local theme_file = cache_home .. "/theme"
-
--- Read theme from file
-local function read_theme(path)
-  local f = io.open(path, "r")
-  if f then
-    local theme = f:read "*l"
-    f:close()
-    return theme
-  end
-  return nil
-end
-
 -- Theme colors with context color
 local colors = {
-  gruvbox = {
-    normal = { "#fb4934", "#fabd2f", "#83a598", "#fe8019", "#b8bb26", "#d3869b", "#8ec07c" },
-    context = "#928374",
-  },
   nord = {
     normal = { "#BF616A", "#EBCB8B", "#81A1C1", "#D08770", "#A3BE8C", "#B48EAD", "#88C0D0" },
     context = "#4C566A",
@@ -56,7 +37,7 @@ local colors = {
 }
 
 -- Current theme (mutable)
-local theme_current = read_theme(theme_file) or preferred_theme
+local theme_current = preferred_theme
 
 -- Filetypes to exclude
 local excluded_filetypes = {

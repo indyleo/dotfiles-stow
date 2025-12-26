@@ -4,25 +4,14 @@
 local api, fn, uv = vim.api, vim.fn, vim.loop or vim.uv
 
 -- ========================
+-- Theme selection (MOVED BEFORE file watcher)
+-- ========================
+local preferd_theme = "nord"
+
+-- ========================
 -- Theme color definitions (MOVED BEFORE file watcher)
 -- ========================
 local themes = {
-  gruvbox = {
-    normal = { fg = "#ebdbb2", bg = "#458588" },
-    insert = { fg = "#ebdbb2", bg = "#b8bb26" },
-    visual = { fg = "#ebdbb2", bg = "#d3869b" },
-    replace = { fg = "#ebdbb2", bg = "#fb4934" },
-    command = { fg = "#ebdbb2", bg = "#fe8019" },
-    terminal = { fg = "#ebdbb2", bg = "#689d6a" },
-    inactive = { fg = "#a89984", bg = "#3c3836" },
-    git = { fg = "#b8bb26", bg = "#282828" },
-    diag_error = { fg = "#fb4934", bg = "#282828" },
-    diag_warn = { fg = "#fabd2f", bg = "#282828" },
-    diag_info = { fg = "#83a598", bg = "#282828" },
-    main = { fg = "#ebdbb2", bg = "#282828" },
-    filetype = { fg = "#d3869b", bg = "#282828" },
-    encoding = { fg = "#8ec07c", bg = "#282828" },
-  },
   nord = {
     normal = { fg = "#2E3440", bg = "#88C0D0" },
     insert = { fg = "#2E3440", bg = "#A3BE8C" },
@@ -41,23 +30,7 @@ local themes = {
   },
 }
 
--- ========================
--- Theme reading with file watcher
--- ========================
-local cache_home = os.getenv "XDG_CACHE_HOME" or (os.getenv "HOME" .. "/.cache")
-local theme_file = cache_home .. "/theme"
-
-local function read_theme(path)
-  local f = io.open(path, "r")
-  if not f then
-    return nil
-  end
-  local theme = f:read "*l"
-  f:close()
-  return theme and theme:lower()
-end
-
-local theme_current = read_theme(theme_file) or "gruvbox"
+local theme_current = preferd_theme
 
 -- Conditional styling based on Neovide
 local gui_attr = (vim.g.neovide or vim.g.neovide_version) and "gui=NONE cterm=NONE" or "gui=bold"
