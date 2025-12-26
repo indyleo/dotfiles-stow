@@ -48,7 +48,7 @@ map gM media
 
 # Go to media dir
 cmd media ${{
-  lf -remote "send $id cd '/media/$USER/'"
+  lf -remote "send $id cd '/run/media/$USER/'"
 }}
 
 ### FILE CREATION ###
