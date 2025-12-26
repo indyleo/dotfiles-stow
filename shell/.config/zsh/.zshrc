@@ -114,8 +114,8 @@ eval "$(fzf --zsh)"
 ZVM_SYSTEM_CLIPBOARD_ENABLED=true
 
 # Loading zsh plugins (LAST)
-source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh 2>/dev/null
-source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh 2>/dev/null
+source $PLUGINDIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh 2>/dev/null
+source $PLUGINDIR/zsh-autosuggestions/zsh-autosuggestions.zsh 2>/dev/null
 source $PLUGINDIR/zsh-autopair/autopair.zsh 2>/dev/null
 source $PLUGINDIR/zsh-history-substring-search/zsh-history-substring-search.zsh 2>/dev/null
 source $PLUGINDIR/zsh-you-should-use/you-should-use.plugin.zsh 2>/dev/null
