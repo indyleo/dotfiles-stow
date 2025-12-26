@@ -1,52 +1,53 @@
-# --- Global / Base (Normal Urgency) ---
-font=SauceCodePro Nerd Font 10
-width=350
-# Mako height is pixels, not number of notifications
-max-visible=7
-margin=32,13
-padding=10
-border-size=2
-
-# Nord "Frost" Blue for the frame
-border-color=#5E81ACFF
-# Nord "Polar Night" (Nord1) with 90% opacity
-background-color=#3B4252E6
-# Nord "Snow Storm" (Nord5)
-text-color=#E5E9F0FF
-
-text-alignment=center
-line-height=1.2
-markup=1
-format=<b>%s %p</b>\n%b
-
-# Icons
-icon-path=/usr/share/icons/Papirus-Dark/16x16/status/:/usr/share/icons/Papirus-Dark/16x16/devices/
-max-icon-size=64
-icon-location=left
-
-# Behavior
-default-timeout=4000
-ignore-borders=0
+# Global Configuration
+max-history=50
 sort=-time
+layer=overlay
 anchor=top-right
 
-# --- Urgency Rules ---
+# Style Options
+font=Inter 10
+width=350
+height=150
+margin=10
+padding=15
+border-size=2
+border-radius=8
+icons=1
+max-icon-size=48
+markup=1
+actions=1
 
+# Nord Colors with Transparency (Alpha BF = ~75%)
+# Background: nord0
+background-color=#2e3440bf
+# Text: nord4
+text-color=#d8dee9ff
+# Border: nord3
+border-color=#4c566abf
+# Progress: nord8 (Frost Cyan)
+progress-color=over #88c0d0ff
+
+# Formatting
+format=<b>%s</b>\n%b
+default-timeout=5000
+
+# --- Specific Urgency Rules ---
+
+# Low Urgency (Muted)
 [urgency=low]
-# Nord "Polar Night" (Nord0)
-background-color=#2E3440E6
-# Nord "Snow Storm" (Nord4)
-text-color=#D8DEE9FF
-default-timeout=4000
+border-color=#3b4252bf
+default-timeout=2000
 
-[urgency=high]
-# Nord "Polar Night" (Nord0)
-background-color=#2E3440E6
-# Nord "Aurora" Orange (Nord12) for critical alerts
-text-color=#D08770FF
-border-color=#BF616AFF
+# Normal Urgency (Nord Frost Blue)
+[urgency=normal]
+border-color=#81a1c1bf
+
+# Critical Urgency (Nord Aurora Red)
+[urgency=critical]
+border-color=#bf616abf
 default-timeout=0
 
-# --- Specific App Overrides (Optional) ---
-[app-name=Spotify]
-group-index=1
+# --- Interactive Bindings ---
+on-button-left=dismiss
+on-button-middle=invoke-default-action
+on-button-right=dismiss-all
