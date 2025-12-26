@@ -47,16 +47,26 @@ ShellRoot {
 
     // --- Hardware & System Data ---
     property var lastCpuIdle: 0; property var lastCpuTotal: 0
-    property int cpuUsage: 0; property int memUsage: 0
+    property int cpuUsage: 0
+
+    // Memory Properties
+    property bool showMemPercent: true
+    property int memUsagePercent: 0
+    property string memText: "0%"
+
+    // Disk Properties
+    property bool showDiskPercent: true
+    property var disks: []
+    property int currentDiskIdx: 0
+    property string diskUsage: "0%"
+    property string diskLabel: "/"
+
+    // Audio / Wifi
     property int volumeLevel: 0; property bool isMuted: false
     property int micLevel: 0; property bool isMicMuted: false
     property string kernelVersion: "..."
     property string wifiSSID: "Offline"
     property int wifiStrength: 0
-    property var disks: []
-    property int currentDiskIdx: 0
-    property string diskUsage: "0%"
-    property string diskLabel: "/"
 
     Process { id: shellCmd }
 
@@ -89,29 +99,44 @@ ShellRoot {
 
     Process {
         id: memProc
-        command: ["sh", "-c", "free | grep Mem | awk '{print int($3/$2 * 100)}'"]
-        stdout: SplitParser { onRead: d => { if(d) memUsage = parseInt(d) } }
+        // NEW: Fetch Used and Total in MB (free -m) to allow custom formatting
+        command: ["sh", "-c", "free -m | grep Mem | awk '{print $3, $2}'"]
+        stdout: SplitParser {
+            onRead: d => {
+                if(!d) return
+                let parts = d.trim().split(" ")
+                if (parts.length < 2) return
+
+                let usedMb = parseInt(parts[0])
+                let totalMb = parseInt(parts[1])
+
+                // Keep the integer percentage for potential other uses
+                root.memUsagePercent = Math.round((usedMb / totalMb) * 100)
+
+                if (root.showMemPercent) {
+                    root.memText = root.memUsagePercent + "%"
+                } else {
+                    let usedGb = (usedMb / 1024).toFixed(1)
+                    let totalGb = (totalMb / 1024).toFixed(1)
+                    root.memText = usedGb + "G/" + totalGb + "G"
+                }
+            }
+        }
     }
 
-		Process {
+    Process {
         id: diskProc
-        // Using -P for posix portability to prevent line wrapping on long device names,
-        // though your specific formatting seems fine.
-        command: ["sh", "-c", "df -h --output=pcent,target | grep -E '/$|/home|/mnt|/run/media|/media'"]
+        // NEW: Added 'used' and 'size' columns to df command
+        command: ["sh", "-c", "df -h --output=pcent,used,size,target | grep -E '/$|/home|/mnt|/run/media|/media'"]
 
-        // 1. Create a buffer to store lines as they come in
         property string outputBuffer: ""
 
         stdout: SplitParser {
             onRead: data => {
-                // 2. Accumulate data instead of processing immediately
-                // SplitParser strips newlines, so we add a space or newline delimiter
-                // to ensure we can split it correctly later.
                 if (data) diskProc.outputBuffer += data + "\n"
             }
         }
 
-        // 3. Process the full list only when the command finishes
         onExited: {
             if (!diskProc.outputBuffer) return
 
@@ -120,27 +145,40 @@ ShellRoot {
 
             lines.forEach(line => {
                 let parts = line.trim().split(/\s+/)
-                // Ensure the line has both percentage and path
-                if (parts.length >= 2) {
-                    let path = parts[1]
-                    let label = path === "/" ? "/" : path.split('/').pop()
-                    parsedDisks.push({ usage: parts[0], path: label })
+                // Expecting 4 parts: [Percentage, Used, Total, Path]
+                if (parts.length >= 4) {
+                    let pcent = parts[0]
+                    let used = parts[1]
+                    let size = parts[2]
+                    let pathRaw = parts[3]
+
+                    let label = pathRaw === "/" ? "/" : pathRaw.split('/').pop()
+
+                    parsedDisks.push({
+                        pcent: pcent,
+                        absolute: used + "/" + size,
+                        path: label
+                    })
                 }
             })
 
             root.disks = parsedDisks
 
-            // Bounds check: if a drive was unplugged and index is now out of bounds
+            // Bounds check
             if (root.currentDiskIdx >= root.disks.length) root.currentDiskIdx = 0
 
-            // Update the UI with the data for the *currently selected* disk
-            if (root.disks.length > 0) {
-                root.diskUsage = root.disks[root.currentDiskIdx].usage
-                root.diskLabel = root.disks[root.currentDiskIdx].path
-            }
+            root.updateDiskText()
 
-            // Reset buffer for the next timer tick
             diskProc.outputBuffer = ""
+        }
+    }
+
+    // Helper to refresh disk text based on current mode
+    function updateDiskText() {
+        if (root.disks.length > 0) {
+            let disk = root.disks[root.currentDiskIdx]
+            root.diskLabel = disk.path
+            root.diskUsage = root.showDiskPercent ? disk.pcent : disk.absolute
         }
     }
 
@@ -277,19 +315,46 @@ ShellRoot {
                         Text { text: " " + cpuUsage + "%"; color: root.nord11; font.pixelSize: root.fontSize; font.family: root.fontFamily }
                         Rectangle { width: 1; height: 12; color: root.nord3 }
 
-                        Text { text: " " + memUsage + "%"; color: root.nord13; font.pixelSize: root.fontSize; font.family: root.fontFamily }
-                        Rectangle { width: 1; height: 12; color: root.nord3 }
-
+                        // --- Memory ---
                         Text {
-                            text: "󰋊 " + root.diskLabel + ": " + root.diskUsage
-                            color: root.nord7; font.pixelSize: root.fontSize; font.family: root.fontFamily
+                            text: " " + root.memText
+                            color: root.nord13
+                            font.pixelSize: root.fontSize
+                            font.family: root.fontFamily
                             MouseArea {
                                 anchors.fill: parent
+                                acceptedButtons: Qt.RightButton
                                 onClicked: {
-                                    if (root.disks.length > 0) {
-                                        root.currentDiskIdx = (root.currentDiskIdx + 1) % root.disks.length;
-                                        root.diskUsage = root.disks[root.currentDiskIdx].usage;
-                                        root.diskLabel = root.disks[root.currentDiskIdx].path;
+                                    root.showMemPercent = !root.showMemPercent
+                                    // Refresh immediately
+                                    memProc.running = false
+                                    memProc.running = true
+                                }
+                            }
+                        }
+
+                        Rectangle { width: 1; height: 12; color: root.nord3 }
+
+                        // --- Disk ---
+                        Text {
+                            text: "󰋊 " + root.diskLabel + ": " + root.diskUsage
+                            color: root.nord7
+                            font.pixelSize: root.fontSize
+                            font.family: root.fontFamily
+                            MouseArea {
+                                anchors.fill: parent
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                onClicked: (mouse) => {
+                                    if (mouse.button === Qt.LeftButton) {
+                                        // Cycle disks
+                                        if (root.disks.length > 0) {
+                                            root.currentDiskIdx = (root.currentDiskIdx + 1) % root.disks.length;
+                                            root.updateDiskText();
+                                        }
+                                    } else if (mouse.button === Qt.RightButton) {
+                                        // Toggle View
+                                        root.showDiskPercent = !root.showDiskPercent;
+                                        root.updateDiskText();
                                     }
                                 }
                             }
@@ -319,9 +384,7 @@ ShellRoot {
                                 anchors.fill: parent; acceptedButtons: Qt.LeftButton | Qt.RightButton
                                 onWheel: (w) => {
                                     let isUp = w.angleDelta.y > 0;
-                                    // STOP if trying to go above 100%
                                     if (isUp && root.micLevel >= 100) return;
-
                                     let dir = isUp ? "5%+" : "5%-";
                                     shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SOURCE@", dir];
                                     shellCmd.running = false; shellCmd.running = true;
@@ -347,9 +410,7 @@ ShellRoot {
                                 anchors.fill: parent; acceptedButtons: Qt.LeftButton | Qt.RightButton
                                 onWheel: (w) => {
                                     let isUp = w.angleDelta.y > 0;
-                                    // STOP if trying to go above 100%
                                     if (isUp && root.volumeLevel >= 100) return;
-
                                     let dir = isUp ? "5%+" : "5%-";
                                     shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", dir];
                                     shellCmd.running = false; shellCmd.running = true;
