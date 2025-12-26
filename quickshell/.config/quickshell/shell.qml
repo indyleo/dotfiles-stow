@@ -95,16 +95,24 @@ ShellRoot {
 
     Process {
         id: diskProc
-        command: ["sh", "-c", "df -h --output=pcent,target | grep -E '/$|/home|/mnt'"]
+        // Modified to include common USB mount points
+        command: ["sh", "-c", "df -h --output=pcent,target | grep -E '/$|/home|/mnt|/run/media|/media'"]
         stdout: SplitParser {
             onRead: data => {
                 if (!data) return
                 let lines = data.trim().split("\n");
                 let parsedDisks = lines.map(line => {
                     let parts = line.trim().split(/\s+/);
-                    return { usage: parts[0], path: parts[1] };
+                    let path = parts[1];
+                    // Logic to show a cleaner label for USBs (the folder name instead of full path)
+                    let label = path === "/" ? "/" : path.split('/').pop();
+                    return { usage: parts[0], path: label };
                 });
                 root.disks = parsedDisks;
+
+                // If the list changed and index is now invalid, reset to 0
+                if (root.currentDiskIdx >= root.disks.length) root.currentDiskIdx = 0;
+
                 if (root.disks.length > 0) {
                     root.diskUsage = root.disks[root.currentDiskIdx].usage;
                     root.diskLabel = root.disks[root.currentDiskIdx].path;
@@ -115,14 +123,14 @@ ShellRoot {
 
     Process {
         id: wifiProc
-        command: ["sh", "-c", "nmcli -t -f active,ssid,signal dev wifi | grep '^yes' | head -n 1"]
+        command: ["nmcli", "-t", "-f", "active,ssid,signal", "dev", "wifi"]
         stdout: SplitParser {
             onRead: data => {
-                if (data && data.includes(":")) {
+                if (data && data.startsWith("yes")) {
                     let parts = data.trim().split(":");
                     wifiSSID = parts[1] || "Unknown";
                     wifiStrength = parseInt(parts[2]) || 0;
-                } else {
+                } else if (!wifiSSID || wifiSSID === "") {
                     wifiSSID = "Offline";
                     wifiStrength = 0;
                 }
@@ -287,7 +295,11 @@ ShellRoot {
                             MouseArea {
                                 anchors.fill: parent; acceptedButtons: Qt.LeftButton | Qt.RightButton
                                 onWheel: (w) => {
-                                    let dir = w.angleDelta.y > 0 ? "5%+" : "5%-";
+                                    let isUp = w.angleDelta.y > 0;
+                                    // STOP if trying to go above 100%
+                                    if (isUp && root.micLevel >= 100) return;
+
+                                    let dir = isUp ? "5%+" : "5%-";
                                     shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SOURCE@", dir];
                                     shellCmd.running = false; shellCmd.running = true;
                                 }
@@ -311,7 +323,11 @@ ShellRoot {
                             MouseArea {
                                 anchors.fill: parent; acceptedButtons: Qt.LeftButton | Qt.RightButton
                                 onWheel: (w) => {
-                                    let dir = w.angleDelta.y > 0 ? "5%+" : "5%-";
+                                    let isUp = w.angleDelta.y > 0;
+                                    // STOP if trying to go above 100%
+                                    if (isUp && root.volumeLevel >= 100) return;
+
+                                    let dir = isUp ? "5%+" : "5%-";
                                     shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", dir];
                                     shellCmd.running = false; shellCmd.running = true;
                                 }
