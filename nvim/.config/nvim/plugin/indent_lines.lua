@@ -392,31 +392,6 @@ end
 -- Apply initial highlights
 apply_highlights()
 
--- Watch theme file for changes
-local uv = vim.loop or vim.uv
-if uv.fs_stat(theme_file) then
-  local fs_event = uv.new_fs_event()
-  fs_event:start(
-    theme_file,
-    {},
-    vim.schedule_wrap(function()
-      if theme_debounce_timer then
-        theme_debounce_timer:stop()
-      end
-      theme_debounce_timer = vim.defer_fn(function()
-        local new_theme = read_theme(theme_file) or "gruvbox"
-        if new_theme ~= theme_current then
-          theme_current = new_theme
-          validate_config()
-          apply_highlights()
-          redraw_all_buffers()
-        end
-        theme_debounce_timer = nil
-      end, 200)
-    end)
-  )
-end
-
 -- Clear exclusion cache when buffer is deleted
 vim.api.nvim_create_autocmd("BufDelete", {
   callback = function(ev)
