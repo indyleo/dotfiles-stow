@@ -93,31 +93,54 @@ ShellRoot {
         stdout: SplitParser { onRead: d => { if(d) memUsage = parseInt(d) } }
     }
 
-    Process {
+		Process {
         id: diskProc
-        // Modified to include common USB mount points
+        // Using -P for posix portability to prevent line wrapping on long device names,
+        // though your specific formatting seems fine.
         command: ["sh", "-c", "df -h --output=pcent,target | grep -E '/$|/home|/mnt|/run/media|/media'"]
+
+        // 1. Create a buffer to store lines as they come in
+        property string outputBuffer: ""
+
         stdout: SplitParser {
             onRead: data => {
-                if (!data) return
-                let lines = data.trim().split("\n");
-                let parsedDisks = lines.map(line => {
-                    let parts = line.trim().split(/\s+/);
-                    let path = parts[1];
-                    // Logic to show a cleaner label for USBs (the folder name instead of full path)
-                    let label = path === "/" ? "/" : path.split('/').pop();
-                    return { usage: parts[0], path: label };
-                });
-                root.disks = parsedDisks;
-
-                // If the list changed and index is now invalid, reset to 0
-                if (root.currentDiskIdx >= root.disks.length) root.currentDiskIdx = 0;
-
-                if (root.disks.length > 0) {
-                    root.diskUsage = root.disks[root.currentDiskIdx].usage;
-                    root.diskLabel = root.disks[root.currentDiskIdx].path;
-                }
+                // 2. Accumulate data instead of processing immediately
+                // SplitParser strips newlines, so we add a space or newline delimiter
+                // to ensure we can split it correctly later.
+                if (data) diskProc.outputBuffer += data + "\n"
             }
+        }
+
+        // 3. Process the full list only when the command finishes
+        onExited: {
+            if (!diskProc.outputBuffer) return
+
+            let lines = diskProc.outputBuffer.trim().split("\n")
+            let parsedDisks = []
+
+            lines.forEach(line => {
+                let parts = line.trim().split(/\s+/)
+                // Ensure the line has both percentage and path
+                if (parts.length >= 2) {
+                    let path = parts[1]
+                    let label = path === "/" ? "/" : path.split('/').pop()
+                    parsedDisks.push({ usage: parts[0], path: label })
+                }
+            })
+
+            root.disks = parsedDisks
+
+            // Bounds check: if a drive was unplugged and index is now out of bounds
+            if (root.currentDiskIdx >= root.disks.length) root.currentDiskIdx = 0
+
+            // Update the UI with the data for the *currently selected* disk
+            if (root.disks.length > 0) {
+                root.diskUsage = root.disks[root.currentDiskIdx].usage
+                root.diskLabel = root.disks[root.currentDiskIdx].path
+            }
+
+            // Reset buffer for the next timer tick
+            diskProc.outputBuffer = ""
         }
     }
 
