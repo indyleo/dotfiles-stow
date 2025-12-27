@@ -46,8 +46,18 @@ ShellRoot {
     }
 
     // --- Hardware & System Data ---
+
+    // CPU
     property var lastCpuIdle: 0; property var lastCpuTotal: 0
     property int cpuUsage: 0
+    property int cpuTemp: 0
+    property bool showCpuTemp: false
+
+    // GPU
+    property int gpuUsage: 0
+    property int gpuTemp: 0
+    property bool isNvidia: true
+    property bool showGpuTemp: false
 
     // Memory Properties
     property bool showMemPercent: true
@@ -78,102 +88,96 @@ ShellRoot {
     }
 
     // --- Resource Fetchers ---
+
+    // CPU Fetcher (Usage + Temp)
     Process {
         id: cpuProc
-        command: ["sh", "-c", "head -1 /proc/stat"]
+        // Fetches /proc/stat for usage AND the first thermal zone for temp
+        command: ["sh", "-c", "head -1 /proc/stat; cat /sys/class/thermal/thermal_zone*/temp | head -n 1"]
         stdout: SplitParser {
             onRead: data => {
                 if (!data) return
-                var parts = data.trim().split(/\s+/)
-                var total = parts.slice(1, 8).reduce((a, b) => parseInt(a) + parseInt(b), 0)
-                var idle = parseInt(parts[4]) + parseInt(parts[5])
-                if (root.lastCpuTotal > 0) {
-                    var totalDiff = total - root.lastCpuTotal
-                    var idleDiff = idle - root.lastCpuIdle
-                    if (totalDiff > 0) cpuUsage = Math.round(100 * (totalDiff - idleDiff) / totalDiff)
+                // Check if line is usage data or temp data
+                if (data.startsWith("cpu")) {
+                    var parts = data.trim().split(/\s+/)
+                    var total = parts.slice(1, 8).reduce((a, b) => parseInt(a) + parseInt(b), 0)
+                    var idle = parseInt(parts[4]) + parseInt(parts[5])
+                    if (root.lastCpuTotal > 0) {
+                        var totalDiff = total - root.lastCpuTotal
+                        var idleDiff = idle - root.lastCpuIdle
+                        if (totalDiff > 0) cpuUsage = Math.round(100 * (totalDiff - idleDiff) / totalDiff)
+                    }
+                    root.lastCpuTotal = total; root.lastCpuIdle = idle
+                } else {
+                    // It is likely the temperature line (raw millidegrees)
+                    let tempVal = parseInt(data.trim())
+                    if (!isNaN(tempVal)) root.cpuTemp = Math.round(tempVal / 1000)
                 }
-                root.lastCpuTotal = total; root.lastCpuIdle = idle
+            }
+        }
+    }
+
+    // GPU Fetcher: Toggles between Intel and Nvidia, fetches Usage AND Temp
+    Process {
+        id: gpuProc
+        command: root.isNvidia
+            ? ["sh", "-c", "nvidia-smi --query-gpu=utilization.gpu,temperature.gpu --format=csv,noheader,nounits"]
+            : ["sh", "-c", "echo \"$(cat /sys/class/drm/card0/device/gpu_busy_percent 2>/dev/null || echo 0),$(cat /sys/class/thermal/thermal_zone1/temp 2>/dev/null | awk '{print int($1/1000)}' || echo 0)\""]
+
+        stdout: SplitParser {
+            onRead: data => {
+                if (!data) return
+                let parts = data.split(",")
+                if (parts.length >= 2) {
+                    root.gpuUsage = parseInt(parts[0].trim()) || 0
+                    root.gpuTemp = parseInt(parts[1].trim()) || 0
+                } else if (parts.length === 1) {
+                    // Fallback if command only returned one number
+                    root.gpuUsage = parseInt(parts[0].trim()) || 0
+                }
             }
         }
     }
 
     Process {
         id: memProc
-        // NEW: Fetch Used and Total in MB (free -m) to allow custom formatting
         command: ["sh", "-c", "free -m | grep Mem | awk '{print $3, $2}'"]
         stdout: SplitParser {
             onRead: d => {
                 if(!d) return
                 let parts = d.trim().split(" ")
                 if (parts.length < 2) return
-
                 let usedMb = parseInt(parts[0])
                 let totalMb = parseInt(parts[1])
-
-                // Keep the integer percentage for potential other uses
                 root.memUsagePercent = Math.round((usedMb / totalMb) * 100)
-
-                if (root.showMemPercent) {
-                    root.memText = root.memUsagePercent + "%"
-                } else {
-                    let usedGb = (usedMb / 1024).toFixed(1)
-                    let totalGb = (totalMb / 1024).toFixed(1)
-                    root.memText = usedGb + "G/" + totalGb + "G"
-                }
+                root.memText = root.showMemPercent ? root.memUsagePercent + "%" : (usedMb/1024).toFixed(1) + "G/" + (totalMb/1024).toFixed(1) + "G"
             }
         }
     }
 
     Process {
         id: diskProc
-        // NEW: Added 'used' and 'size' columns to df command
         command: ["sh", "-c", "df -h --output=pcent,used,size,target | grep -E '/$|/home|/mnt|/run/media|/media'"]
-
         property string outputBuffer: ""
-
-        stdout: SplitParser {
-            onRead: data => {
-                if (data) diskProc.outputBuffer += data + "\n"
-            }
-        }
-
+        stdout: SplitParser { onRead: data => { if (data) diskProc.outputBuffer += data + "\n" } }
         onExited: {
             if (!diskProc.outputBuffer) return
-
             let lines = diskProc.outputBuffer.trim().split("\n")
             let parsedDisks = []
-
             lines.forEach(line => {
                 let parts = line.trim().split(/\s+/)
-                // Expecting 4 parts: [Percentage, Used, Total, Path]
                 if (parts.length >= 4) {
-                    let pcent = parts[0]
-                    let used = parts[1]
-                    let size = parts[2]
-                    let pathRaw = parts[3]
-
-                    let label = pathRaw === "/" ? "/" : pathRaw.split('/').pop()
-
-                    parsedDisks.push({
-                        pcent: pcent,
-                        absolute: used + "/" + size,
-                        path: label
-                    })
+                    let label = parts[3] === "/" ? "/" : parts[3].split('/').pop()
+                    parsedDisks.push({ pcent: parts[0], absolute: parts[1] + "/" + parts[2], path: label })
                 }
             })
-
             root.disks = parsedDisks
-
-            // Bounds check
             if (root.currentDiskIdx >= root.disks.length) root.currentDiskIdx = 0
-
             root.updateDiskText()
-
             diskProc.outputBuffer = ""
         }
     }
 
-    // Helper to refresh disk text based on current mode
     function updateDiskText() {
         if (root.disks.length > 0) {
             let disk = root.disks[root.currentDiskIdx]
@@ -192,8 +196,7 @@ ShellRoot {
                     wifiSSID = parts[1] || "Unknown";
                     wifiStrength = parseInt(parts[2]) || 0;
                 } else if (!wifiSSID || wifiSSID === "") {
-                    wifiSSID = "Offline";
-                    wifiStrength = 0;
+                    wifiSSID = "Offline"; wifiStrength = 0;
                 }
             }
         }
@@ -205,10 +208,7 @@ ShellRoot {
         stdout: SplitParser {
             onRead: data => {
                 var match = data.match(/Volume:\s*([\d.]+)(\s*\[MUTED\])?/)
-                if (match) {
-                    volumeLevel = Math.round(parseFloat(match[1]) * 100)
-                    isMuted = !!match[2]
-                }
+                if (match) { volumeLevel = Math.round(parseFloat(match[1]) * 100); isMuted = !!match[2] }
             }
         }
     }
@@ -219,10 +219,7 @@ ShellRoot {
         stdout: SplitParser {
             onRead: data => {
                 var match = data.match(/Volume:\s*([\d.]+)(\s*\[MUTED\])?/)
-                if (match) {
-                    micLevel = Math.round(parseFloat(match[1]) * 100)
-                    isMicMuted = !!match[2]
-                }
+                if (match) { micLevel = Math.round(parseFloat(match[1]) * 100); isMicMuted = !!match[2] }
             }
         }
     }
@@ -231,6 +228,7 @@ ShellRoot {
         interval: 2000; running: true; repeat: true; triggeredOnStart: true
         onTriggered: {
             cpuProc.running = false; cpuProc.running = true
+            gpuProc.running = false; gpuProc.running = true
             memProc.running = false; memProc.running = true
             volProc.running = false; volProc.running = true
             micProc.running = false; micProc.running = true
@@ -248,9 +246,7 @@ ShellRoot {
             color: root.nord0
 
             RowLayout {
-                anchors.fill: parent
-                spacing: 8
-                anchors.leftMargin: 12; anchors.rightMargin: 12
+                anchors.fill: parent; spacing: 8; anchors.leftMargin: 12; anchors.rightMargin: 12
 
                 // --- 1. Workspaces ---
                 Rectangle {
@@ -282,11 +278,7 @@ ShellRoot {
                 Rectangle {
                     Layout.preferredHeight: 26; Layout.preferredWidth: layoutText.implicitWidth + 24
                     color: root.nord1; radius: 13
-                    Text {
-                        id: layoutText; anchors.centerIn: parent
-                        text: root.currentLayout; color: root.nord7
-                        font { pixelSize: root.fontSize - 2; family: root.fontFamily; bold: true }
-                    }
+                    Text { id: layoutText; anchors.centerIn: parent; text: root.currentLayout; color: root.nord7; font { pixelSize: root.fontSize - 2; family: root.fontFamily; bold: true } }
                 }
 
                 // --- 3. Window Title ---
@@ -294,8 +286,7 @@ ShellRoot {
                     Layout.preferredHeight: 26; Layout.fillWidth: true; Layout.minimumWidth: 100
                     color: root.nord1; radius: 13; clip: true
                     RowLayout {
-                        anchors.fill: parent; anchors.leftMargin: 15; anchors.rightMargin: 15
-                        spacing: 10
+                        anchors.fill: parent; anchors.leftMargin: 15; anchors.rightMargin: 15; spacing: 10
                         Text { text: root.activeWindow === "Desktop" ? "󰇄" : "󱂬"; color: root.nord10; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily }
                         Text { Layout.fillWidth: true; text: root.activeWindow; color: root.nord6; font.pixelSize: root.fontSize; font.family: root.fontFamily; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter }
                     }
@@ -303,8 +294,7 @@ ShellRoot {
 
                 // --- 4. Stats Pill ---
                 Rectangle {
-                    Layout.preferredHeight: 26
-                    Layout.preferredWidth: statsRow.implicitWidth + 30
+                    Layout.preferredHeight: 26; Layout.preferredWidth: statsRow.implicitWidth + 30
                     color: root.nord1; radius: 13
                     RowLayout {
                         id: statsRow; anchors.centerIn: parent; spacing: 12
@@ -312,117 +302,86 @@ ShellRoot {
                         Text { text: "󰌽 " + kernelVersion; color: root.nord10; font.pixelSize: root.fontSize; font.family: root.fontFamily }
                         Rectangle { width: 1; height: 12; color: root.nord3 }
 
-                        Text { text: " " + cpuUsage + "%"; color: root.nord11; font.pixelSize: root.fontSize; font.family: root.fontFamily }
-                        Rectangle { width: 1; height: 12; color: root.nord3 }
-
-                        // --- Memory ---
+                        // --- CPU (Right click for Temp) ---
                         Text {
-                            text: " " + root.memText
-                            color: root.nord13
-                            font.pixelSize: root.fontSize
-                            font.family: root.fontFamily
+                            text: " " + (root.showCpuTemp ? root.cpuTemp + "°C" : root.cpuUsage + "%")
+                            color: root.nord11
+                            font.pixelSize: root.fontSize; font.family: root.fontFamily
                             MouseArea {
                                 anchors.fill: parent
                                 acceptedButtons: Qt.RightButton
-                                onClicked: {
-                                    root.showMemPercent = !root.showMemPercent
-                                    // Refresh immediately
-                                    memProc.running = false
-                                    memProc.running = true
-                                }
+                                onClicked: root.showCpuTemp = !root.showCpuTemp
                             }
                         }
-
                         Rectangle { width: 1; height: 12; color: root.nord3 }
 
-                        // --- Disk ---
+                        // --- GPU (Left: Switch NV/IN, Right: Switch %/Temp) ---
                         Text {
-                            text: "󰋊 " + root.diskLabel + ": " + root.diskUsage
-                            color: root.nord7
-                            font.pixelSize: root.fontSize
-                            font.family: root.fontFamily
+                            text: (root.isNvidia ? "󰢮 NV: " : "󰢮 IN: ") + (root.showGpuTemp ? root.gpuTemp + "°C" : root.gpuUsage + "%")
+                            color: root.isNvidia ? root.nord15 : root.nord8
+                            font.pixelSize: root.fontSize; font.family: root.fontFamily
                             MouseArea {
                                 anchors.fill: parent
                                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                                 onClicked: (mouse) => {
                                     if (mouse.button === Qt.LeftButton) {
-                                        // Cycle disks
-                                        if (root.disks.length > 0) {
-                                            root.currentDiskIdx = (root.currentDiskIdx + 1) % root.disks.length;
-                                            root.updateDiskText();
-                                        }
-                                    } else if (mouse.button === Qt.RightButton) {
-                                        // Toggle View
-                                        root.showDiskPercent = !root.showDiskPercent;
-                                        root.updateDiskText();
+                                        root.isNvidia = !root.isNvidia
+                                        gpuProc.running = false; gpuProc.running = true
+                                    } else {
+                                        root.showGpuTemp = !root.showGpuTemp
                                     }
                                 }
                             }
                         }
                         Rectangle { width: 1; height: 12; color: root.nord3 }
 
+                        // --- Memory ---
                         Text {
-                            property string icon: {
-                                if (root.wifiSSID === "Offline") return "󰤮 ";
-                                if (root.wifiStrength > 75) return "󰤨 ";
-                                if (root.wifiStrength > 50) return "󰤥 ";
-                                if (root.wifiStrength > 25) return "󰤢 ";
-                                return "󰤟 ";
+                            text: " " + root.memText; color: root.nord13; font.pixelSize: root.fontSize; font.family: root.fontFamily
+                            MouseArea { anchors.fill: parent; acceptedButtons: Qt.RightButton; onClicked: { root.showMemPercent = !root.showMemPercent; memProc.running = false; memProc.running = true } }
+                        }
+                        Rectangle { width: 1; height: 12; color: root.nord3 }
+
+                        // --- Disk ---
+                        Text {
+                            text: "󰋊 " + root.diskLabel + ": " + root.diskUsage; color: root.nord7; font.pixelSize: root.fontSize; font.family: root.fontFamily
+                            MouseArea {
+                                anchors.fill: parent; acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                onClicked: (mouse) => {
+                                    if (mouse.button === Qt.LeftButton) {
+                                        if (root.disks.length > 0) { root.currentDiskIdx = (root.currentDiskIdx + 1) % root.disks.length; root.updateDiskText(); }
+                                    } else { root.showDiskPercent = !root.showDiskPercent; root.updateDiskText(); }
+                                }
                             }
+                        }
+                        Rectangle { width: 1; height: 12; color: root.nord3 }
+
+                        // --- WiFi ---
+                        Text {
+                            property string icon: root.wifiSSID === "Offline" ? "󰤮 " : (root.wifiStrength > 75 ? "󰤨 " : (root.wifiStrength > 50 ? "󰤥 " : "󰤢 "))
                             text: icon + (root.wifiSSID === "Offline" ? "Searching..." : root.wifiSSID) + " (" + root.wifiStrength + "%)"
-                            color: root.wifiSSID === "Offline" ? root.nord11 : root.nord8
-                            font.pixelSize: root.fontSize; font.family: root.fontFamily
+                            color: root.wifiSSID === "Offline" ? root.nord11 : root.nord8; font.pixelSize: root.fontSize; font.family: root.fontFamily
                         }
 
                         Rectangle { width: 2; height: 14; color: root.nord2; radius: 1 }
 
+                        // --- Audio/Mic ---
                         Text {
-                            text: (root.isMicMuted ? "󰍭 " : "󰍬 ") + micLevel + "%"
-                            color: root.isMicMuted ? root.nord3 : root.nord15
-                            font.pixelSize: root.fontSize; font.family: root.fontFamily
+                            text: (root.isMicMuted ? "󰍭 " : "󰍬 ") + micLevel + "%"; color: root.isMicMuted ? root.nord3 : root.nord15; font.pixelSize: root.fontSize; font.family: root.fontFamily
                             MouseArea {
                                 anchors.fill: parent; acceptedButtons: Qt.LeftButton | Qt.RightButton
-                                onWheel: (w) => {
-                                    let isUp = w.angleDelta.y > 0;
-                                    if (isUp && root.micLevel >= 100) return;
-                                    let dir = isUp ? "5%+" : "5%-";
-                                    shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SOURCE@", dir];
-                                    shellCmd.running = false; shellCmd.running = true;
-                                }
-                                onClicked: (m) => {
-                                    if (m.button === Qt.RightButton) {
-                                        shellCmd.command = ["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"];
-                                    } else {
-                                        shellCmd.command = ["pavucontrol"];
-                                    }
-                                    shellCmd.running = false; shellCmd.running = true;
-                                }
+                                onWheel: (w) => { let dir = w.angleDelta.y > 0 ? "5%+" : "5%-"; shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SOURCE@", dir]; shellCmd.running = false; shellCmd.running = true; }
+                                onClicked: (m) => { shellCmd.command = m.button === Qt.RightButton ? ["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"] : ["pavucontrol"]; shellCmd.running = false; shellCmd.running = true; }
                             }
                         }
-
                         Rectangle { width: 1; height: 12; color: root.nord3 }
 
                         Text {
-                            text: (root.isMuted ? "󰝟 " : " ") + volumeLevel + "%"
-                            color: root.isMuted ? root.nord3 : root.nord14
-                            font.pixelSize: root.fontSize; font.family: root.fontFamily
+                            text: (root.isMuted ? "󰝟 " : " ") + volumeLevel + "%"; color: root.isMuted ? root.nord3 : root.nord14; font.pixelSize: root.fontSize; font.family: root.fontFamily
                             MouseArea {
                                 anchors.fill: parent; acceptedButtons: Qt.LeftButton | Qt.RightButton
-                                onWheel: (w) => {
-                                    let isUp = w.angleDelta.y > 0;
-                                    if (isUp && root.volumeLevel >= 100) return;
-                                    let dir = isUp ? "5%+" : "5%-";
-                                    shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", dir];
-                                    shellCmd.running = false; shellCmd.running = true;
-                                }
-                                onClicked: (m) => {
-                                    if (m.button === Qt.RightButton) {
-                                        shellCmd.command = ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"];
-                                    } else {
-                                        shellCmd.command = ["pavucontrol"];
-                                    }
-                                    shellCmd.running = false; shellCmd.running = true;
-                                }
+                                onWheel: (w) => { let dir = w.angleDelta.y > 0 ? "5%+" : "5%-"; shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", dir]; shellCmd.running = false; shellCmd.running = true; }
+                                onClicked: (m) => { shellCmd.command = m.button === Qt.RightButton ? ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"] : ["pavucontrol"]; shellCmd.running = false; shellCmd.running = true; }
                             }
                         }
                     }
