@@ -197,7 +197,7 @@ map bg setbg
 
 ### DRAG (DRAGON) ###
 cmd drag ${{
-  dragon -a -x -T $fx
+  dragon-drop -a -x -T $fx
 }}
 map dr drag
 
