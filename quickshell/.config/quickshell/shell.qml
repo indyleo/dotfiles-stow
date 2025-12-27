@@ -4,6 +4,7 @@ import Quickshell.Io
 import Quickshell.Hyprland
 import QtQuick
 import QtQuick.Layouts
+import Qt5Compat.GraphicalEffects
 
 ShellRoot {
     id: root
@@ -78,6 +79,7 @@ ShellRoot {
     property string wifiSSID: "Offline"
     property int wifiStrength: 0
 
+    // Command runner
     Process { id: shellCmd }
 
     Process {
@@ -89,15 +91,12 @@ ShellRoot {
 
     // --- Resource Fetchers ---
 
-    // CPU Fetcher (Usage + Temp)
     Process {
         id: cpuProc
-        // Fetches /proc/stat for usage AND the first thermal zone for temp
         command: ["sh", "-c", "head -1 /proc/stat; cat /sys/class/thermal/thermal_zone*/temp | head -n 1"]
         stdout: SplitParser {
             onRead: data => {
                 if (!data) return
-                // Check if line is usage data or temp data
                 if (data.startsWith("cpu")) {
                     var parts = data.trim().split(/\s+/)
                     var total = parts.slice(1, 8).reduce((a, b) => parseInt(a) + parseInt(b), 0)
@@ -109,7 +108,6 @@ ShellRoot {
                     }
                     root.lastCpuTotal = total; root.lastCpuIdle = idle
                 } else {
-                    // It is likely the temperature line (raw millidegrees)
                     let tempVal = parseInt(data.trim())
                     if (!isNaN(tempVal)) root.cpuTemp = Math.round(tempVal / 1000)
                 }
@@ -117,7 +115,6 @@ ShellRoot {
         }
     }
 
-    // GPU Fetcher: Toggles between Intel and Nvidia, fetches Usage AND Temp
     Process {
         id: gpuProc
         command: root.isNvidia
@@ -132,7 +129,6 @@ ShellRoot {
                     root.gpuUsage = parseInt(parts[0].trim()) || 0
                     root.gpuTemp = parseInt(parts[1].trim()) || 0
                 } else if (parts.length === 1) {
-                    // Fallback if command only returned one number
                     root.gpuUsage = parseInt(parts[0].trim()) || 0
                 }
             }
@@ -248,7 +244,46 @@ ShellRoot {
             RowLayout {
                 anchors.fill: parent; spacing: 8; anchors.leftMargin: 12; anchors.rightMargin: 12
 
-                // --- 1. Workspaces ---
+                // --- 0. Profile Pill (Rofi Launcher) ---
+                Rectangle {
+                    Layout.preferredWidth: 32; Layout.preferredHeight: 26
+                    color: root.nord1; radius: 13
+
+                    Item {
+                        width: 22; height: 22
+                        anchors.centerIn: parent
+                        Image {
+                            id: profileIcon
+                            anchors.fill: parent
+                            source: "icon.png"
+                            fillMode: Image.PreserveAspectCrop
+                            visible: false
+                        }
+                        Rectangle {
+                            id: mask
+                            anchors.fill: parent
+                            radius: width / 2
+                            visible: false
+                        }
+                        OpacityMask {
+                            anchors.fill: parent
+                            source: profileIcon
+                            maskSource: mask
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        acceptedButtons: Qt.LeftButton | Qt.RightButton
+                        onClicked: (mouse) => {
+                            if (mouse.button === Qt.LeftButton) shellCmd.command = ["rofi", "-show", "drun"]
+                            else shellCmd.command = ["sh", "-c", "rofi_power"]
+                            shellCmd.running = false; shellCmd.running = true
+                        }
+                    }
+                }
+
+                // --- 1. Workspaces (Animated) ---
                 Rectangle {
                     Layout.preferredHeight: 26; Layout.preferredWidth: (26 * 9) + 24
                     color: root.nord1; radius: 13
@@ -261,12 +296,17 @@ ShellRoot {
                                 property var workspace: Hyprland.workspaces.values.find(ws => ws.id === index + 1) ?? null
                                 property bool isActive: Hyprland.focusedWorkspace?.id === (index + 1)
                                 property bool hasWindows: workspace !== null
+
                                 Text {
                                     anchors.centerIn: parent
                                     text: parent.isActive ? "" : (parent.hasWindows ? "" : "")
                                     color: parent.isActive ? root.nord8 : (parent.hasWindows ? root.nord9 : root.nord3)
                                     font.pixelSize: parent.isActive ? root.fontSize + 2 : root.fontSize
                                     font.family: root.fontFamily
+
+                                    // --- Animation Logic ---
+                                    Behavior on color { ColorAnimation { duration: 200 } }
+                                    Behavior on font.pixelSize { NumberAnimation { duration: 200; easing.type: Easing.OutBack } }
                                 }
                                 MouseArea { anchors.fill: parent; onClicked: { Hyprland.dispatch("workspace " + (index + 1)) } }
                             }
@@ -299,23 +339,57 @@ ShellRoot {
                     RowLayout {
                         id: statsRow; anchors.centerIn: parent; spacing: 12
 
-                        Text { text: "󰌽 " + kernelVersion; color: root.nord10; font.pixelSize: root.fontSize; font.family: root.fontFamily }
+                        // --- EXPANDABLE KERNEL ---
+                        Row {
+                            id: kernelContainer
+                            property bool show: false
+                            spacing: 0
+
+                            Text {
+                                text: "󰌽"
+                                color: root.nord10
+                                font.pixelSize: root.fontSize + 2
+                                font.family: root.fontFamily
+                                anchors.verticalCenter: parent.verticalCenter
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+																		acceptedButtons: Qt.MiddleButton
+                                    onClicked: kernelContainer.show = !kernelContainer.show
+                                }
+                            }
+
+                            Item {
+                                height: 20
+                                width: kernelContainer.show ? kernelText.implicitWidth + 8 : 0
+                                clip: true
+                                anchors.verticalCenter: parent.verticalCenter
+                                Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+
+                                Text {
+                                    id: kernelText
+                                    anchors.left: parent.left; anchors.leftMargin: 6
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: root.kernelVersion; color: root.nord10
+                                    font.pixelSize: root.fontSize; font.family: root.fontFamily
+                                    opacity: parent.width > 0 ? 1 : 0
+                                    Behavior on opacity { NumberAnimation { duration: 200 } }
+                                }
+                            }
+                        }
+
                         Rectangle { width: 1; height: 12; color: root.nord3 }
 
-                        // --- CPU (Right click for Temp) ---
+                        // --- CPU ---
                         Text {
                             text: " " + (root.showCpuTemp ? root.cpuTemp + "°C" : root.cpuUsage + "%")
                             color: root.nord11
                             font.pixelSize: root.fontSize; font.family: root.fontFamily
-                            MouseArea {
-                                anchors.fill: parent
-                                acceptedButtons: Qt.RightButton
-                                onClicked: root.showCpuTemp = !root.showCpuTemp
-                            }
+                            MouseArea { anchors.fill: parent; acceptedButtons: Qt.RightButton; onClicked: root.showCpuTemp = !root.showCpuTemp }
                         }
                         Rectangle { width: 1; height: 12; color: root.nord3 }
 
-                        // --- GPU (Left: Switch NV/IN, Right: Switch %/Temp) ---
+                        // --- GPU ---
                         Text {
                             text: (root.isNvidia ? "󰢮 NV: " : "󰢮 IN: ") + (root.showGpuTemp ? root.gpuTemp + "°C" : root.gpuUsage + "%")
                             color: root.isNvidia ? root.nord15 : root.nord8
@@ -356,11 +430,25 @@ ShellRoot {
                         }
                         Rectangle { width: 1; height: 12; color: root.nord3 }
 
-                        // --- WiFi ---
+                        // --- WiFi (Clickable) ---
                         Text {
                             property string icon: root.wifiSSID === "Offline" ? "󰤮 " : (root.wifiStrength > 75 ? "󰤨 " : (root.wifiStrength > 50 ? "󰤥 " : "󰤢 "))
                             text: icon + (root.wifiSSID === "Offline" ? "Searching..." : root.wifiSSID) + " (" + root.wifiStrength + "%)"
                             color: root.wifiSSID === "Offline" ? root.nord11 : root.nord8; font.pixelSize: root.fontSize; font.family: root.fontFamily
+
+                            MouseArea {
+                                anchors.fill: parent
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: (mouse) => {
+                                    if (mouse.button === Qt.LeftButton) {
+                                        shellCmd.command = ["nm-connection-editor"]
+                                    } else {
+                                        shellCmd.command = ["sh", "-c", "rofi_wifi"]
+                                    }
+                                    shellCmd.running = false; shellCmd.running = true
+                                }
+                            }
                         }
 
                         Rectangle { width: 2; height: 14; color: root.nord2; radius: 1 }
