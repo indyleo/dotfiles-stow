@@ -10,7 +10,7 @@ alias l.='eza -a | egrep "^\."' # Show Only Hidden File
 alias df='duf'
 
 # Cat to Bat Alias
-alias cat='batcat -pn --pager=""'
+alias cat='bat -pn --pager=""'
 
 # Colorize grep output (good for log files)
 alias grep='grep --color=auto'
