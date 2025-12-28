@@ -4,13 +4,36 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="starticon.png" type="image/png" />
-    <title>Start Page</title>
-    <link rel="stylesheet" href="themes/nord.css" />
+    <title>Start Page (Nord)</title>
     <style>
+      /* --- THEME VARIABLES (Nord Palette) --- */
+      :root {
+        /* This is the main background color #2e3440 converted to RGB: 46, 52, 64 */
+        --bg: #2e3440;
+        --bg-alt: #3b4252;
+        --fg: #eceff4;
+        --fg-dim: #d8dee9;
+        --border: #8fbcbb;
+        --accent: #88c0d0;
+
+        /* FIXED: This must match the RGB of --bg rgba(67, 76, 94)
+           otherwise the screen turns lighter/bluer over time.
+        */
+        --matrix-fade: rgba(67, 76, 94, 0.15);
+        --matrix-green: #a3be8c;
+
+        /* Glassmorphism Variables */
+        /* Made slightly darker (0.75 opacity) to reduce 'milky' look */
+        --glass-bg: rgba(46, 52, 64, 0.75);
+        --glass-border: rgba(143, 188, 187, 0.2);
+        --glass-blur: blur(10px);
+        --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+      }
+
       body {
         margin: 0;
         background-color: var(--bg);
-        font-family: "Segoe UI", sans-serif;
+        font-family: "Segoe UI", "Roboto", Helvetica, Arial, sans-serif;
         color: var(--fg);
         display: flex;
         flex-direction: column;
@@ -18,97 +41,10 @@
         justify-content: center;
         min-height: 100vh;
         text-align: center;
+        overflow-x: hidden;
       }
 
-      h1 {
-        font-size: 1.5em;
-        margin-bottom: 10px;
-        padding: 10px;
-        background-color: var(--bg);
-        color: var(--fg);
-        border: 2px solid var(--border);
-        border-radius: 8px;
-        display: inline-block;
-      }
-
-      form {
-        border: 2px solid var(--border);
-        padding: 10px;
-        border-radius: 8px;
-        display: inline-block;
-        background-color: var(--bg);
-      }
-
-      h2 {
-        font-size: 1.3rem;
-        color: var(--fg);
-        margin-bottom: 2rem;
-      }
-
-      #datetime {
-        font-size: 1.2rem;
-        color: var(--fg);
-        padding: 8px 12px;
-        margin-top: 0;
-        background-color: var(--bg);
-        border: 2px solid var(--border);
-        border-radius: 8px;
-        display: inline-block;
-      }
-
-      .search-bar input {
-        padding: 0.5em 1em;
-        font-size: 1rem;
-        width: 300px;
-        border: none;
-        border-radius: 8px;
-        background-color: var(--bg);
-        color: var(--fg);
-      }
-
-      .search-bar input:focus {
-        outline: none;
-        background-color: var(--bg-alt);
-      }
-
-      .quicklines-box {
-        background-color: var(--bg);
-        border: 2px solid var(--border);
-        border-radius: 12px;
-        padding: 2rem;
-        margin-top: 3rem;
-        max-width: 800px;
-        width: 90%;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-      }
-
-      .links {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 2rem;
-        justify-content: center;
-      }
-
-      .category {
-        text-align: left;
-      }
-
-      .category h3 {
-        color: var(--fg);
-        margin-bottom: 0.5em;
-      }
-
-      .category a {
-        display: block;
-        color: var(--fg);
-        text-decoration: none;
-        margin-bottom: 0.3em;
-      }
-
-      .category a:hover {
-        color: var(--accent);
-      }
-
+      /* --- BACKGROUND CANVAS --- */
       #matrix-canvas {
         position: fixed;
         top: 0;
@@ -116,157 +52,295 @@
         width: 100%;
         height: 100%;
         z-index: -1;
-        background-color: var(--bg);
+      }
+
+      /* --- COMMON GLASS STYLES --- */
+      .glass-panel {
+        background: var(--glass-bg);
+        backdrop-filter: var(--glass-blur);
+        -webkit-backdrop-filter: var(--glass-blur);
+        border: 1px solid var(--glass-border);
+        box-shadow: var(--shadow);
+        border-radius: 12px;
+      }
+
+      /* --- HEADER & CLOCK --- */
+      h1 {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+        padding: 10px 25px;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        display: inline-block;
+      }
+
+      #datetime {
+        font-size: 1.1rem;
+        color: var(--fg-dim);
+        padding: 8px 20px;
+        margin-top: 0;
+        margin-bottom: 2rem;
+        font-family: monospace;
+        display: inline-block;
+      }
+
+      /* --- SEARCH BAR --- */
+      .search-container {
+        margin-bottom: 2rem;
+        z-index: 10;
+      }
+
+      form {
+        padding: 8px;
+        display: flex;
+        align-items: center;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+      }
+
+      form:focus-within {
+        transform: scale(1.02);
+        border-color: var(--accent);
+        box-shadow: 0 0 15px rgba(136, 192, 208, 0.2);
+      }
+
+      .search-bar input {
+        padding: 10px 15px;
+        font-size: 1.1rem;
+        width: 320px;
+        border: none;
+        border-radius: 6px;
+        background-color: transparent;
+        color: var(--fg);
+        text-align: center;
+      }
+
+      .search-bar input::placeholder {
+        color: var(--fg-dim);
+        opacity: 0.7;
+      }
+
+      .search-bar input:focus {
+        outline: none;
+      }
+
+      /* --- LINKS SECTION --- */
+      .quicklines-box {
+        padding: 2.5rem;
+        max-width: 900px;
+        width: 85%;
+        margin-top: 1rem;
+      }
+
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2.5rem;
+        justify-content: center;
+      }
+
+      .category {
+        text-align: left;
+        min-width: 140px;
+      }
+
+      .category h3 {
+        color: var(--accent);
+        margin-top: 0;
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+        border-bottom: 1px solid var(--glass-border);
+        padding-bottom: 5px;
+      }
+
+      .category a {
+        display: flex;
+        align-items: center;
+        color: var(--fg-dim);
+        text-decoration: none;
+        margin-bottom: 0.6em;
+        padding: 5px 8px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+      }
+
+      .category a img {
+        margin-right: 10px;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+      }
+
+      .category a:hover {
+        background-color: rgba(136, 192, 208, 0.15);
+        color: #fff;
+        transform: translateX(5px);
+      }
+
+      .category a:hover img {
+        opacity: 1;
+      }
+
+      /* --- RESPONSIVE --- */
+      @media (max-width: 600px) {
+        .search-bar input {
+          width: 200px;
+        }
+        .links {
+          gap: 1.5rem;
+        }
+        .category {
+          min-width: 40%;
+          text-align: center;
+        }
+        .category a {
+          justify-content: center;
+        }
       }
     </style>
   </head>
   <body>
     <canvas id="matrix-canvas"></canvas>
-    <h1>Home Page</h1>
-    <h2 id="datetime"></h2>
 
-    <div class="search-bar">
+    <h1 class="glass-panel">Start Page</h1>
+    <div id="datetime" class="glass-panel"></div>
+
+    <div class="search-container">
       <form
         action="https://searxng.linuxlab.work/search"
         method="get"
-        target="_blank"
+        class="glass-panel"
       >
-        <input
-          type="text"
-          name="q"
-          placeholder="Search with SearXNG..."
-          required
-        />
+        <div class="search-bar">
+          <input
+            type="text"
+            id="searchInput"
+            name="q"
+            placeholder="Search... (Press '/')"
+            autocomplete="off"
+            required
+          />
+        </div>
       </form>
     </div>
 
-    <div class="quicklines-box">
+    <div class="quicklines-box glass-panel">
       <div class="links">
         <div class="category">
           <h3>Work</h3>
-          <a href="https://github.com">
-            <img src="favicons/github.ico" width="16" height="16" />
-            GitHub
-          </a>
-          <a href="https://gitlab.com">
-            <img src="favicons/gitlab.ico" width="16" height="16" />
-            GitLab
-          </a>
-          <a href="https://stackoverflow.com">
-            <img src="favicons/stackoverflow.ico" width="16" height="16" />
-            Stack Overflow
-          </a>
-          <a href="https://mail.google.com/mail/u/0/#inbox">
-            <img src="favicons/gmail.ico" width="16" height="16" />
-            Gmail
-          </a>
-          <a href="https://mail.proton.me/u/0/inbox">
-            <img src="favicons/protonmail.ico" width="16" height="16" />
-            ProtonMail
-          </a>
-          <a href="https://outlook.live.com/mail/0/">
-            <img src="favicons/outlook.ico" width="16" height="16" />
-            Outlook
-          </a>
+          <a href="https://github.com"
+            ><img src="favicons/github.ico" width="16" height="16" />GitHub</a
+          >
+          <a href="https://gitlab.com"
+            ><img src="favicons/gitlab.ico" width="16" height="16" />GitLab</a
+          >
+          <a href="https://stackoverflow.com"
+            ><img
+              src="favicons/stackoverflow.ico"
+              width="16"
+              height="16"
+            />Stack Overflow</a
+          >
+          <a href="https://mail.google.com/mail/u/0/#inbox"
+            ><img src="favicons/gmail.ico" width="16" height="16" />Gmail</a
+          >
+          <a href="https://outlook.live.com/mail/0/"
+            ><img src="favicons/outlook.ico" width="16" height="16" />Outlook</a
+          >
         </div>
+
         <div class="category">
           <h3>Media</h3>
-          <a href="https://youtube.com">
-            <img src="favicons/youtube.ico" width="16" height="16" />
-            YouTube
-          </a>
-          <a href="https://twitch.tv">
-            <img src="favicons/twitch.ico" width="16" height="16" />
-            Twitch
-          </a>
-          <a href="https://www.reddit.com/">
-            <img src="favicons/reddit.ico" width="16" height="16" />
-            Reddit
-          </a>
-          <a href="https://discord.com/channels/@me">
-            <img src="favicons/discord.ico" width="16" height="16" />
-            Discord
-          </a>
+          <a href="https://youtube.com"
+            ><img src="favicons/youtube.ico" width="16" height="16" />YouTube</a
+          >
+          <a href="https://twitch.tv"
+            ><img src="favicons/twitch.ico" width="16" height="16" />Twitch</a
+          >
+          <a href="https://www.reddit.com/"
+            ><img src="favicons/reddit.ico" width="16" height="16" />Reddit</a
+          >
+          <a href="https://discord.com/channels/@me"
+            ><img src="favicons/discord.ico" width="16" height="16" />Discord</a
+          >
         </div>
+
         <div class="category">
           <h3>Tools</h3>
-          <a href="https://gemini.google.com/u/1">
-            <img src="favicons/gemini.svg" width="16" height="16" />
-            Gemini
-          </a>
-          <a href="https://claude.ai/new">
-            <img src="favicons/claude.svg" width="16" height="16" />
-            Claude
-          </a>
-          <a href="https://chat.openai.com">
-            <img src="favicons/chatgpt.ico" width="16" height="16" />
-            ChatGPT
-          </a>
-          <a href="https://www.deepl.com/en/translator">
-            <img src="favicons/deepl.ico" width="16" height="16" />
-            DeepL
-          </a>
-          <a href="https://archive.org">
-            <img src="favicons/archive.ico" width="16" height="16" />
-            Internet Archive
-          </a>
-          <a href="https://terminal.sexy">
-            <img src="favicons/hackertype.ico" width="16" height="16" />
-            Terminal Sexy
-          </a>
+          <a href="https://gemini.google.com/u/1"
+            ><img src="favicons/gemini.svg" width="16" height="16" />Gemini</a
+          >
+          <a href="https://claude.ai/new"
+            ><img src="favicons/claude.svg" width="16" height="16" />Claude</a
+          >
+          <a href="https://chat.openai.com"
+            ><img src="favicons/chatgpt.ico" width="16" height="16" />ChatGPT</a
+          >
+          <a href="https://www.deepl.com/en/translator"
+            ><img src="favicons/deepl.ico" width="16" height="16" />DeepL</a
+          >
+          <a href="https://terminal.sexy"
+            ><img
+              src="favicons/hackertype.ico"
+              width="16"
+              height="16"
+            />Terminal Sexy</a
+          >
         </div>
+
         <div class="category">
           <h3>Projects</h3>
-          <a href="https://github.com/indyleo/Catalyst">
-            <img src="favicons/github.ico" width="16" height="16" />
-            Catalyst
-          </a>
-          <a href="https://github.com/indyleo/dotfiles-stow">
-            <img src="favicons/github.ico" width="16" height="16" />
-            Dotfiles
-          </a>
-          <a href="https://github.com/indyleo/suckless">
-            <img src="favicons/github.ico" width="16" height="16" />
-            Suckless Tools
-          </a>
-          <a href="https://github.com/indyleo/scripts">
-            <img src="favicons/github.ico" width="16" height="16" />
-            Tool Scripts
-          </a>
-          <a href="https://github.com/indyleo/WindowsStuff">
-            <img src="favicons/github.ico" width="16" height="16" />
-            My Windows Setup
-          </a>
-          <a href="https://github.com/indyleo/portfilio">
-            <img src="favicons/github.ico" width="16" height="16" />
-            Portfolio
-          </a>
+          <a href="https://github.com/indyleo/Catalyst"
+            ><img src="favicons/github.ico" width="16" height="16" />Catalyst</a
+          >
+          <a href="https://github.com/indyleo/dotfiles-stow"
+            ><img src="favicons/github.ico" width="16" height="16" />Dotfiles</a
+          >
+          <a href="https://github.com/indyleo/suckless"
+            ><img src="favicons/github.ico" width="16" height="16" />Suckless</a
+          >
+          <a href="https://github.com/indyleo/scripts"
+            ><img src="favicons/github.ico" width="16" height="16" />Scripts</a
+          >
         </div>
       </div>
     </div>
 
     <script>
+      /* --- MATRIX EFFECT --- */
       const canvas = document.getElementById("matrix-canvas");
       const ctx = canvas.getContext("2d");
 
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-
+      // Character set: Katakana and Kanji only
       const letters =
         "アァイィウヴエェオカガキギクグケゲコゴサザシジスズセゼソゾタダチッヂヅテデトドナニヌネノハバパヒビピフブプヘベペホボポマミムメモヤユヨラリルレロワヲンABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
       const fontSize = 14;
-      const columns = canvas.width / fontSize;
-      const drops = Array(Math.floor(columns)).fill(1);
+      let drops = [];
+
+      function resizeAndReset() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Calculate columns based on new width
+        const columns = Math.ceil(canvas.width / fontSize);
+
+        // Ensure drops array is the right length
+        if (drops.length < columns) {
+          for (let i = drops.length; i < columns; i++) {
+            drops[i] = Math.floor((Math.random() * canvas.height) / fontSize);
+          }
+        }
+      }
 
       function drawMatrix() {
-        // use CSS variable for the fading background
-        // Checks the computed style of the document (provided by nord.css)
+        // Fade effect: Uses the CSS variable that now matches the BG color exactly
         ctx.fillStyle = getComputedStyle(document.documentElement)
           .getPropertyValue("--matrix-fade")
           .trim();
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // use CSS variable for the green characters
+        // Text settings
         ctx.fillStyle = getComputedStyle(document.documentElement)
           .getPropertyValue("--matrix-green")
           .trim();
@@ -278,45 +352,61 @@
           );
           ctx.fillText(text, i * fontSize, drops[i] * fontSize);
 
-          if (drops[i] * fontSize > canvas.height || Math.random() > 0.975) {
+          // Reset drop to top randomly
+          if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
             drops[i] = 0;
           }
-
           drops[i]++;
         }
       }
 
+      // Initialize
+      resizeAndReset();
+      window.addEventListener("resize", resizeAndReset);
+
+      // Start the animation loop
       setInterval(drawMatrix, 50);
 
-      // Responsive canvas
-      window.addEventListener("resize", () => {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        drops.length = Math.floor(canvas.width / fontSize);
-        drops.fill(1);
-      });
-
+      /* --- CLOCK --- */
       function updateDateTime() {
         const now = new Date();
-        const date = now.toLocaleDateString(undefined, {
+        const dateOptions = {
           weekday: "long",
           year: "numeric",
           month: "short",
           day: "numeric",
-        });
-        const time = now
-          .toLocaleTimeString(undefined, {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-          })
-          .toUpperCase();
-        document.getElementById("datetime").textContent = `${date} | ${time}`;
-      }
+        };
+        const timeOptions = {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        };
 
-      // Initial call and interval for clock
+        const dateStr = now.toLocaleDateString("en-US", dateOptions);
+        const timeStr = now.toLocaleTimeString("en-US", timeOptions);
+
+        document.getElementById("datetime").textContent =
+          `${dateStr} • ${timeStr}`;
+      }
       updateDateTime();
-      setInterval(updateDateTime, 60000);
+      setInterval(updateDateTime, 1000);
+
+      /* --- UX IMPROVEMENTS --- */
+      const searchInput = document.getElementById("searchInput");
+
+      // Focus on load
+      window.onload = () => {
+        searchInput.focus();
+        resizeAndReset();
+      };
+
+      // '/' Shortcut
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "/" && document.activeElement !== searchInput) {
+          e.preventDefault();
+          searchInput.focus();
+        }
+      });
     </script>
   </body>
 </html>
