@@ -6,7 +6,6 @@
     <link rel="icon" href="starticon.png" type="image/png" />
     <title>Start Page (Nord)</title>
     <style>
-      /* --- THEME VARIABLES (Nord Palette) --- */
       :root {
         --bg: #2e3440;
         --bg-alt: #3b4252;
@@ -14,11 +13,8 @@
         --fg-dim: #d8dee9;
         --border: #8fbcbb;
         --accent: #88c0d0;
-
-        /* FIXED: RGB rgba(67, 76, 94, 1) matches Nord 3 exactly to stop background drift */
         --matrix-fade: rgba(67, 76, 94, 0.15);
         --matrix-green: #a3be8c;
-
         --glass-bg: rgba(46, 52, 64, 0.75);
         --glass-border: rgba(143, 188, 187, 0.2);
         --glass-blur: blur(10px);
@@ -36,7 +32,7 @@
         justify-content: center;
         min-height: 100vh;
         text-align: center;
-        overflow-x: hidden;
+        overflow: hidden;
       }
 
       #matrix-canvas {
@@ -47,11 +43,9 @@
         height: 100%;
         z-index: -1;
       }
-
       .glass-panel {
         background: var(--glass-bg);
         backdrop-filter: var(--glass-blur);
-        -webkit-backdrop-filter: var(--glass-blur);
         border: 1px solid var(--glass-border);
         box-shadow: var(--shadow);
         border-radius: 12px;
@@ -60,59 +54,56 @@
       h1 {
         font-size: 1.5rem;
         margin-bottom: 10px;
-        padding: 10px 25px;
+        padding: 20px 40px;
         color: var(--accent);
         text-transform: uppercase;
         letter-spacing: 2px;
-        display: inline-block;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 450px;
+      }
+
+      .quote-text {
+        font-size: 0.85rem;
+        text-transform: none;
+        color: var(--fg-dim);
+        font-style: italic;
+        font-weight: normal;
+        opacity: 0.8;
+        margin-top: 5px;
       }
 
       #datetime {
         font-size: 1.1rem;
         color: var(--fg-dim);
         padding: 8px 20px;
-        margin-top: 0;
         margin-bottom: 2rem;
         font-family: monospace;
-        display: inline-block;
       }
-
       .search-container {
         margin-bottom: 2rem;
         z-index: 10;
       }
-
       form {
         padding: 8px;
         display: flex;
         align-items: center;
-        transition:
-          transform 0.2s,
-          box-shadow 0.2s;
+        transition: 0.2s;
       }
-
       form:focus-within {
         transform: scale(1.02);
-        border-color: var(--accent);
         box-shadow: 0 0 15px rgba(136, 192, 208, 0.2);
       }
-
       .search-bar input {
         padding: 10px 15px;
         font-size: 1.1rem;
         width: 320px;
         border: none;
-        border-radius: 6px;
-        background-color: transparent;
+        background: transparent;
         color: var(--fg);
         text-align: center;
       }
-
-      .search-bar input::placeholder {
-        color: var(--fg-dim);
-        opacity: 0.7;
-      }
-
       .search-bar input:focus {
         outline: none;
       }
@@ -121,30 +112,24 @@
         padding: 2.5rem;
         max-width: 900px;
         width: 85%;
-        margin-top: 1rem;
       }
-
       .links {
         display: flex;
         flex-wrap: wrap;
         gap: 2.5rem;
         justify-content: center;
       }
-
       .category {
         text-align: left;
         min-width: 140px;
       }
-
       .category h3 {
         color: var(--accent);
-        margin-top: 0;
         margin-bottom: 1rem;
         font-size: 1.1rem;
         border-bottom: 1px solid var(--glass-border);
         padding-bottom: 5px;
       }
-
       .category a {
         display: flex;
         align-items: center;
@@ -153,38 +138,43 @@
         margin-bottom: 0.6em;
         padding: 5px 8px;
         border-radius: 6px;
-        transition: all 0.2s ease;
+        transition: 0.2s;
       }
-
       .category a img {
         margin-right: 10px;
         opacity: 0.8;
-        transition: opacity 0.2s;
       }
-
       .category a:hover {
-        background-color: rgba(136, 192, 208, 0.15);
+        background: rgba(136, 192, 208, 0.15);
         color: #fff;
         transform: translateX(5px);
       }
 
-      .category a:hover img {
-        opacity: 1;
+      .sys-info {
+        position: fixed;
+        bottom: 20px;
+        display: flex;
+        gap: 20px;
+        padding: 10px 20px;
+        font-family: monospace;
+        font-size: 0.8rem;
+        color: var(--fg-dim);
+      }
+      .sys-label {
+        color: var(--accent);
+      }
+      .hidden {
+        display: none !important;
       }
 
       @media (max-width: 600px) {
-        .search-bar input {
-          width: 200px;
+        h1 {
+          min-width: 90%;
+          font-size: 1.1rem;
         }
-        .links {
-          gap: 1.5rem;
-        }
-        .category {
-          min-width: 40%;
-          text-align: center;
-        }
-        .category a {
-          justify-content: center;
+        .sys-info {
+          flex-direction: column;
+          bottom: 10px;
         }
       }
     </style>
@@ -192,7 +182,10 @@
   <body>
     <canvas id="matrix-canvas"></canvas>
 
-    <h1 id="greeting" class="glass-panel">...</h1>
+    <h1 id="greeting" class="glass-panel">
+      <span id="greet-line">...</span>
+      <span id="quote-line" class="quote-text">...</span>
+    </h1>
     <div id="datetime" class="glass-panel"></div>
 
     <div class="search-container">
@@ -238,7 +231,6 @@
             ><img src="favicons/outlook.ico" width="16" height="16" />Outlook</a
           >
         </div>
-
         <div class="category">
           <h3>Media</h3>
           <a href="https://youtube.com"
@@ -254,7 +246,6 @@
             ><img src="favicons/discord.ico" width="16" height="16" />Discord</a
           >
         </div>
-
         <div class="category">
           <h3>Tools</h3>
           <a href="https://gemini.google.com/u/1"
@@ -277,7 +268,6 @@
             />Terminal Sexy</a
           >
         </div>
-
         <div class="category">
           <h3>Projects</h3>
           <a href="https://github.com/indyleo/Catalyst"
@@ -296,65 +286,95 @@
       </div>
     </div>
 
+    <div class="sys-info glass-panel" id="sysInfo">
+      <div class="sys-item">
+        <span class="sys-label">OS:</span> <span id="os-val">...</span>
+      </div>
+      <div id="distro-container" class="sys-item">
+        <span class="sys-label">DISTRO:</span> <span id="distro-val">...</span>
+      </div>
+      <div class="sys-item">
+        <span class="sys-label">BROWSER:</span>
+        <span id="browser-val">...</span>
+      </div>
+      <div class="sys-item">
+        <span class="sys-label">PING:</span> <span id="ping-val">...</span>
+      </div>
+    </div>
+
     <script>
-      /* --- MATRIX EFFECT --- */
+      /* --- MATRIX --- */
       const canvas = document.getElementById("matrix-canvas");
       const ctx = canvas.getContext("2d");
-
       const letters =
         "アァイィウヴエェオカガキギクグケゲコゴサザシジスズセゼソゾタダチッヂヅテデトドナニヌネノハバパヒビピフブプヘベペホボポマミムメモヤユヨラリルレロワヲンABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
       const fontSize = 14;
       let drops = [];
-
       function resizeAndReset() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         const columns = Math.ceil(canvas.width / fontSize);
-        if (drops.length < columns) {
-          for (let i = drops.length; i < columns; i++) {
-            drops[i] = Math.floor((Math.random() * canvas.height) / fontSize);
-          }
-        }
+        for (let i = 0; i < columns; i++)
+          drops[i] = Math.floor(Math.random() * (canvas.height / fontSize));
       }
-
       function drawMatrix() {
-        ctx.fillStyle = getComputedStyle(document.documentElement)
-          .getPropertyValue("--matrix-fade")
-          .trim();
+        ctx.fillStyle = "rgba(67, 76, 94, 0.15)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = getComputedStyle(document.documentElement)
-          .getPropertyValue("--matrix-green")
-          .trim();
+        ctx.fillStyle = "#a3be8c";
         ctx.font = `${fontSize}px monospace`;
-
         for (let i = 0; i < drops.length; i++) {
           const text = letters.charAt(
             Math.floor(Math.random() * letters.length),
           );
           ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-
-          if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+          if (drops[i] * fontSize > canvas.height && Math.random() > 0.975)
             drops[i] = 0;
-          }
           drops[i]++;
         }
       }
-
       resizeAndReset();
       window.addEventListener("resize", resizeAndReset);
       setInterval(drawMatrix, 50);
 
-      /* --- CLOCK & GREETING (LibreWolf Fix) --- */
+      /* --- FILE LOADING & GREETING --- */
+      let currentQuote = "Loading quote...";
+      let currentRandomPhrase = "Loading phrase...";
+
+      async function loadTextFiles() {
+        try {
+          const quoteRes = await fetch("quotes.txt");
+          const quotes = (await quoteRes.text())
+            .split("\n")
+            .filter((line) => line.trim() !== "");
+          currentQuote = quotes[Math.floor(Math.random() * quotes.length)];
+
+          const phraseRes = await fetch("randomphrases.txt");
+          const phrases = (await phraseRes.text())
+            .split("\n")
+            .filter((line) => line.trim() !== "");
+          currentRandomPhrase =
+            phrases[Math.floor(Math.random() * phrases.length)];
+
+          updateClock(); // Refresh greeting once data is loaded
+        } catch (e) {
+          currentQuote = "Error loading quotes.txt";
+          currentRandomPhrase = "Error loading phrases.txt";
+          updateClock();
+        }
+      }
+
+      function getHoliday(d, m, y, dayIdx) {
+        if (m === 0 && d === 1) return "Happy New Year";
+        if (m === 11 && d === 25) return "Merry Christmas";
+        if (m === 9 && dayIdx === 1 && d > 7 && d <= 14)
+          return "Thanksgiving (CA)";
+        if (m === 10 && dayIdx === 4 && d > 21 && d <= 28)
+          return "Thanksgiving (US)";
+        return null;
+      }
+
       function updateClock() {
         const now = new Date();
-
-        // Manual EST adjustment (UTC - 5)
-        const offset = -5;
-        const localTime = new Date(
-          now.getTime() + offset * 3600000 + now.getTimezoneOffset() * 60000,
-        );
-
         const days = [
           "Sunday",
           "Monday",
@@ -378,39 +398,79 @@
           "November",
           "December",
         ];
+        const h = now.getHours();
+        const m = now.getMonth();
+        const d = now.getDate();
 
-        const dayName = days[localTime.getDay()];
-        const monthName = months[localTime.getMonth()];
-        const date = localTime.getDate();
-        const year = localTime.getFullYear();
-
-        let hours = localTime.getHours();
-        const minutes = String(localTime.getMinutes()).padStart(2, "0");
-        const ampm = hours >= 12 ? "PM" : "AM";
-        hours = hours % 12 || 12;
-
-        // Display string without seconds
         document.getElementById("datetime").textContent =
-          `${dayName}, ${monthName} ${date}, ${year} • ${hours}:${minutes} ${ampm}`;
+          `${days[now.getDay()]}, ${months[m]} ${d} • ${h % 12 || 12}:${String(now.getMinutes()).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 
-        // Greeting Message
-        let greetingMsg = "Good Evening";
-        const currentHour = localTime.getHours();
-        if (currentHour >= 5 && currentHour < 12) greetingMsg = "Good Morning";
-        else if (currentHour >= 12 && currentHour < 18)
-          greetingMsg = "Good Afternoon";
+        let stdGreet =
+          h < 12 ? "Good Morning" : h < 17 ? "Good Afternoon" : "Good Evening";
+        const hol = getHoliday(d, m, now.getFullYear(), now.getDay());
 
-        document.getElementById("greeting").textContent = greetingMsg;
+        let greetingLine = hol
+          ? `${stdGreet} — ${hol} — ${currentRandomPhrase}`
+          : `${stdGreet} — ${currentRandomPhrase}`;
+        document.getElementById("greet-line").textContent = greetingLine;
+        document.getElementById("quote-line").textContent = `"${currentQuote}"`;
       }
 
-      updateClock();
-      setInterval(updateClock, 1000);
+      /* --- SYSTEM INFO --- */
+      function getPing() {
+        const start = Date.now();
+        fetch("https://www.google.com/favicon.ico", {
+          mode: "no-cors",
+          cache: "no-store",
+        })
+          .then(() => {
+            const delta = Date.now() - start;
+            document.getElementById("ping-val").textContent = `${delta}ms`;
+          })
+          .catch(() => {
+            document.getElementById("ping-val").textContent = "---";
+          });
+      }
 
-      /* --- UX --- */
+      function initSysInfo() {
+        const ua = navigator.userAgent;
+        let os = "Linux";
+        let isLinux = true;
+
+        if (ua.indexOf("Win") != -1) {
+          os = "Windows";
+          isLinux = false;
+        } else if (ua.indexOf("Mac") != -1) {
+          os = "MacOS";
+          isLinux = false;
+        }
+
+        document.getElementById("os-val").textContent = os;
+
+        if (isLinux) {
+          document.getElementById("distro-val").textContent = "Arch";
+        } else {
+          document.getElementById("distro-container").classList.add("hidden");
+        }
+
+        document.getElementById("browser-val").textContent = ua.includes(
+          "Firefox",
+        )
+          ? "Firefox"
+          : ua.includes("Chrome")
+            ? "Chrome"
+            : "Safari";
+        getPing();
+        setInterval(getPing, 10000);
+      }
+
+      loadTextFiles();
+      setInterval(updateClock, 1000);
+      initSysInfo();
+
       const searchInput = document.getElementById("searchInput");
       window.onload = () => {
         searchInput.focus();
-        resizeAndReset();
       };
       document.addEventListener("keydown", (e) => {
         if (e.key === "/" && document.activeElement !== searchInput) {
