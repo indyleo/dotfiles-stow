@@ -375,6 +375,8 @@
 
       function updateClock() {
         const now = new Date();
+        const offset = -5;
+        now.setHours(now.getHours() + offset);
         const days = [
           "Sunday",
           "Monday",
