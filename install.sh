@@ -42,3 +42,4 @@ stowq rofi
 stowq quickshell
 stowq hypr
 stowq mako
+stowq startpage
