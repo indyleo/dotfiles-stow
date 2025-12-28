@@ -8,7 +8,6 @@
     <style>
       /* --- THEME VARIABLES (Nord Palette) --- */
       :root {
-        /* This is the main background color #2e3440 converted to RGB: 46, 52, 64 */
         --bg: #2e3440;
         --bg-alt: #3b4252;
         --fg: #eceff4;
@@ -16,14 +15,10 @@
         --border: #8fbcbb;
         --accent: #88c0d0;
 
-        /* FIXED: This must match the RGB of --bg rgba(67, 76, 94)
-           otherwise the screen turns lighter/bluer over time.
-        */
+        /* FIXED: RGB rgba(67, 76, 94, 1) matches Nord 3 exactly to stop background drift */
         --matrix-fade: rgba(67, 76, 94, 0.15);
         --matrix-green: #a3be8c;
 
-        /* Glassmorphism Variables */
-        /* Made slightly darker (0.75 opacity) to reduce 'milky' look */
         --glass-bg: rgba(46, 52, 64, 0.75);
         --glass-border: rgba(143, 188, 187, 0.2);
         --glass-blur: blur(10px);
@@ -44,7 +39,6 @@
         overflow-x: hidden;
       }
 
-      /* --- BACKGROUND CANVAS --- */
       #matrix-canvas {
         position: fixed;
         top: 0;
@@ -54,7 +48,6 @@
         z-index: -1;
       }
 
-      /* --- COMMON GLASS STYLES --- */
       .glass-panel {
         background: var(--glass-bg);
         backdrop-filter: var(--glass-blur);
@@ -64,7 +57,6 @@
         border-radius: 12px;
       }
 
-      /* --- HEADER & CLOCK --- */
       h1 {
         font-size: 1.5rem;
         margin-bottom: 10px;
@@ -85,7 +77,6 @@
         display: inline-block;
       }
 
-      /* --- SEARCH BAR --- */
       .search-container {
         margin-bottom: 2rem;
         z-index: 10;
@@ -126,7 +117,6 @@
         outline: none;
       }
 
-      /* --- LINKS SECTION --- */
       .quicklines-box {
         padding: 2.5rem;
         max-width: 900px;
@@ -182,7 +172,6 @@
         opacity: 1;
       }
 
-      /* --- RESPONSIVE --- */
       @media (max-width: 600px) {
         .search-bar input {
           width: 200px;
@@ -203,7 +192,7 @@
   <body>
     <canvas id="matrix-canvas"></canvas>
 
-    <h1 class="glass-panel">Start Page</h1>
+    <h1 id="greeting" class="glass-panel">...</h1>
     <div id="datetime" class="glass-panel"></div>
 
     <div class="search-container">
@@ -312,7 +301,6 @@
       const canvas = document.getElementById("matrix-canvas");
       const ctx = canvas.getContext("2d");
 
-      // Character set: Katakana and Kanji only
       const letters =
         "アァイィウヴエェオカガキギクグケゲコゴサザシジスズセゼソゾタダチッヂヅテデトドナニヌネノハバパヒビピフブプヘベペホボポマミムメモヤユヨラリルレロワヲンABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
       const fontSize = 14;
@@ -321,11 +309,7 @@
       function resizeAndReset() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-
-        // Calculate columns based on new width
         const columns = Math.ceil(canvas.width / fontSize);
-
-        // Ensure drops array is the right length
         if (drops.length < columns) {
           for (let i = drops.length; i < columns; i++) {
             drops[i] = Math.floor((Math.random() * canvas.height) / fontSize);
@@ -334,13 +318,11 @@
       }
 
       function drawMatrix() {
-        // Fade effect: Uses the CSS variable that now matches the BG color exactly
         ctx.fillStyle = getComputedStyle(document.documentElement)
           .getPropertyValue("--matrix-fade")
           .trim();
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Text settings
         ctx.fillStyle = getComputedStyle(document.documentElement)
           .getPropertyValue("--matrix-green")
           .trim();
@@ -352,7 +334,6 @@
           );
           ctx.fillText(text, i * fontSize, drops[i] * fontSize);
 
-          // Reset drop to top randomly
           if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
             drops[i] = 0;
           }
@@ -360,47 +341,77 @@
         }
       }
 
-      // Initialize
       resizeAndReset();
       window.addEventListener("resize", resizeAndReset);
-
-      // Start the animation loop
       setInterval(drawMatrix, 50);
 
-      /* --- CLOCK --- */
-      function updateDateTime() {
+      /* --- CLOCK & GREETING (LibreWolf Fix) --- */
+      function updateClock() {
         const now = new Date();
-        const dateOptions = {
-          weekday: "long",
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        };
-        const timeOptions = {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        };
 
-        const dateStr = now.toLocaleDateString("en-US", dateOptions);
-        const timeStr = now.toLocaleTimeString("en-US", timeOptions);
+        // Manual EST adjustment (UTC - 5)
+        const offset = -5;
+        const localTime = new Date(
+          now.getTime() + offset * 3600000 + now.getTimezoneOffset() * 60000,
+        );
 
+        const days = [
+          "Sunday",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+        ];
+        const months = [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ];
+
+        const dayName = days[localTime.getDay()];
+        const monthName = months[localTime.getMonth()];
+        const date = localTime.getDate();
+        const year = localTime.getFullYear();
+
+        let hours = localTime.getHours();
+        const minutes = String(localTime.getMinutes()).padStart(2, "0");
+        const ampm = hours >= 12 ? "PM" : "AM";
+        hours = hours % 12 || 12;
+
+        // Display string without seconds
         document.getElementById("datetime").textContent =
-          `${dateStr} • ${timeStr}`;
+          `${dayName}, ${monthName} ${date}, ${year} • ${hours}:${minutes} ${ampm}`;
+
+        // Greeting Message
+        let greetingMsg = "Good Evening";
+        const currentHour = localTime.getHours();
+        if (currentHour >= 5 && currentHour < 12) greetingMsg = "Good Morning";
+        else if (currentHour >= 12 && currentHour < 18)
+          greetingMsg = "Good Afternoon";
+
+        document.getElementById("greeting").textContent = greetingMsg;
       }
-      updateDateTime();
-      setInterval(updateDateTime, 1000);
 
-      /* --- UX IMPROVEMENTS --- */
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      /* --- UX --- */
       const searchInput = document.getElementById("searchInput");
-
-      // Focus on load
       window.onload = () => {
         searchInput.focus();
         resizeAndReset();
       };
-
-      // '/' Shortcut
       document.addEventListener("keydown", (e) => {
         if (e.key === "/" && document.activeElement !== searchInput) {
           e.preventDefault();
