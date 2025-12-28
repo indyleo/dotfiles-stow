@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="starticon.png" type="image/png" />
     <title>Start Page</title>
-    <link id="theme-link" rel="stylesheet" href="themes/gruvbox.css" />
+    <link rel="stylesheet" href="themes/nord.css" />
     <style>
       body {
         margin: 0;
@@ -190,6 +190,10 @@
         </div>
         <div class="category">
           <h3>Tools</h3>
+          <a href="https://gemini.google.com/u/1">
+            <img src="favicons/gemini.svg" width="16" height="16" />
+            Gemini
+          </a>
           <a href="https://claude.ai/new">
             <img src="favicons/claude.svg" width="16" height="16" />
             Claude
@@ -256,9 +260,10 @@
 
       function drawMatrix() {
         // use CSS variable for the fading background
+        // Checks the computed style of the document (provided by nord.css)
         ctx.fillStyle = getComputedStyle(document.documentElement)
           .getPropertyValue("--matrix-fade")
-          .trim(); // trim() removes any stray spaces/newlines
+          .trim();
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // use CSS variable for the green characters
@@ -290,6 +295,7 @@
         drops.length = Math.floor(canvas.width / fontSize);
         drops.fill(1);
       });
+
       function updateDateTime() {
         const now = new Date();
         const date = now.toLocaleDateString(undefined, {
@@ -308,30 +314,7 @@
         document.getElementById("datetime").textContent = `${date} | ${time}`;
       }
 
-      async function loadTheme() {
-        try {
-          // Fetch the theme file relative to the startpage
-          const response = await fetch("file:///home/indy/.cache/theme");
-          const themeName = (await response.text()).trim().toLowerCase();
-
-          const themeLink = document.getElementById("theme-link");
-
-          // Switch to the correct CSS file based on theme name
-          switch (themeName) {
-            case "nord":
-              themeLink.href = "themes/nord.css";
-              break;
-            case "gruvbox":
-            default:
-              themeLink.href = "themes/gruvbox.css"; // default fallback
-          }
-        } catch (e) {
-          console.error("Could not load theme:", e);
-        }
-      }
-
-      // Run after DOM is loaded
-      document.addEventListener("DOMContentLoaded", loadTheme);
+      // Initial call and interval for clock
       updateDateTime();
       setInterval(updateDateTime, 60000);
     </script>
