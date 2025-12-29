@@ -34,8 +34,7 @@ local nord = {
 	},
 }
 
-local colors = "nord"
-config.colors = colors
+config.colors = nord
 
 ------------------------------------------------------------
 -- Terminal identity + shell
