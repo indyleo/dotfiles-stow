@@ -400,7 +400,10 @@ ShellRoot {
                             Row {
                                 id: kernelRow
                                 spacing: 0
-                                property bool expanded: false
+                                property bool pinned: false
+                                property bool hovered: false
+                                readonly property bool expanded: pinned || hovered
+
                                 Text {
                                     text: "󰌽"
                                     color: root.nord10
@@ -432,7 +435,10 @@ ShellRoot {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
                                 acceptedButtons: Qt.MiddleButton
-                                onClicked: (m) => { if(m.button === Qt.MiddleButton) kernelRow.expanded = !kernelRow.expanded }
+                                hoverEnabled: true
+                                onEntered: kernelRow.hovered = true
+                                onExited: kernelRow.hovered = false
+                                onClicked: (m) => { if(m.button === Qt.MiddleButton) kernelRow.pinned = !kernelRow.pinned }
                             }
                         }
 
@@ -445,7 +451,10 @@ ShellRoot {
                             Row {
                                 id: cpuRow
                                 spacing: 0
-                                property bool expanded: false
+                                property bool pinned: false
+                                property bool hovered: false
+                                readonly property bool expanded: pinned || hovered
+
                                 Text {
                                     text: ""
                                     color: root.nord11
@@ -477,8 +486,11 @@ ShellRoot {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
                                 acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+                                hoverEnabled: true
+                                onEntered: cpuRow.hovered = true
+                                onExited: cpuRow.hovered = false
                                 onClicked: (m) => {
-                                    if(m.button === Qt.MiddleButton) cpuRow.expanded = !cpuRow.expanded
+                                    if(m.button === Qt.MiddleButton) cpuRow.pinned = !cpuRow.pinned
                                     else if (m.button === Qt.LeftButton) root.showCpuTemp = !root.showCpuTemp
                                 }
                             }
@@ -493,7 +505,10 @@ ShellRoot {
                             Row {
                                 id: gpuRow
                                 spacing: 0
-                                property bool expanded: false
+                                property bool pinned: false
+                                property bool hovered: false
+                                readonly property bool expanded: pinned || hovered
+
                                 Text {
                                     text: "󰢮"
                                     color: root.isNvidia ? root.nord15 : root.nord8
@@ -525,8 +540,11 @@ ShellRoot {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
                                 acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+                                hoverEnabled: true
+                                onEntered: gpuRow.hovered = true
+                                onExited: gpuRow.hovered = false
                                 onClicked: (m) => {
-                                    if(m.button === Qt.MiddleButton) gpuRow.expanded = !gpuRow.expanded
+                                    if(m.button === Qt.MiddleButton) gpuRow.pinned = !gpuRow.pinned
                                     else if (m.button === Qt.LeftButton) { root.isNvidia = !root.isNvidia; gpuProc.running = false; gpuProc.running = true }
                                     else if (m.button === Qt.RightButton) { root.showGpuTemp = !root.showGpuTemp }
                                 }
@@ -542,7 +560,10 @@ ShellRoot {
                             Row {
                                 id: memRow
                                 spacing: 0
-                                property bool expanded: false
+                                property bool pinned: false
+                                property bool hovered: false
+                                readonly property bool expanded: pinned || hovered
+
                                 Text {
                                     text: ""
                                     color: root.nord13
@@ -574,8 +595,11 @@ ShellRoot {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
                                 acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+                                hoverEnabled: true
+                                onEntered: memRow.hovered = true
+                                onExited: memRow.hovered = false
                                 onClicked: (m) => {
-                                    if(m.button === Qt.MiddleButton) memRow.expanded = !memRow.expanded
+                                    if(m.button === Qt.MiddleButton) memRow.pinned = !memRow.pinned
                                     else if (m.button === Qt.LeftButton) { root.showMemPercent = !root.showMemPercent; memProc.running = false; memProc.running = true }
                                 }
                             }
@@ -590,7 +614,10 @@ ShellRoot {
                             Row {
                                 id: diskRow
                                 spacing: 0
-                                property bool expanded: false
+                                property bool pinned: false
+                                property bool hovered: false
+                                readonly property bool expanded: pinned || hovered
+
                                 Text {
                                     text: "󰋊"
                                     color: root.nord7
@@ -622,8 +649,11 @@ ShellRoot {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
                                 acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+                                hoverEnabled: true
+                                onEntered: diskRow.hovered = true
+                                onExited: diskRow.hovered = false
                                 onClicked: (m) => {
-                                    if(m.button === Qt.MiddleButton) diskRow.expanded = !diskRow.expanded
+                                    if(m.button === Qt.MiddleButton) diskRow.pinned = !diskRow.pinned
                                     else if (m.button === Qt.LeftButton && root.disks.length > 0) { root.currentDiskIdx = (root.currentDiskIdx + 1) % root.disks.length; root.updateDiskText(); }
                                     else if (m.button === Qt.RightButton) { root.showDiskPercent = !root.showDiskPercent; root.updateDiskText(); }
                                 }
@@ -639,8 +669,11 @@ ShellRoot {
                             Row {
                                 id: wifiRow
                                 spacing: 0
-                                property bool expanded: false
+                                property bool pinned: false
+                                property bool hovered: false
+                                readonly property bool expanded: pinned || hovered
                                 property string icon: root.wifiSSID === "Offline" ? "󰤮" : (root.wifiStrength > 75 ? "󰤨" : (root.wifiStrength > 50 ? "󰤥" : "󰤢"))
+
                                 Text {
                                     text: parent.icon
                                     color: root.wifiSSID === "Offline" ? root.nord11 : root.nord8
@@ -672,8 +705,11 @@ ShellRoot {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
                                 acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+                                hoverEnabled: true
+                                onEntered: wifiRow.hovered = true
+                                onExited: wifiRow.hovered = false
                                 onClicked: (m) => {
-                                    if(m.button === Qt.MiddleButton) wifiRow.expanded = !wifiRow.expanded
+                                    if(m.button === Qt.MiddleButton) wifiRow.pinned = !wifiRow.pinned
                                     else if (m.button === Qt.LeftButton) { shellCmd.command = ["sh", "-c", "rofi_wifi"]; shellCmd.running = false; shellCmd.running = true }
                                     else if (m.button === Qt.RightButton) { shellCmd.command = ["nm-connection-editor"]; shellCmd.running = false; shellCmd.running = true }
                                 }
@@ -689,7 +725,10 @@ ShellRoot {
                             Row {
                                 id: micRow
                                 spacing: 0
-                                property bool expanded: false
+                                property bool pinned: false
+                                property bool hovered: false
+                                readonly property bool expanded: pinned || hovered
+
                                 Text {
                                     text: root.isMicMuted ? "󰍭" : "󰍬"
                                     color: root.isMicMuted ? root.nord3 : root.nord15
@@ -721,13 +760,16 @@ ShellRoot {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
                                 acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+                                hoverEnabled: true
+                                onEntered: micRow.hovered = true
+                                onExited: micRow.hovered = false
                                 onWheel: (w) => {
                                     let dir = w.angleDelta.y > 0 ? "5%+" : "5%-";
                                     shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SOURCE@", dir];
                                     shellCmd.running = false; shellCmd.running = true;
                                 }
                                 onClicked: (m) => {
-                                    if(m.button === Qt.MiddleButton) micRow.expanded = !micRow.expanded
+                                    if(m.button === Qt.MiddleButton) micRow.pinned = !micRow.pinned
                                     else if (m.button === Qt.LeftButton) { shellCmd.command = ["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]; shellCmd.running = false; shellCmd.running = true }
                                     else if (m.button === Qt.RightButton) { shellCmd.command = ["pavucontrol"]; shellCmd.running = false; shellCmd.running = true }
                                 }
@@ -743,7 +785,10 @@ ShellRoot {
                             Row {
                                 id: audioRow
                                 spacing: 0
-                                property bool expanded: false
+                                property bool pinned: false
+                                property bool hovered: false
+                                readonly property bool expanded: pinned || hovered
+
                                 Text {
                                     text: root.isMuted ? "󰝟" : ""
                                     color: root.isMuted ? root.nord3 : root.nord14
@@ -775,13 +820,16 @@ ShellRoot {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
                                 acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+                                hoverEnabled: true
+                                onEntered: audioRow.hovered = true
+                                onExited: audioRow.hovered = false
                                 onWheel: (w) => {
                                     let dir = w.angleDelta.y > 0 ? "5%+" : "5%-";
                                     shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", dir];
                                     shellCmd.running = false; shellCmd.running = true;
                                 }
                                 onClicked: (m) => {
-                                    if(m.button === Qt.MiddleButton) audioRow.expanded = !audioRow.expanded
+                                    if(m.button === Qt.MiddleButton) audioRow.pinned = !audioRow.pinned
                                     else if (m.button === Qt.LeftButton) { shellCmd.command = ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"]; shellCmd.running = false; shellCmd.running = true }
                                     else if (m.button === Qt.RightButton) { shellCmd.command = ["pavucontrol"]; shellCmd.running = false; shellCmd.running = true }
                                 }
