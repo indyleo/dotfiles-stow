@@ -95,5 +95,5 @@ export QT_QPA_PLATFORMTHEME="qt6ct"
 
 # Start WM
 if [[ "$(tty)" = /dev/tty1 ]];then
-    pgrep hyprland || hyprland-run
+    pgrep hyprland || hyprland
 fi
