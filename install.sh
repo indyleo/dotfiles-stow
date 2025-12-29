@@ -16,6 +16,7 @@ stowq() {
 # Stowing
 stowq figletfonts
 stowq shell
+ln -sf  ~/.config/zsh/.zshenv ~/.zshenv
 stowq xdg
 stowq git
 stowq yazi
