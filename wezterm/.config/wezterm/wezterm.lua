@@ -42,6 +42,7 @@ config.colors = colors
 ------------------------------------------------------------
 config.term = "xterm-256color" -- matches Alacritty/st
 config.default_prog = { "zsh" } -- matches tmux/Alacritty/st
+config.enable_wayland = true
 
 ------------------------------------------------------------
 -- Appearance
