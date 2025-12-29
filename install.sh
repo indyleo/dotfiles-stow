@@ -45,3 +45,4 @@ stowq hypr
 stowq mako
 stowq startpage
 stowq foot
+stowq waybar
