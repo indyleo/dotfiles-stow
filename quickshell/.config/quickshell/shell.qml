@@ -764,9 +764,18 @@ ShellRoot {
                                 onEntered: micRow.hovered = true
                                 onExited: micRow.hovered = false
                                 onWheel: (w) => {
-                                    let dir = w.angleDelta.y > 0 ? "5%+" : "5%-";
-                                    shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SOURCE@", dir];
-                                    shellCmd.running = false; shellCmd.running = true;
+                                    // 100% Limit and Instant Update logic [cite: 238]
+                                    if (w.angleDelta.y > 0) {
+                                        if (root.micLevel < 100) {
+                                            root.micLevel = Math.min(100, root.micLevel + 5);
+                                            shellCmd.command = ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SOURCE@", "5%+"];
+                                            shellCmd.running = false; shellCmd.running = true;
+                                        }
+                                    } else {
+                                        root.micLevel = Math.max(0, root.micLevel - 5);
+                                        shellCmd.command = ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SOURCE@", "5%-"];
+                                        shellCmd.running = false; shellCmd.running = true;
+                                    }
                                 }
                                 onClicked: (m) => {
                                     if(m.button === Qt.MiddleButton) micRow.pinned = !micRow.pinned
@@ -824,9 +833,18 @@ ShellRoot {
                                 onEntered: audioRow.hovered = true
                                 onExited: audioRow.hovered = false
                                 onWheel: (w) => {
-                                    let dir = w.angleDelta.y > 0 ? "5%+" : "5%-";
-                                    shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", dir];
-                                    shellCmd.running = false; shellCmd.running = true;
+                                    // 100% Limit and Instant Update logic [cite: 265]
+                                    if (w.angleDelta.y > 0) {
+                                        if (root.volumeLevel < 100) {
+                                            root.volumeLevel = Math.min(100, root.volumeLevel + 5);
+                                            shellCmd.command = ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SINK@", "5%+"];
+                                            shellCmd.running = false; shellCmd.running = true;
+                                        }
+                                    } else {
+                                        root.volumeLevel = Math.max(0, root.volumeLevel - 5);
+                                        shellCmd.command = ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SINK@", "5%-"];
+                                        shellCmd.running = false; shellCmd.running = true;
+                                    }
                                 }
                                 onClicked: (m) => {
                                     if(m.button === Qt.MiddleButton) audioRow.pinned = !audioRow.pinned
