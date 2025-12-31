@@ -297,9 +297,6 @@
         <span class="sys-label">BROWSER:</span>
         <span id="browser-val">...</span>
       </div>
-      <div class="sys-item">
-        <span class="sys-label">PING:</span> <span id="ping-val">...</span>
-      </div>
     </div>
 
     <script>
@@ -419,21 +416,6 @@
       }
 
       /* --- SYSTEM INFO --- */
-      function getPing() {
-        const start = Date.now();
-        fetch("https://www.google.com/favicon.ico", {
-          mode: "no-cors",
-          cache: "no-store",
-        })
-          .then(() => {
-            const delta = Date.now() - start;
-            document.getElementById("ping-val").textContent = `${delta}ms`;
-          })
-          .catch(() => {
-            document.getElementById("ping-val").textContent = "---";
-          });
-      }
-
       function initSysInfo() {
         const ua = navigator.userAgent;
         let os = "Linux";
