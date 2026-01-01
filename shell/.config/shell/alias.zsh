@@ -138,14 +138,16 @@ elif [[ -f /usr/bin/pacman ]]; then
     alias pacrm='sudo pacman -R'
     alias pacpu='sudo pacman -Rns'
     alias pacse='pacman -Qs'
+fi
+
+if command_exists pacseek; then
     alias pcs='pacseek'
 fi
 
 # Random Aliases
-alias tmodserver="~/.steam/debian-installation/steamapps/common/tModLoader/start-tModLoaderServer.sh"
-alias tmodport="ngrok tcp 7777"
 alias fusee="sudo fusee-nano ~/Bin/hekate_ctcaer_*.bin"
 alias ns="sudo java -jar ~/Code/ns-usbloader-*.jar"
+alias clox="tty-clock -tcxBbC 4"
 
 # For Vim Users
 # vim:ft=sh
