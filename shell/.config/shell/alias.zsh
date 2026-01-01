@@ -140,7 +140,7 @@ elif [[ -f /usr/bin/pacman ]]; then
     alias pacse='pacman -Qs'
 fi
 
-if command_exists pacseek; then
+if command -v pacseek >/dev/null; then
     alias pcs='pacseek'
 fi
 
