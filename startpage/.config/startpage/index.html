@@ -163,11 +163,7 @@
       .sys-label {
         color: var(--accent);
       }
-      #mute-toggle {
-        cursor: pointer;
-        text-decoration: underline;
-        color: var(--accent);
-      }
+
       .hidden {
         display: none !important;
       }
@@ -304,10 +300,6 @@
         <span class="sys-label">BROWSER:</span>
         <span id="browser-val">...</span>
       </div>
-      <div class="sys-item" id="audio-status-container">
-        <span class="sys-label">AUDIO:</span>
-        <span id="mute-toggle">OFF</span>
-      </div>
     </div>
 
     <script>
@@ -348,7 +340,19 @@
       let currentQuote = "Loading quote...";
       let currentRandomPhrase = "Loading phrase...";
       const audio = document.getElementById("sun-audio");
-      const muteBtn = document.getElementById("mute-toggle");
+
+      async function attemptPlay() {
+        if (currentQuote === "Here comes the sun do do dodo") {
+          try {
+            await audio.play();
+            // Once playing, we can stop listening for user gestures
+            document.removeEventListener("click", attemptPlay);
+            document.removeEventListener("keydown", attemptPlay);
+          } catch (e) {
+            console.log("Waiting for user gesture to play audio...");
+          }
+        }
+      }
 
       async function loadTextFiles() {
         try {
@@ -359,15 +363,6 @@
           currentQuote =
             quotes[Math.floor(Math.random() * quotes.length)].trim();
 
-          // Audio Check
-          if (currentQuote === "Here comes the sun do do dodo") {
-            // Trigger play. Note: Browsers block sound until first click/keypress
-            audio.play().catch(() => {
-              console.log("Audio waiting for user interaction...");
-            });
-            muteBtn.textContent = "ON";
-          }
-
           const phraseRes = await fetch("randomphrases.txt");
           const phrases = (await phraseRes.text())
             .split("\n")
@@ -376,6 +371,7 @@
             phrases[Math.floor(Math.random() * phrases.length)];
 
           updateClock();
+          attemptPlay(); // Try playing immediately
         } catch (e) {
           currentQuote = "Error loading quotes.txt";
           currentRandomPhrase = "Error loading phrases.txt";
@@ -395,9 +391,6 @@
 
       function updateClock() {
         const now = new Date();
-        const offset = -5; // Adjustment for EST
-        const localTime = new Date(now.getTime() + offset * 3600000);
-
         const days = [
           "Sunday",
           "Monday",
@@ -421,7 +414,6 @@
           "November",
           "December",
         ];
-
         const h = now.getHours();
         const m = now.getMonth();
         const d = now.getDate();
@@ -445,7 +437,6 @@
         const ua = navigator.userAgent;
         let os = "Linux";
         let isLinux = true;
-
         if (ua.indexOf("Win") != -1) {
           os = "Windows";
           isLinux = false;
@@ -453,15 +444,12 @@
           os = "MacOS";
           isLinux = false;
         }
-
         document.getElementById("os-val").textContent = os;
-
         if (isLinux) {
           document.getElementById("distro-val").textContent = "Arch";
         } else {
           document.getElementById("distro-container").classList.add("hidden");
         }
-
         document.getElementById("browser-val").textContent = ua.includes(
           "Firefox",
         )
@@ -471,16 +459,9 @@
             : "Safari";
       }
 
-      // Audio Mute Toggle Functionality
-      muteBtn.addEventListener("click", () => {
-        if (audio.paused) {
-          audio.play();
-          muteBtn.textContent = "ON";
-        } else {
-          audio.pause();
-          muteBtn.textContent = "OFF";
-        }
-      });
+      // Add listeners to start audio on first interaction
+      document.addEventListener("click", attemptPlay);
+      document.addEventListener("keydown", attemptPlay);
 
       loadTextFiles();
       setInterval(updateClock, 1000);
@@ -492,12 +473,6 @@
       };
 
       document.addEventListener("keydown", (e) => {
-        // If they start typing, attempt to trigger the sun song if quote matches
-        if (currentQuote === "Here comes the sun do do dodo" && audio.paused) {
-          audio.play().catch(() => {});
-          muteBtn.textContent = "ON";
-        }
-
         if (e.key === "/" && document.activeElement !== searchInput) {
           e.preventDefault();
           searchInput.focus();
