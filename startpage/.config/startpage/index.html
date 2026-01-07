@@ -163,6 +163,11 @@
       .sys-label {
         color: var(--accent);
       }
+      #mute-toggle {
+        cursor: pointer;
+        text-decoration: underline;
+        color: var(--accent);
+      }
       .hidden {
         display: none !important;
       }
@@ -181,6 +186,8 @@
   </head>
   <body>
     <canvas id="matrix-canvas"></canvas>
+
+    <audio id="sun-audio" src="here-comes-the-sun.mp3" loop></audio>
 
     <h1 id="greeting" class="glass-panel">
       <span id="greet-line">...</span>
@@ -297,6 +304,10 @@
         <span class="sys-label">BROWSER:</span>
         <span id="browser-val">...</span>
       </div>
+      <div class="sys-item" id="audio-status-container">
+        <span class="sys-label">AUDIO:</span>
+        <span id="mute-toggle">OFF</span>
+      </div>
     </div>
 
     <script>
@@ -336,6 +347,8 @@
       /* --- FILE LOADING & GREETING --- */
       let currentQuote = "Loading quote...";
       let currentRandomPhrase = "Loading phrase...";
+      const audio = document.getElementById("sun-audio");
+      const muteBtn = document.getElementById("mute-toggle");
 
       async function loadTextFiles() {
         try {
@@ -343,7 +356,17 @@
           const quotes = (await quoteRes.text())
             .split("\n")
             .filter((line) => line.trim() !== "");
-          currentQuote = quotes[Math.floor(Math.random() * quotes.length)];
+          currentQuote =
+            quotes[Math.floor(Math.random() * quotes.length)].trim();
+
+          // Audio Check
+          if (currentQuote === "Here comes the sun do do dodo") {
+            // Trigger play. Note: Browsers block sound until first click/keypress
+            audio.play().catch(() => {
+              console.log("Audio waiting for user interaction...");
+            });
+            muteBtn.textContent = "ON";
+          }
 
           const phraseRes = await fetch("randomphrases.txt");
           const phrases = (await phraseRes.text())
@@ -352,7 +375,7 @@
           currentRandomPhrase =
             phrases[Math.floor(Math.random() * phrases.length)];
 
-          updateClock(); // Refresh greeting once data is loaded
+          updateClock();
         } catch (e) {
           currentQuote = "Error loading quotes.txt";
           currentRandomPhrase = "Error loading phrases.txt";
@@ -372,8 +395,9 @@
 
       function updateClock() {
         const now = new Date();
-        const offset = -5;
-        now.setHours(now.getHours() + offset);
+        const offset = -5; // Adjustment for EST
+        const localTime = new Date(now.getTime() + offset * 3600000);
+
         const days = [
           "Sunday",
           "Monday",
@@ -397,6 +421,7 @@
           "November",
           "December",
         ];
+
         const h = now.getHours();
         const m = now.getMonth();
         const d = now.getDate();
@@ -444,9 +469,18 @@
           : ua.includes("Chrome")
             ? "Chrome"
             : "Safari";
-        getPing();
-        setInterval(getPing, 10000);
       }
+
+      // Audio Mute Toggle Functionality
+      muteBtn.addEventListener("click", () => {
+        if (audio.paused) {
+          audio.play();
+          muteBtn.textContent = "ON";
+        } else {
+          audio.pause();
+          muteBtn.textContent = "OFF";
+        }
+      });
 
       loadTextFiles();
       setInterval(updateClock, 1000);
@@ -456,7 +490,14 @@
       window.onload = () => {
         searchInput.focus();
       };
+
       document.addEventListener("keydown", (e) => {
+        // If they start typing, attempt to trigger the sun song if quote matches
+        if (currentQuote === "Here comes the sun do do dodo" && audio.paused) {
+          audio.play().catch(() => {});
+          muteBtn.textContent = "ON";
+        }
+
         if (e.key === "/" && document.activeElement !== searchInput) {
           e.preventDefault();
           searchInput.focus();
