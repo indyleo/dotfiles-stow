@@ -4,27 +4,33 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="starticon.png" type="image/png" />
-    <title>Start Page (Nord)</title>
+    <title>Start Page (Calamity)</title>
     <style>
       :root {
-        --bg: #2e3440;
-        --bg-alt: #3b4252;
-        --fg: #eceff4;
-        --fg-dim: #d8dee9;
-        --border: #8fbcbb;
-        --accent: #88c0d0;
-        --matrix-fade: rgba(67, 76, 94, 0.15);
-        --matrix-green: #a3be8c;
-        --glass-bg: rgba(46, 52, 64, 0.75);
-        --glass-border: rgba(143, 188, 187, 0.2);
-        --glass-blur: blur(10px);
-        --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        /* --- Calamity Palette --- */
+        --bg: #0f0f0f; /* Deep Void Black */
+        --bg-alt: #1a1a1a; /* Dark Charcoal */
+        --fg: #f9e5c7; /* Auric Silk */
+        --fg-dim: #e0e0e0; /* Exo Silver */
+        --border: #3ec1d3; /* Abyss Teal */
+        --accent: #df9d1b; /* Auric Gold */
+        --alert: #ff003c; /* Profaned Flame */
+        --highlight: #b45ef7; /* Cosmic Purple */
+
+        /* Effects */
+        --matrix-fade: rgba(15, 15, 15, 0.15);
+        --matrix-green: #73f973; /* Sulphurous Green */
+        --glass-bg: rgba(26, 26, 26, 0.75);
+        --glass-border: rgba(62, 193, 211, 0.2);
+        --glass-blur: blur(12px);
+        --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
       }
 
       body {
         margin: 0;
         background-color: var(--bg);
-        font-family: "Segoe UI", "Roboto", Helvetica, Arial, sans-serif;
+        font-family:
+          "Segoe UI", "Roboto", "Inter", Helvetica, Arial, sans-serif;
         color: var(--fg);
         display: flex;
         flex-direction: column;
@@ -43,6 +49,7 @@
         height: 100%;
         z-index: -1;
       }
+
       .glass-panel {
         background: var(--glass-bg);
         backdrop-filter: var(--glass-blur);
@@ -62,6 +69,12 @@
         flex-direction: column;
         gap: 8px;
         min-width: 450px;
+        border: 1px solid var(--glass-border);
+        transition: border-color 0.3s ease;
+      }
+
+      h1:hover {
+        border-color: var(--alert);
       }
 
       .quote-text {
@@ -79,31 +92,38 @@
         color: var(--fg-dim);
         padding: 8px 20px;
         margin-bottom: 2rem;
-        font-family: monospace;
+        font-family: "JetBrains Mono", monospace;
+        border-color: rgba(223, 157, 27, 0.2);
       }
+
       .search-container {
         margin-bottom: 2rem;
         z-index: 10;
       }
+
       form {
         padding: 8px;
         display: flex;
         align-items: center;
-        transition: 0.2s;
+        transition: 0.3s ease;
       }
+
       form:focus-within {
         transform: scale(1.02);
-        box-shadow: 0 0 15px rgba(136, 192, 208, 0.2);
+        box-shadow: 0 0 20px rgba(255, 0, 60, 0.15);
+        border-color: var(--alert);
       }
+
       .search-bar input {
         padding: 10px 15px;
         font-size: 1.1rem;
-        width: 320px;
+        width: 350px;
         border: none;
         background: transparent;
         color: var(--fg);
         text-align: center;
       }
+
       .search-bar input:focus {
         outline: none;
       }
@@ -113,23 +133,29 @@
         max-width: 900px;
         width: 85%;
       }
+
       .links {
         display: flex;
         flex-wrap: wrap;
         gap: 2.5rem;
         justify-content: center;
       }
+
       .category {
         text-align: left;
-        min-width: 140px;
+        min-width: 150px;
       }
+
       .category h3 {
-        color: var(--accent);
+        color: var(--border);
         margin-bottom: 1rem;
         font-size: 1.1rem;
-        border-bottom: 1px solid var(--glass-border);
+        border-bottom: 1px solid var(--alert);
         padding-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
       }
+
       .category a {
         display: flex;
         align-items: center;
@@ -140,14 +166,22 @@
         border-radius: 6px;
         transition: 0.2s;
       }
+
       .category a img {
         margin-right: 10px;
-        opacity: 0.8;
+        filter: grayscale(0.5);
+        transition: 0.3s;
       }
+
       .category a:hover {
-        background: rgba(136, 192, 208, 0.15);
-        color: #fff;
+        background: rgba(223, 157, 27, 0.1);
+        color: var(--accent);
         transform: translateX(5px);
+      }
+
+      .category a:hover img {
+        filter: grayscale(0);
+        transform: scale(1.1);
       }
 
       .sys-info {
@@ -160,6 +194,7 @@
         font-size: 0.8rem;
         color: var(--fg-dim);
       }
+
       .sys-label {
         color: var(--accent);
       }
@@ -177,6 +212,9 @@
           flex-direction: column;
           bottom: 10px;
         }
+        .search-bar input {
+          width: 250px;
+        }
       }
     </style>
   </head>
@@ -189,6 +227,7 @@
       <span id="greet-line">...</span>
       <span id="quote-line" class="quote-text">...</span>
     </h1>
+
     <div id="datetime" class="glass-panel"></div>
 
     <div class="search-container">
@@ -230,9 +269,6 @@
           <a href="https://mail.google.com/mail/u/0/#inbox"
             ><img src="favicons/gmail.ico" width="16" height="16" />Gmail</a
           >
-          <a href="https://outlook.live.com/mail/0/"
-            ><img src="favicons/outlook.ico" width="16" height="16" />Outlook</a
-          >
         </div>
         <div class="category">
           <h3>Media</h3>
@@ -260,9 +296,6 @@
           <a href="https://chat.openai.com"
             ><img src="favicons/chatgpt.ico" width="16" height="16" />ChatGPT</a
           >
-          <a href="https://www.deepl.com/en/translator"
-            ><img src="favicons/deepl.ico" width="16" height="16" />DeepL</a
-          >
           <a href="https://terminal.sexy"
             ><img
               src="favicons/hackertype.ico"
@@ -282,9 +315,6 @@
           <a href="https://github.com/indyleo/suckless"
             ><img src="favicons/github.ico" width="16" height="16" />Suckless</a
           >
-          <a href="https://github.com/indyleo/scripts"
-            ><img src="favicons/github.ico" width="16" height="16" />Scripts</a
-          >
         </div>
       </div>
     </div>
@@ -303,13 +333,14 @@
     </div>
 
     <script>
-      /* --- MATRIX --- */
+      /* --- CALAMITY MATRIX --- */
       const canvas = document.getElementById("matrix-canvas");
       const ctx = canvas.getContext("2d");
       const letters =
-        "アァイィウヴエェオカガキギクグケゲコゴサザシジスズセゼソゾタダチッヂヅテデトドナニヌネノハバパヒビピフブプヘベペホボポマミムメモヤユヨラリルレロワヲンABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        "アァイィウヴエェオカガキギクグケゲコゴサザシジスズセゼソゾABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
       const fontSize = 14;
       let drops = [];
+
       function resizeAndReset() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -317,76 +348,65 @@
         for (let i = 0; i < columns; i++)
           drops[i] = Math.floor(Math.random() * (canvas.height / fontSize));
       }
+
       function drawMatrix() {
-        ctx.fillStyle = "rgba(67, 76, 94, 0.15)";
+        ctx.fillStyle = "rgba(15, 15, 15, 0.15)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#a3be8c";
+
         ctx.font = `${fontSize}px monospace`;
         for (let i = 0; i < drops.length; i++) {
           const text = letters.charAt(
             Math.floor(Math.random() * letters.length),
           );
+
+          // 2% chance for a character to be Profaned Flame (Red)
+          if (Math.random() > 0.98) {
+            ctx.fillStyle = "#ff003c";
+          } else {
+            ctx.fillStyle = "#73f973"; // Sulphurous Green
+          }
+
           ctx.fillText(text, i * fontSize, drops[i] * fontSize);
           if (drops[i] * fontSize > canvas.height && Math.random() > 0.975)
             drops[i] = 0;
           drops[i]++;
         }
       }
+
       resizeAndReset();
       window.addEventListener("resize", resizeAndReset);
       setInterval(drawMatrix, 50);
 
-      /* --- FILE LOADING & GREETING --- */
-      let currentQuote = "Loading quote...";
-      let currentRandomPhrase = "Loading phrase...";
-      const audio = document.getElementById("sun-audio");
-
-      async function attemptPlay() {
-        if (currentQuote === "Here comes the sun do do dodo") {
-          try {
-            await audio.play();
-            // Once playing, we can stop listening for user gestures
-            document.removeEventListener("click", attemptPlay);
-            document.removeEventListener("keydown", attemptPlay);
-          } catch (e) {
-            console.log("Waiting for user gesture to play audio...");
-          }
-        }
-      }
+      /* --- GREETING & CLOCK --- */
+      let currentQuote = "The air is getting warmer around you...";
+      let currentRandomPhrase = "Devourer of Gods";
 
       async function loadTextFiles() {
         try {
-          const quoteRes = await fetch("quotes.txt");
-          const quotes = (await quoteRes.text())
-            .split("\n")
-            .filter((line) => line.trim() !== "");
-          currentQuote =
-            quotes[Math.floor(Math.random() * quotes.length)].trim();
+          const [quoteRes, phraseRes] = await Promise.all([
+            fetch("quotes.txt"),
+            fetch("randomphrases.txt"),
+          ]);
 
-          const phraseRes = await fetch("randomphrases.txt");
-          const phrases = (await phraseRes.text())
-            .split("\n")
-            .filter((line) => line.trim() !== "");
-          currentRandomPhrase =
-            phrases[Math.floor(Math.random() * phrases.length)];
-
+          if (quoteRes.ok) {
+            const quotes = (await quoteRes.text())
+              .split("\n")
+              .filter((l) => l.trim() !== "");
+            currentQuote =
+              quotes[Math.floor(Math.random() * quotes.length)].trim();
+          }
+          if (phraseRes.ok) {
+            const phrases = (await phraseRes.text())
+              .split("\n")
+              .filter((l) => l.trim() !== "");
+            currentRandomPhrase =
+              phrases[Math.floor(Math.random() * phrases.length)];
+          }
           updateClock();
-          attemptPlay(); // Try playing immediately
         } catch (e) {
-          currentQuote = "Error loading quotes.txt";
-          currentRandomPhrase = "Error loading phrases.txt";
+          console.log("Using default Calamity strings.");
           updateClock();
         }
-      }
-
-      function getHoliday(d, m, y, dayIdx) {
-        if (m === 0 && d === 1) return "Happy New Year";
-        if (m === 11 && d === 25) return "Merry Christmas";
-        if (m === 9 && dayIdx === 1 && d > 7 && d <= 14)
-          return "Thanksgiving (CA)";
-        if (m === 10 && dayIdx === 4 && d > 21 && d <= 28)
-          return "Thanksgiving (US)";
-        return null;
       }
 
       function updateClock() {
@@ -414,21 +434,15 @@
           "November",
           "December",
         ];
-        const h = now.getHours();
-        const m = now.getMonth();
-        const d = now.getDate();
 
+        const h = now.getHours();
         document.getElementById("datetime").textContent =
-          `${days[now.getDay()]}, ${months[m]} ${d} • ${h % 12 || 12}:${String(now.getMinutes()).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+          `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()} • ${h % 12 || 12}:${String(now.getMinutes()).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 
         let stdGreet =
           h < 12 ? "Good Morning" : h < 17 ? "Good Afternoon" : "Good Evening";
-        const hol = getHoliday(d, m, now.getFullYear(), now.getDay());
-
-        let greetingLine = hol
-          ? `${stdGreet} — ${hol} — ${currentRandomPhrase}`
-          : `${stdGreet} — ${currentRandomPhrase}`;
-        document.getElementById("greet-line").textContent = greetingLine;
+        document.getElementById("greet-line").textContent =
+          `${stdGreet} — ${currentRandomPhrase}`;
         document.getElementById("quote-line").textContent = `"${currentQuote}"`;
       }
 
@@ -436,20 +450,15 @@
       function initSysInfo() {
         const ua = navigator.userAgent;
         let os = "Linux";
-        let isLinux = true;
-        if (ua.indexOf("Win") != -1) {
-          os = "Windows";
-          isLinux = false;
-        } else if (ua.indexOf("Mac") != -1) {
-          os = "MacOS";
-          isLinux = false;
-        }
+        if (ua.indexOf("Win") != -1) os = "Windows";
+        else if (ua.indexOf("Mac") != -1) os = "MacOS";
+
         document.getElementById("os-val").textContent = os;
-        if (isLinux) {
+        if (os === "Linux")
           document.getElementById("distro-val").textContent = "Arch";
-        } else {
+        else
           document.getElementById("distro-container").classList.add("hidden");
-        }
+
         document.getElementById("browser-val").textContent = ua.includes(
           "Firefox",
         )
@@ -459,19 +468,12 @@
             : "Safari";
       }
 
-      // Add listeners to start audio on first interaction
-      document.addEventListener("click", attemptPlay);
-      document.addEventListener("keydown", attemptPlay);
-
       loadTextFiles();
       setInterval(updateClock, 1000);
       initSysInfo();
 
       const searchInput = document.getElementById("searchInput");
-      window.onload = () => {
-        searchInput.focus();
-      };
-
+      window.onload = () => searchInput.focus();
       document.addEventListener("keydown", (e) => {
         if (e.key === "/" && document.activeElement !== searchInput) {
           e.preventDefault();
