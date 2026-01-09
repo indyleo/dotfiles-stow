@@ -20,31 +20,25 @@ icons=1
 max-icon-size=128
 icon-path=/usr/share/icons/Papirus-Dark/16x16/status/:/usr/share/icons/Papirus-Dark/16x16/devices/
 
-# --- Colors & Transparency ---
-# Your Dunst config used ~60% alpha (90/99 in hex).
-# I've applied '99' (~60%) to match your provided file.
-background-color=#2E344099
-text-color=#D8DEE9ff
-border-color=#5E81ACff
-
-# --- Urgency Overrides ---
+# Base
+background-color=#0F0F0FCC
+text-color=#F9E5C7FF
+border-color=#00A6C8FF
+border-size=2
 
 [urgency=low]
-background-color=#2E344090
-text-color=#D8DEE9ff
-default-timeout=4000
+background-color=#1A1A1ACC
+text-color=#F9E5C7FF
 
 [urgency=normal]
-background-color=#3B425299
-text-color=#E5E9F0ff
-border-color=#5E81ACff
-default-timeout=4000
+background-color=#2D2D2DCC
+text-color=#E0E0E0FF
+border-color=#00A6C8FF
 
 [urgency=critical]
-background-color=#2E344099
-text-color=#D08770ff
-border-color=#BF616Aff
-default-timeout=0
+background-color=#1A0000CC
+text-color=#FF4646FF
+border-color=#FF003CFF
 
 # --- Bindings ---
 on-button-left=dismiss
