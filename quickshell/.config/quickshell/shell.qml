@@ -9,20 +9,20 @@ import Qt5Compat.GraphicalEffects
 ShellRoot {
     id: root
 
-    // --- Nord Theme Colors ---
-    readonly property color cal0:  "#0f0f0f"
-    readonly property color cal1:  "#1a1a1a"
-    readonly property color cal2:  "#2d2d2d"
-    readonly property color cal3:  "#4c1111"
-    readonly property color cal6:  "#f9e5c7"
-    readonly property color cal7:  "#3ec1d3"
-    readonly property color cal8:  "#ff4646"
-    readonly property color cal9:  "#b45ef7"
-    readonly property color cal10: "#df9d1b"
-    readonly property color cal11: "#ff003c"
-    readonly property color cal13: "#73f973"
-    readonly property color cal14: "#ffa500"
-    readonly property color cal15: "#e0e0e0"
+    // --- Calamity Theme Colors ---
+    readonly property color cal0:  "#0f0f0f" // Deep Void Black (Background)
+    readonly property color cal1:  "#1a1a1a" // Dark Charcoal (Pills)
+    readonly property color cal2:  "#2d2d2d" // Lighter Charcoal (Primary Pill BG)
+    readonly property color cal3:  "#4c1111" // Dried Blood (Muted/Separators)
+    readonly property color cal6:  "#f9e5c7" // Auric Silk (Main Text)
+    readonly property color cal7:  "#3ec1d3" // Abyss Teal (Integrated GPU / Disk)
+    readonly property color cal8:  "#ff4646" // Brimstone Red (Mic/Highlight)
+    readonly property color cal9:  "#b45ef7" // Cosmic Purple (Kernel)
+    readonly property color cal10: "#df9d1b" // Auric Gold (Wifi)
+    readonly property color cal11: "#ff003c" // Profaned Flame (CPU/Alerts)
+    readonly property color cal13: "#73f973" // Sulphurous Green (Nvidia GPU / RAM)
+    readonly property color cal14: "#ffa500" // Yharon Orange (Audio)
+    readonly property color cal15: "#e0e0e0" // Exo Silver (Tech)
 
     property string fontFamily: "JetBrainsMono Nerd Font"
     property int fontSize: 13
@@ -259,7 +259,7 @@ ShellRoot {
                 Rectangle {
                     Layout.preferredWidth: 32
                     Layout.preferredHeight: 26
-                    color: root.cal1
+                    color: root.cal2
                     radius: 13
 
                     Item {
@@ -302,7 +302,7 @@ ShellRoot {
                 Rectangle {
                     Layout.preferredHeight: 26
                     Layout.preferredWidth: (26 * 9) + 24
-                    color: root.cal1
+                    color: root.cal2
                     radius: 13
                     Row {
                         anchors.centerIn: parent
@@ -337,7 +337,7 @@ ShellRoot {
                 Rectangle {
                     Layout.preferredHeight: 26
                     Layout.preferredWidth: layoutText.implicitWidth + 24
-                    color: root.cal1
+                    color: root.cal2
                     radius: 13
                     Text {
                         id: layoutText
@@ -355,7 +355,7 @@ ShellRoot {
                     Layout.preferredHeight: 26
                     Layout.fillWidth: true
                     Layout.minimumWidth: 100
-                    color: root.cal1
+                    color: root.cal2
                     radius: 13
                     clip: true
                     RowLayout {
@@ -385,7 +385,7 @@ ShellRoot {
                 Rectangle {
                     Layout.preferredHeight: 26
                     Layout.preferredWidth: statsRow.implicitWidth + 30
-                    color: root.cal1
+                    color: root.cal2
                     radius: 13
 
                     RowLayout {
@@ -406,7 +406,7 @@ ShellRoot {
 
                                 Text {
                                     text: "󰌽"
-                                    color: root.cal10
+                                    color: root.cal9
                                     font.pixelSize: root.fontSize + 2
                                     font.family: root.fontFamily
                                     anchors.verticalCenter: parent.verticalCenter
@@ -423,7 +423,7 @@ ShellRoot {
                                         anchors.leftMargin: 6
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: root.kernelVersion
-                                        color: root.cal10
+                                        color: root.cal9
                                         font.pixelSize: root.fontSize
                                         font.family: root.fontFamily
                                         opacity: parent.width > 5 ? 1 : 0
@@ -498,7 +498,7 @@ ShellRoot {
 
                         Rectangle { width: 1; height: 12; color: root.cal3 }
 
-                        // --- GPU ---
+                        // --- GPU (REDESIGNED) ---
                         Item {
                             Layout.preferredHeight: 20
                             Layout.preferredWidth: gpuRow.width
@@ -511,28 +511,53 @@ ShellRoot {
 
                                 Text {
                                     text: "󰢮"
-                                    color: root.isNvidia ? root.cal15 : root.cal8
+                                    color: root.isNvidia ? root.cal13 : root.cal7
                                     font.pixelSize: root.fontSize + 2
                                     font.family: root.fontFamily
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
                                 Item {
                                     height: 20
-                                    width: parent.expanded ? gpuTxt.implicitWidth + 8 : 0
+                                    // Calculate width based on the entire content row (Badge + Text)
+                                    width: parent.expanded ? gpuContent.implicitWidth + 8 : 0
                                     clip: true
                                     anchors.verticalCenter: parent.verticalCenter
                                     Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                                    Text {
-                                        id: gpuTxt
+
+                                    Row {
+                                        id: gpuContent
                                         anchors.left: parent.left
                                         anchors.leftMargin: 6
                                         anchors.verticalCenter: parent.verticalCenter
-                                        text: (root.isNvidia ? "NV: " : "IN: ") + (root.showGpuTemp ? root.gpuTemp + "°C" : root.gpuUsage + "%")
-                                        color: root.isNvidia ? root.cal15 : root.cal8
-                                        font.pixelSize: root.fontSize
-                                        font.family: root.fontFamily
+                                        spacing: 6
                                         opacity: parent.width > 5 ? 1 : 0
                                         Behavior on opacity { NumberAnimation { duration: 200 } }
+
+                                        // The BADGE (Different for NV / IN)
+                                        Rectangle {
+                                            width: 24
+                                            height: 16
+                                            radius: 4
+                                            color: root.isNvidia ? root.cal13 : root.cal7
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: root.isNvidia ? "NV" : "IN"
+                                                color: root.cal0
+                                                font.pixelSize: 10
+                                                font.family: root.fontFamily
+                                                font.bold: true
+                                            }
+                                        }
+
+                                        // The DATA
+                                        Text {
+                                            text: root.showGpuTemp ? root.gpuTemp + "°C" : root.gpuUsage + "%"
+                                            color: root.isNvidia ? root.cal13 : root.cal7
+                                            font.pixelSize: root.fontSize
+                                            font.family: root.fontFamily
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
                                     }
                                 }
                             }
@@ -676,7 +701,7 @@ ShellRoot {
 
                                 Text {
                                     text: parent.icon
-                                    color: root.wifiSSID === "Offline" ? root.cal11 : root.cal8
+                                    color: root.wifiSSID === "Offline" ? root.cal11 : root.cal10
                                     font.pixelSize: root.fontSize + 2
                                     font.family: root.fontFamily
                                     anchors.verticalCenter: parent.verticalCenter
@@ -693,7 +718,7 @@ ShellRoot {
                                         anchors.leftMargin: 6
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: (root.wifiSSID === "Offline" ? "Searching..." : root.wifiSSID) + " (" + root.wifiStrength + "%)"
-                                        color: root.wifiSSID === "Offline" ? root.cal11 : root.cal8
+                                        color: root.wifiSSID === "Offline" ? root.cal11 : root.cal10
                                         font.pixelSize: root.fontSize
                                         font.family: root.fontFamily
                                         opacity: parent.width > 5 ? 1 : 0
@@ -731,7 +756,7 @@ ShellRoot {
 
                                 Text {
                                     text: root.isMicMuted ? "󰍭" : "󰍬"
-                                    color: root.isMicMuted ? root.cal3 : root.cal15
+                                    color: root.isMicMuted ? root.cal3 : root.cal8
                                     font.pixelSize: root.fontSize + 2
                                     font.family: root.fontFamily
                                     anchors.verticalCenter: parent.verticalCenter
@@ -748,7 +773,7 @@ ShellRoot {
                                         anchors.leftMargin: 6
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: root.micLevel + "%"
-                                        color: root.isMicMuted ? root.cal3 : root.cal15
+                                        color: root.isMicMuted ? root.cal3 : root.cal8
                                         font.pixelSize: root.fontSize
                                         font.family: root.fontFamily
                                         opacity: parent.width > 5 ? 1 : 0
@@ -764,7 +789,6 @@ ShellRoot {
                                 onEntered: micRow.hovered = true
                                 onExited: micRow.hovered = false
                                 onWheel: (w) => {
-                                    // 100% Limit and Instant Update logic [cite: 238]
                                     if (w.angleDelta.y > 0) {
                                         if (root.micLevel < 100) {
                                             root.micLevel = Math.min(100, root.micLevel + 5);
@@ -833,7 +857,6 @@ ShellRoot {
                                 onEntered: audioRow.hovered = true
                                 onExited: audioRow.hovered = false
                                 onWheel: (w) => {
-                                    // 100% Limit and Instant Update logic [cite: 265]
                                     if (w.angleDelta.y > 0) {
                                         if (root.volumeLevel < 100) {
                                             root.volumeLevel = Math.min(100, root.volumeLevel + 5);
