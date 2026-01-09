@@ -10,10 +10,6 @@ local config = {
   max_lines = 10000, -- Don't draw indent lines for files larger than this
 }
 
--- Available themes: "gruvbox", "nord", "catppuccin", "tokyonight", "onedark"
--- Set your preferred theme here or it will be read from ~/.cache/theme file
-local preferred_theme = "nord" -- Change this to your preferred theme
-
 -- Add custom excluded filetypes here
 local custom_excluded_filetypes = {
   -- "markdown",
@@ -29,15 +25,24 @@ local custom_excluded_buftypes = {
 -- ============================================================================
 
 -- Theme colors with context color
+-- Theme colors with context color
 local colors = {
-  nord = {
-    normal = { "#BF616A", "#EBCB8B", "#81A1C1", "#D08770", "#A3BE8C", "#B48EAD", "#88C0D0" },
-    context = "#4C566A",
+  calamity = {
+    normal = {
+      "#ff003c", -- Profaned Flame (Red)
+      "#73f973", -- Sulphurous Green (Green)
+      "#df9d1b", -- Auric Gold (Yellow)
+      "#3ec1d3", -- Abyss Teal (Blue)
+      "#b45ef7", -- Cosmic Purple (Magenta)
+      "#ffa500", -- Yharon Orange (Orange)
+      "#e0e0e0", -- Exo Silver (White)
+    },
+    context = "#df9d1b", -- Auric Gold (Bright highlight for current scope)
   },
 }
 
 -- Current theme (mutable)
-local theme_current = preferred_theme
+local theme_current = "calamity"
 
 -- Filetypes to exclude
 local excluded_filetypes = {

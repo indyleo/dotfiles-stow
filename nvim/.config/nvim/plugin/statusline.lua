@@ -4,29 +4,34 @@
 local api, fn, uv = vim.api, vim.fn, vim.loop or vim.uv
 
 -- ========================
--- Theme selection (MOVED BEFORE file watcher)
+-- Theme selection
 -- ========================
-local preferd_theme = "nord"
+local preferd_theme = "calamity"
 
 -- ========================
--- Theme color definitions (MOVED BEFORE file watcher)
+-- Theme color definitions (Calamity)
 -- ========================
 local themes = {
-  nord = {
-    normal = { fg = "#2E3440", bg = "#88C0D0" },
-    insert = { fg = "#2E3440", bg = "#A3BE8C" },
-    visual = { fg = "#2E3440", bg = "#B48EAD" },
-    replace = { fg = "#2E3440", bg = "#BF616A" },
-    command = { fg = "#2E3440", bg = "#EBCB8B" },
-    terminal = { fg = "#2E3440", bg = "#8FBCBB" },
-    inactive = { fg = "#4C566A", bg = "#3B4252" },
-    git = { fg = "#A3BE8C", bg = "#2E3440" },
-    diag_error = { fg = "#BF616A", bg = "#2E3440" },
-    diag_warn = { fg = "#EBCB8B", bg = "#2E3440" },
-    diag_info = { fg = "#88C0D0", bg = "#2E3440" },
-    main = { fg = "#D8DEE9", bg = "#2E3440" },
-    filetype = { fg = "#B48EAD", bg = "#2E3440" },
-    encoding = { fg = "#8FBCBB", bg = "#2E3440" },
+  calamity = {
+    -- Background: #0f0f0f (Deep Void)
+    -- Foreground/Text: #f9e5c7 (Auric Silk)
+
+    normal = { fg = "#0f0f0f", bg = "#73f973" }, -- Sulphurous Green
+    insert = { fg = "#0f0f0f", bg = "#3ec1d3" }, -- Abyss Teal
+    visual = { fg = "#0f0f0f", bg = "#b45ef7" }, -- Cosmic Purple
+    replace = { fg = "#0f0f0f", bg = "#ff4646" }, -- Brimstone Red
+    command = { fg = "#0f0f0f", bg = "#df9d1b" }, -- Auric Gold
+    terminal = { fg = "#0f0f0f", bg = "#ffa500" }, -- Yharon Orange
+    inactive = { fg = "#4c1111", bg = "#1a1a1a" }, -- Dried Blood on Dark Charcoal
+
+    git = { fg = "#73f973", bg = "#0f0f0f" }, -- Sulphurous Green
+    diag_error = { fg = "#ff003c", bg = "#0f0f0f" }, -- Profaned Flame
+    diag_warn = { fg = "#df9d1b", bg = "#0f0f0f" }, -- Auric Gold
+    diag_info = { fg = "#3ec1d3", bg = "#0f0f0f" }, -- Abyss Teal
+
+    main = { fg = "#f9e5c7", bg = "#2d2d2d" }, -- Auric Silk on Light Charcoal
+    filetype = { fg = "#b45ef7", bg = "#0f0f0f" }, -- Cosmic Purple
+    encoding = { fg = "#e0e0e0", bg = "#0f0f0f" }, -- Exo Silver
   },
 }
 
