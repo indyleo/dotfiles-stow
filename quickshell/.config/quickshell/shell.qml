@@ -10,19 +10,19 @@ ShellRoot {
     id: root
 
     // --- Nord Theme Colors ---
-    readonly property color nord0:  "#2e3440"
-    readonly property color nord1:  "#3b4252"
-    readonly property color nord2:  "#434c5e"
-    readonly property color nord3:  "#4c566a"
-    readonly property color nord6:  "#eceff4"
-    readonly property color nord7:  "#8fbcbb"
-    readonly property color nord8:  "#88c0d0"
-    readonly property color nord9:  "#81a1c1"
-    readonly property color nord10: "#5e81ac"
-    readonly property color nord11: "#bf616a"
-    readonly property color nord13: "#ebcb8b"
-    readonly property color nord14: "#a3be8c"
-    readonly property color nord15: "#b48ead"
+    readonly property color cal0:  "#0f0f0f"
+    readonly property color cal1:  "#1a1a1a"
+    readonly property color cal2:  "#2d2d2d"
+    readonly property color cal3:  "#4c1111"
+    readonly property color cal6:  "#f9e5c7"
+    readonly property color cal7:  "#3ec1d3"
+    readonly property color cal8:  "#ff4646"
+    readonly property color cal9:  "#b45ef7"
+    readonly property color cal10: "#df9d1b"
+    readonly property color cal11: "#ff003c"
+    readonly property color cal13: "#73f973"
+    readonly property color cal14: "#ffa500"
+    readonly property color cal15: "#e0e0e0"
 
     property string fontFamily: "JetBrainsMono Nerd Font"
     property int fontSize: 13
@@ -247,7 +247,7 @@ ShellRoot {
             screen: modelData
             anchors { top: true; left: true; right: true }
             implicitHeight: 34
-            color: root.nord0
+            color: root.cal0
 
             RowLayout {
                 anchors.fill: parent
@@ -259,7 +259,7 @@ ShellRoot {
                 Rectangle {
                     Layout.preferredWidth: 32
                     Layout.preferredHeight: 26
-                    color: root.nord1
+                    color: root.cal1
                     radius: 13
 
                     Item {
@@ -302,7 +302,7 @@ ShellRoot {
                 Rectangle {
                     Layout.preferredHeight: 26
                     Layout.preferredWidth: (26 * 9) + 24
-                    color: root.nord1
+                    color: root.cal1
                     radius: 13
                     Row {
                         anchors.centerIn: parent
@@ -320,7 +320,7 @@ ShellRoot {
                                 Text {
                                     anchors.centerIn: parent
                                     text: parent.isActive ? "" : (parent.hasWindows ? "" : "")
-                                    color: parent.isActive ? root.nord8 : (parent.hasWindows ? root.nord9 : root.nord3)
+                                    color: parent.isActive ? root.cal8 : (parent.hasWindows ? root.cal9 : root.cal3)
                                     font.pixelSize: parent.isActive ? root.fontSize + 2 : root.fontSize
                                     font.family: root.fontFamily
 
@@ -337,13 +337,13 @@ ShellRoot {
                 Rectangle {
                     Layout.preferredHeight: 26
                     Layout.preferredWidth: layoutText.implicitWidth + 24
-                    color: root.nord1
+                    color: root.cal1
                     radius: 13
                     Text {
                         id: layoutText
                         anchors.centerIn: parent
                         text: root.currentLayout
-                        color: root.nord7
+                        color: root.cal7
                         font.pixelSize: root.fontSize - 2
                         font.family: root.fontFamily
                         font.bold: true
@@ -355,7 +355,7 @@ ShellRoot {
                     Layout.preferredHeight: 26
                     Layout.fillWidth: true
                     Layout.minimumWidth: 100
-                    color: root.nord1
+                    color: root.cal1
                     radius: 13
                     clip: true
                     RowLayout {
@@ -365,14 +365,14 @@ ShellRoot {
                         spacing: 10
                         Text {
                             text: root.activeWindow === "Desktop" ? "󰇄" : "󱂬"
-                            color: root.nord10
+                            color: root.cal10
                             font.pixelSize: root.fontSize + 2
                             font.family: root.fontFamily
                         }
                         Text {
                             Layout.fillWidth: true
                             text: root.activeWindow
-                            color: root.nord6
+                            color: root.cal6
                             font.pixelSize: root.fontSize
                             font.family: root.fontFamily
                             elide: Text.ElideRight
@@ -385,7 +385,7 @@ ShellRoot {
                 Rectangle {
                     Layout.preferredHeight: 26
                     Layout.preferredWidth: statsRow.implicitWidth + 30
-                    color: root.nord1
+                    color: root.cal1
                     radius: 13
 
                     RowLayout {
@@ -406,7 +406,7 @@ ShellRoot {
 
                                 Text {
                                     text: "󰌽"
-                                    color: root.nord10
+                                    color: root.cal10
                                     font.pixelSize: root.fontSize + 2
                                     font.family: root.fontFamily
                                     anchors.verticalCenter: parent.verticalCenter
@@ -423,7 +423,7 @@ ShellRoot {
                                         anchors.leftMargin: 6
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: root.kernelVersion
-                                        color: root.nord10
+                                        color: root.cal10
                                         font.pixelSize: root.fontSize
                                         font.family: root.fontFamily
                                         opacity: parent.width > 5 ? 1 : 0
@@ -442,7 +442,7 @@ ShellRoot {
                             }
                         }
 
-                        Rectangle { width: 1; height: 12; color: root.nord3 }
+                        Rectangle { width: 1; height: 12; color: root.cal3 }
 
                         // --- CPU ---
                         Item {
@@ -457,7 +457,7 @@ ShellRoot {
 
                                 Text {
                                     text: ""
-                                    color: root.nord11
+                                    color: root.cal11
                                     font.pixelSize: root.fontSize + 2
                                     font.family: root.fontFamily
                                     anchors.verticalCenter: parent.verticalCenter
@@ -474,7 +474,7 @@ ShellRoot {
                                         anchors.leftMargin: 6
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: root.showCpuTemp ? root.cpuTemp + "°C" : root.cpuUsage + "%"
-                                        color: root.nord11
+                                        color: root.cal11
                                         font.pixelSize: root.fontSize
                                         font.family: root.fontFamily
                                         opacity: parent.width > 5 ? 1 : 0
@@ -496,7 +496,7 @@ ShellRoot {
                             }
                         }
 
-                        Rectangle { width: 1; height: 12; color: root.nord3 }
+                        Rectangle { width: 1; height: 12; color: root.cal3 }
 
                         // --- GPU ---
                         Item {
@@ -511,7 +511,7 @@ ShellRoot {
 
                                 Text {
                                     text: "󰢮"
-                                    color: root.isNvidia ? root.nord15 : root.nord8
+                                    color: root.isNvidia ? root.cal15 : root.cal8
                                     font.pixelSize: root.fontSize + 2
                                     font.family: root.fontFamily
                                     anchors.verticalCenter: parent.verticalCenter
@@ -528,7 +528,7 @@ ShellRoot {
                                         anchors.leftMargin: 6
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: (root.isNvidia ? "NV: " : "IN: ") + (root.showGpuTemp ? root.gpuTemp + "°C" : root.gpuUsage + "%")
-                                        color: root.isNvidia ? root.nord15 : root.nord8
+                                        color: root.isNvidia ? root.cal15 : root.cal8
                                         font.pixelSize: root.fontSize
                                         font.family: root.fontFamily
                                         opacity: parent.width > 5 ? 1 : 0
@@ -551,7 +551,7 @@ ShellRoot {
                             }
                         }
 
-                        Rectangle { width: 1; height: 12; color: root.nord3 }
+                        Rectangle { width: 1; height: 12; color: root.cal3 }
 
                         // --- RAM ---
                         Item {
@@ -566,7 +566,7 @@ ShellRoot {
 
                                 Text {
                                     text: ""
-                                    color: root.nord13
+                                    color: root.cal13
                                     font.pixelSize: root.fontSize + 2
                                     font.family: root.fontFamily
                                     anchors.verticalCenter: parent.verticalCenter
@@ -583,7 +583,7 @@ ShellRoot {
                                         anchors.leftMargin: 6
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: root.memText
-                                        color: root.nord13
+                                        color: root.cal13
                                         font.pixelSize: root.fontSize
                                         font.family: root.fontFamily
                                         opacity: parent.width > 5 ? 1 : 0
@@ -605,7 +605,7 @@ ShellRoot {
                             }
                         }
 
-                        Rectangle { width: 1; height: 12; color: root.nord3 }
+                        Rectangle { width: 1; height: 12; color: root.cal3 }
 
                         // --- DISK ---
                         Item {
@@ -620,7 +620,7 @@ ShellRoot {
 
                                 Text {
                                     text: "󰋊"
-                                    color: root.nord7
+                                    color: root.cal7
                                     font.pixelSize: root.fontSize + 2
                                     font.family: root.fontFamily
                                     anchors.verticalCenter: parent.verticalCenter
@@ -637,7 +637,7 @@ ShellRoot {
                                         anchors.leftMargin: 6
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: root.diskLabel + ": " + root.diskUsage
-                                        color: root.nord7
+                                        color: root.cal7
                                         font.pixelSize: root.fontSize
                                         font.family: root.fontFamily
                                         opacity: parent.width > 5 ? 1 : 0
@@ -660,7 +660,7 @@ ShellRoot {
                             }
                         }
 
-                        Rectangle { width: 1; height: 12; color: root.nord3 }
+                        Rectangle { width: 1; height: 12; color: root.cal3 }
 
                         // --- WIFI ---
                         Item {
@@ -676,7 +676,7 @@ ShellRoot {
 
                                 Text {
                                     text: parent.icon
-                                    color: root.wifiSSID === "Offline" ? root.nord11 : root.nord8
+                                    color: root.wifiSSID === "Offline" ? root.cal11 : root.cal8
                                     font.pixelSize: root.fontSize + 2
                                     font.family: root.fontFamily
                                     anchors.verticalCenter: parent.verticalCenter
@@ -693,7 +693,7 @@ ShellRoot {
                                         anchors.leftMargin: 6
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: (root.wifiSSID === "Offline" ? "Searching..." : root.wifiSSID) + " (" + root.wifiStrength + "%)"
-                                        color: root.wifiSSID === "Offline" ? root.nord11 : root.nord8
+                                        color: root.wifiSSID === "Offline" ? root.cal11 : root.cal8
                                         font.pixelSize: root.fontSize
                                         font.family: root.fontFamily
                                         opacity: parent.width > 5 ? 1 : 0
@@ -716,7 +716,7 @@ ShellRoot {
                             }
                         }
 
-                        Rectangle { width: 2; height: 14; color: root.nord2; radius: 1 }
+                        Rectangle { width: 2; height: 14; color: root.cal2; radius: 1 }
 
                         // --- MIC ---
                         Item {
@@ -731,7 +731,7 @@ ShellRoot {
 
                                 Text {
                                     text: root.isMicMuted ? "󰍭" : "󰍬"
-                                    color: root.isMicMuted ? root.nord3 : root.nord15
+                                    color: root.isMicMuted ? root.cal3 : root.cal15
                                     font.pixelSize: root.fontSize + 2
                                     font.family: root.fontFamily
                                     anchors.verticalCenter: parent.verticalCenter
@@ -748,7 +748,7 @@ ShellRoot {
                                         anchors.leftMargin: 6
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: root.micLevel + "%"
-                                        color: root.isMicMuted ? root.nord3 : root.nord15
+                                        color: root.isMicMuted ? root.cal3 : root.cal15
                                         font.pixelSize: root.fontSize
                                         font.family: root.fontFamily
                                         opacity: parent.width > 5 ? 1 : 0
@@ -785,7 +785,7 @@ ShellRoot {
                             }
                         }
 
-                        Rectangle { width: 1; height: 12; color: root.nord3 }
+                        Rectangle { width: 1; height: 12; color: root.cal3 }
 
                         // --- AUDIO ---
                         Item {
@@ -800,7 +800,7 @@ ShellRoot {
 
                                 Text {
                                     text: root.isMuted ? "󰝟" : ""
-                                    color: root.isMuted ? root.nord3 : root.nord14
+                                    color: root.isMuted ? root.cal3 : root.cal14
                                     font.pixelSize: root.fontSize + 2
                                     font.family: root.fontFamily
                                     anchors.verticalCenter: parent.verticalCenter
@@ -817,7 +817,7 @@ ShellRoot {
                                         anchors.leftMargin: 6
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: root.volumeLevel + "%"
-                                        color: root.isMuted ? root.nord3 : root.nord14
+                                        color: root.isMuted ? root.cal3 : root.cal14
                                         font.pixelSize: root.fontSize
                                         font.family: root.fontFamily
                                         opacity: parent.width > 5 ? 1 : 0
@@ -860,14 +860,14 @@ ShellRoot {
                 Rectangle {
                     Layout.preferredHeight: 26
                     Layout.preferredWidth: clockText.implicitWidth + 30
-                    color: root.nord2
+                    color: root.cal2
                     radius: 13
                     Text {
                         id: clockText
                         anchors.centerIn: parent
                         property var dateTime: new Date()
                         text: Qt.formatDateTime(dateTime, "󰥔  hh:mm AP |   dddd MMMM dd yyyy")
-                        color: root.nord6
+                        color: root.cal6
                         font.pixelSize: root.fontSize
                         font.family: root.fontFamily
                         font.bold: true
