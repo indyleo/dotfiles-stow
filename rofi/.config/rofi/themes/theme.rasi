@@ -1,36 +1,30 @@
 /**
- * Nordic rofi theme
- * Adapted by undiabler <undiabler@gmail.com>
- *
- * Nord Color palette imported from https://www.nordtheme.com/
- *
+ * Calamity Mod rofi theme
+ * Adapted from Nordic rofi theme
  */
 
 * {
-    /* Nord Color Palette */
-    nord0:  #2e3440;
-    nord1:  #3b4252;
-    nord2:  #434c5e;
-    nord3:  #4c566a;
-    nord4:  #d8dee9;
-    nord5:  #e5e9f0;
-    nord6:  #eceff4;
-    nord7:  #8fbcbb;
-    nord8:  #88c0d0;
-    nord9:  #81a1c1;
-    nord10: #5e81ac;
-    nord11: #bf616a;
-    nord12: #d08770;
-    nord13: #ebcb8b;
-    nord14: #a3be8c;
-    nord15: #b48ead;
+    /* Calamity Color Palette */
+    cal0:  #0f0f0f; /* Background */
+    cal1:  #1a1a1a; /* Dark Charcoal */
+    cal2:  #2d2d2d; /* Lighter Charcoal */
+    cal3:  #e0e0e0; /* Exo Silver */
+    cal4:  #f9e5c7; /* Auric Silk / FG */
+    cal5:  #eceff4; /* Bright White */
+    cal6:  #ff003c; /* Profaned Flame */
+    cal7:  #73f973; /* Sulphurous Green */
+    cal8:  #df9d1b; /* Auric Gold */
+    cal9:  #3ec1d3; /* Abyss Teal */
+    cal10: #b45ef7; /* Cosmic Purple */
+    cal11: #ff4646; /* Brimstone Red */
+    cal12: #ffa500; /* Yharon Orange */
 
-    /* Theme Variables */
-    foreground: @nord9;
-    backlight: #ccffeedd;
+    /* Theme Variables mapped like original */
+    foreground: @cal10;         /* Cosmic Purple (Primary accent) */
+    backlight:  #f9e5c7dd;      /* Auric Silk with alpha */
     background-color: transparent;
-    highlight: underline bold #eceff4;
-    transparent: rgba(46, 52, 64, 0);
+    highlight: underline bold #f9e5c7;
+    transparent: rgba(15, 15, 15, 0);
 
     /* Default Text Properties */
     text-color: @foreground;
@@ -43,7 +37,7 @@ window {
     padding: 2px;
     border: 0px;
     border-radius: 6px;
-    border-color: @nord10;
+    border-color: @cal10;
     background-color: @transparent;
     spacing: 0;
     children: [mainbox];
@@ -61,17 +55,17 @@ message {
     border: 0px 2px 2px 2px;
     border-color: @foreground;
     border-radius: 0px;
-    background-color: @nord7;
-    text-color: @nord0;
+    background-color: @cal8;    /* Auric Gold */
+    text-color: @cal0;          /* Dark Background */
 }
 
 inputbar {
     padding: 11px;
     border: 1px;
     border-radius: 6px 6px 0px 0px;
-    border-color: @nord10;
-    background-color: @nord1;
-    text-color: @nord6;
+    border-color: @cal10;
+    background-color: @cal1;    /* Dark Charcoal */
+    text-color: @cal4;          /* Auric Silk */
     spacing: 0;
     children: [prompt, entry];
 }
@@ -96,8 +90,8 @@ listview {
     padding: 8px;
     border: 0px 1px 1px 1px;
     border-radius: 0px 0px 6px 6px;
-    border-color: @nord10;
-    background-color: rgba(46, 52, 64, 0.9);
+    border-color: @cal10;
+    background-color: rgba(15, 15, 15, 0.9); /* Dark Charcoal with transparency */
     dynamic: false;
     spacing: 2px;
 }
@@ -106,23 +100,23 @@ element {
     padding: 5px;
     border-radius: 4px;
     background-color: transparent;
-    text-color: @nord4;
+    text-color: @cal4;
     vertical-align: 0.5;
 }
 
 element normal.normal {
     background-color: transparent;
-    text-color: @nord4;
+    text-color: @cal4;
 }
 
 element selected.normal {
-    background-color: @nord7;
-    text-color: @nord0;
+    background-color: @cal10;   /* Cosmic Purple */
+    text-color: @cal0;          /* Dark Background */
 }
 
 element alternate.normal {
     background-color: transparent;
-    text-color: @nord4;
+    text-color: @cal4;
 }
 
 element-text {
@@ -149,16 +143,16 @@ button {
 button selected.normal {
     border: 2px 0px 2px 2px;
     border-color: @foreground;
-    background-color: @nord7;
-    text-color: @nord0;
+    background-color: @cal10;
+    text-color: @cal0;
 }
 
 textbox {
     padding: 8px;
     border: 1px;
     border-radius: 6px;
-    border-color: @nord10;
-    background-color: rgba(46, 52, 64, 0.9);
+    border-color: @cal10;
+    background-color: rgba(15, 15, 15, 0.9);
     text-color: @backlight;
     vertical-align: 0.5;
 }
