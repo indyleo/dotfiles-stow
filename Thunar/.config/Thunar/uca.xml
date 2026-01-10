@@ -1,18 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <actions>
 <action>
-	<icon>utilities-terminal</icon>
-	<name>Alacritty Open</name>
-	<submenu></submenu>
-	<unique-id>1745284032568733-1</unique-id>
-	<command>alacritty --working-directory %f</command>
-	<description>Open Alacritty in dir</description>
-	<range></range>
-	<patterns>*</patterns>
-	<startup-notify/>
-	<directories/>
-</action>
-<action>
 	<icon>nvim</icon>
 	<name>Neovide Open</name>
 	<submenu></submenu>
@@ -27,24 +15,13 @@
 </action>
 <action>
 	<icon>cool-retro-term</icon>
-	<name>St Open</name>
+	<name>Foot Open</name>
 	<submenu></submenu>
 	<unique-id>1761402120701248-1</unique-id>
-	<command>st -e zsh -c &quot;cd %f; exec zsh&quot;</command>
-	<description>Open the cwd in st</description>
+	<command>foot -e zsh -c &quot;cd %f; exec zsh&quot;</command>
+	<description>Open the cwd in foot</description>
 	<range>*</range>
 	<patterns>*</patterns>
 	<directories/>
-</action>
-<action>
-	<icon>sxiv</icon>
-	<name>Set As Wallpaper </name>
-	<submenu></submenu>
-	<unique-id>1766603952323181-1</unique-id>
-	<command>xwallpaper --stretch %f</command>
-	<description>Setting the wallpaper with xwallpaper</description>
-	<range>*</range>
-	<patterns>*</patterns>
-	<image-files/>
 </action>
 </actions>
