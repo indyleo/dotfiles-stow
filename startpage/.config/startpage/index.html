@@ -27,13 +27,13 @@
       body {
         margin: 0;
         background-color: var(--bg);
-        /* Background properties */
         background-position: center;
         background-repeat: no-repeat;
         background-attachment: fixed;
         background-size: 100% 100%;
 
-        font-family: "Segoe UI", "Roboto", "Inter", Helvetica, Arial, sans-serif;
+        font-family:
+          "Segoe UI", "Roboto", "Inter", Helvetica, Arial, sans-serif;
         color: var(--fg);
         display: flex;
         flex-direction: column;
@@ -199,15 +199,22 @@
       }
 
       @media (max-width: 600px) {
-        h1 { min-width: 90%; font-size: 1.1rem; }
-        .sys-info { flex-direction: column; bottom: 10px; }
-        .search-bar input { width: 250px; }
+        h1 {
+          min-width: 90%;
+          font-size: 1.1rem;
+        }
+        .sys-info {
+          flex-direction: column;
+          bottom: 10px;
+        }
+        .search-bar input {
+          width: 250px;
+        }
       }
     </style>
   </head>
   <body id="main-body">
-
-    <audio id="sun-audio" src="here-comes-the-sun.mp3" loop autoplay></audio>
+    <audio id="sun-audio" src="here-comes-the-sun.mp3" loop></audio>
 
     <h1 id="greeting" class="glass-panel">
       <span id="greet-line">...</span>
@@ -217,9 +224,20 @@
     <div id="datetime" class="glass-panel"></div>
 
     <div class="search-container">
-      <form action="https://search.brave.com/search" method="get" class="glass-panel">
+      <form
+        action="https://search.brave.com/search"
+        method="get"
+        class="glass-panel"
+      >
         <div class="search-bar">
-          <input type="text" id="searchInput" name="q" placeholder="Search... (Press '/')" autocomplete="off" required />
+          <input
+            type="text"
+            id="searchInput"
+            name="q"
+            placeholder="Search... (Press '/')"
+            autocomplete="off"
+            required
+          />
         </div>
       </form>
     </div>
@@ -228,30 +246,68 @@
       <div class="links">
         <div class="category">
           <h3>Work</h3>
-          <a href="https://github.com"><img src="favicons/github.ico" width="16" height="16" />GitHub</a>
-          <a href="https://gitlab.com"><img src="favicons/gitlab.ico" width="16" height="16" />GitLab</a>
-          <a href="https://stackoverflow.com"><img src="favicons/stackoverflow.ico" width="16" height="16" />Stack Overflow</a>
-          <a href="https://mail.google.com/mail/u/0/#inbox"><img src="favicons/gmail.ico" width="16" height="16" />Gmail</a>
+          <a href="https://github.com"
+            ><img src="favicons/github.ico" width="16" height="16" />GitHub</a
+          >
+          <a href="https://gitlab.com"
+            ><img src="favicons/gitlab.ico" width="16" height="16" />GitLab</a
+          >
+          <a href="https://stackoverflow.com"
+            ><img
+              src="favicons/stackoverflow.ico"
+              width="16"
+              height="16"
+            />Stack Overflow</a
+          >
+          <a href="https://mail.google.com/mail/u/0/#inbox"
+            ><img src="favicons/gmail.ico" width="16" height="16" />Gmail</a
+          >
         </div>
         <div class="category">
           <h3>Media</h3>
-          <a href="https://youtube.com"><img src="favicons/youtube.ico" width="16" height="16" />YouTube</a>
-          <a href="https://twitch.tv"><img src="favicons/twitch.ico" width="16" height="16" />Twitch</a>
-          <a href="https://www.reddit.com/"><img src="favicons/reddit.ico" width="16" height="16" />Reddit</a>
-          <a href="https://discord.com/channels/@me"><img src="favicons/discord.ico" width="16" height="16" />Discord</a>
+          <a href="https://youtube.com"
+            ><img src="favicons/youtube.ico" width="16" height="16" />YouTube</a
+          >
+          <a href="https://twitch.tv"
+            ><img src="favicons/twitch.ico" width="16" height="16" />Twitch</a
+          >
+          <a href="https://www.reddit.com/"
+            ><img src="favicons/reddit.ico" width="16" height="16" />Reddit</a
+          >
+          <a href="https://discord.com/channels/@me"
+            ><img src="favicons/discord.ico" width="16" height="16" />Discord</a
+          >
         </div>
         <div class="category">
           <h3>Tools</h3>
-          <a href="https://gemini.google.com/u/1"><img src="favicons/gemini.svg" width="16" height="16" />Gemini</a>
-          <a href="https://claude.ai/new"><img src="favicons/claude.svg" width="16" height="16" />Claude</a>
-          <a href="https://chat.openai.com"><img src="favicons/chatgpt.ico" width="16" height="16" />ChatGPT</a>
-          <a href="https://terminal.sexy"><img src="favicons/hackertype.ico" width="16" height="16" />Terminal Sexy</a>
+          <a href="https://gemini.google.com/u/1"
+            ><img src="favicons/gemini.svg" width="16" height="16" />Gemini</a
+          >
+          <a href="https://claude.ai/new"
+            ><img src="favicons/claude.svg" width="16" height="16" />Claude</a
+          >
+          <a href="https://chat.openai.com"
+            ><img src="favicons/chatgpt.ico" width="16" height="16" />ChatGPT</a
+          >
+          <a href="https://terminal.sexy"
+            ><img
+              src="favicons/hackertype.ico"
+              width="16"
+              height="16"
+            />Terminal Sexy</a
+          >
         </div>
         <div class="category">
           <h3>Projects</h3>
-          <a href="https://github.com/indyleo/Catalyst"><img src="favicons/github.ico" width="16" height="16" />Catalyst</a>
-          <a href="https://github.com/indyleo/dotfiles-stow"><img src="favicons/github.ico" width="16" height="16" />Dotfiles</a>
-          <a href="https://github.com/indyleo/suckless"><img src="favicons/github.ico" width="16" height="16" />Suckless</a>
+          <a href="https://github.com/indyleo/Catalyst"
+            ><img src="favicons/github.ico" width="16" height="16" />Catalyst</a
+          >
+          <a href="https://github.com/indyleo/dotfiles-stow"
+            ><img src="favicons/github.ico" width="16" height="16" />Dotfiles</a
+          >
+          <a href="https://github.com/indyleo/suckless"
+            ><img src="favicons/github.ico" width="16" height="16" />Suckless</a
+          >
         </div>
       </div>
     </div>
@@ -264,50 +320,48 @@
         <span class="sys-label">DISTRO:</span> <span id="distro-val">...</span>
       </div>
       <div class="sys-item">
-        <span class="sys-label">BROWSER:</span> <span id="browser-val">...</span>
+        <span class="sys-label">BROWSER:</span>
+        <span id="browser-val">...</span>
       </div>
     </div>
 
     <script>
-      /* --- WALLPAPER CONFIG --- */
+      /* --- CONFIG --- */
       const wallpaperFolder = "Wallpapers/";
       const wallpaperList = [
-				"wall.jpg",
-				"wall1.jpg",
-				"wall2.jpg",
-				"wall3.jpg",
-				"wall4.jpg",
-				"wall5.jpg",
-				"wall6.jpg"
+        "wall.jpg",
+        "wall1.jpg",
+        "wall2.jpg",
+        "wall3.jpg",
+        "wall4.jpg",
+        "wall5.jpg",
+        "wall6.jpg",
       ];
 
       function pickRandomWallpaper() {
         const body = document.getElementById("main-body");
-        const selected = wallpaperList[Math.floor(Math.random() * wallpaperList.length)];
+        const selected =
+          wallpaperList[Math.floor(Math.random() * wallpaperList.length)];
         const fullPath = wallpaperFolder + selected;
         body.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('${fullPath}')`;
       }
 
-      /* --- AUDIO AUTOPLAY FIX --- */
-      function initAudio() {
+      /* --- AUDIO TRIGGER LOGIC --- */
+      function playSunAudio() {
         const audio = document.getElementById("sun-audio");
-        audio.volume = 0.4; // Set reasonable volume
+        audio.volume = 0.4;
 
-        // Attempt to play immediately
         const playPromise = audio.play();
-
         if (playPromise !== undefined) {
           playPromise.catch(() => {
-            console.log("Autoplay blocked by browser. Waiting for user interaction...");
-            // If blocked, wait for a click or keypress to start it
-            const startAudio = () => {
+            // If browser blocks autoplay, wait for interaction
+            const start = () => {
               audio.play();
-              // Remove listeners once it starts so we don't spam play()
-              document.removeEventListener('click', startAudio);
-              document.removeEventListener('keydown', startAudio);
+              document.removeEventListener("click", start);
+              document.removeEventListener("keydown", start);
             };
-            document.addEventListener('click', startAudio);
-            document.addEventListener('keydown', startAudio);
+            document.addEventListener("click", start);
+            document.addEventListener("keydown", start);
           });
         }
       }
@@ -324,12 +378,28 @@
           ]);
 
           if (quoteRes.ok) {
-            const quotes = (await quoteRes.text()).split("\n").filter((l) => l.trim() !== "");
-            currentQuote = quotes[Math.floor(Math.random() * quotes.length)].trim();
+            const quotes = (await quoteRes.text())
+              .split("\n")
+              .filter((l) => l.trim() !== "");
+            currentQuote =
+              quotes[Math.floor(Math.random() * quotes.length)].trim();
+
+            /* --- THE FIX: STRICT MATCH ONLY --- */
+            // Only plays if the quote contains this exact long phrase
+            if (
+              currentQuote
+                .toLowerCase()
+                .includes("here comes the sun do do dodo")
+            ) {
+              playSunAudio();
+            }
           }
           if (phraseRes.ok) {
-            const phrases = (await phraseRes.text()).split("\n").filter((l) => l.trim() !== "");
-            currentRandomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+            const phrases = (await phraseRes.text())
+              .split("\n")
+              .filter((l) => l.trim() !== "");
+            currentRandomPhrase =
+              phrases[Math.floor(Math.random() * phrases.length)];
           }
           updateClock();
         } catch (e) {
@@ -339,19 +409,42 @@
 
       function updateClock() {
         const now = new Date();
-        const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const days = [
+          "Sunday",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+        ];
+        const months = [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ];
         const h = now.getHours();
 
         document.getElementById("datetime").textContent =
           `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()} • ${h % 12 || 12}:${String(now.getMinutes()).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 
-        let stdGreet = h < 12 ? "Good Morning" : h < 17 ? "Good Afternoon" : "Good Evening";
-        document.getElementById("greet-line").textContent = `${stdGreet} — ${currentRandomPhrase}`;
+        let stdGreet =
+          h < 12 ? "Good Morning" : h < 17 ? "Good Afternoon" : "Good Evening";
+        document.getElementById("greet-line").textContent =
+          `${stdGreet} — ${currentRandomPhrase}`;
         document.getElementById("quote-line").textContent = `"${currentQuote}"`;
       }
 
-      /* --- SYSTEM INFO --- */
+      /* --- INITIALIZE --- */
       function initSysInfo() {
         const ua = navigator.userAgent;
         let os = "Linux";
@@ -359,17 +452,22 @@
         else if (ua.indexOf("Mac") != -1) os = "MacOS";
 
         document.getElementById("os-val").textContent = os;
-        if (os === "Linux") document.getElementById("distro-val").textContent = "Arch";
-        else document.getElementById("distro-container").classList.add("hidden");
-
-        document.getElementById("browser-val").textContent = ua.includes("Firefox") ? "Firefox" : ua.includes("Chrome") ? "Chrome" : "Safari";
+        if (os === "Linux")
+          document.getElementById("distro-val").textContent = "Arch";
+        else
+          document.getElementById("distro-container").classList.add("hidden");
+        document.getElementById("browser-val").textContent = ua.includes(
+          "Firefox",
+        )
+          ? "Firefox"
+          : ua.includes("Chrome")
+            ? "Chrome"
+            : "Safari";
       }
 
-      // Start Logic
       pickRandomWallpaper();
       loadTextFiles();
       initSysInfo();
-      initAudio(); // Initialize audio
       setInterval(updateClock, 1000);
 
       const searchInput = document.getElementById("searchInput");
