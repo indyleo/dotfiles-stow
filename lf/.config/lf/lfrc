@@ -44,12 +44,16 @@ map gp :cd ~/Pictures
 map gm :cd ~/Music
 map gv :cd ~/Videos
 map gg :cd ~/Github
-map gM media
+
+map ee $$f
+
+### Custom Commands ###
 
 # Go to media dir
 cmd media ${{
   lf -remote "send $id cd '/run/media/$USER/'"
 }}
+map gM media
 
 ### FILE CREATION ###
 cmd mk ${{
