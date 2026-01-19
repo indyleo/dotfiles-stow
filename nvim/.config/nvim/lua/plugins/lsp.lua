@@ -63,6 +63,7 @@ return {
         "bashls",
         "emmylua_ls",
         "luau_lsp",
+        "gopls",
       }
 
       local lspconfig = vim.lsp.config
@@ -144,6 +145,7 @@ return {
           "luau-lsp",
           "crlfmt",
           "staticcheck",
+          "gopls",
           "arduino-language-server",
           -- Script / Shell
           "bash-language-server",
