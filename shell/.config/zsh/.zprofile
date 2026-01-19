@@ -93,6 +93,11 @@ export QT_QPA_PLATFORMTHEME="qt6ct"
 # Discordo (Discord TUI)
 [[ -f "$HOME/Documents/pass/discord" ]] && export DISCORDO_TOKEN="$(cat "$HOME/Documents/pass/discord")"
 
+# Navi Client
+[[ -f "$HOME/Documents/pass/navipass" ]] export ND_USER="$(cat "$HOME/Documents/pass/naviuser")"
+[[ -f "$HOME/Documents/pass/navipass" ]] export ND_PASS="$(cat "$HOME/Documents/pass/navipass")"
+[[ -f "$HOME/Documents/pass/naviurl" ]] export ND_SERVER="$(cat "$HOME/Documents/pass/naviurl")"
+
 # Start WM
 if [[ "$(tty)" = /dev/tty1 ]];then
     pgrep hyprland || start-hyprland
