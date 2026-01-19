@@ -149,7 +149,7 @@ alias fusee="sudo fusee-nano ~/Bin/hekate_ctcaer_*.bin"
 alias ns="sudo java -jar ~/Code/ns-usbloader-*.jar"
 alias clox="tty-clock -tcxBbC 4"
 alias matrix="cmatrix -abC cyan"
-alias oops='python3 ~/Projects/TheFuck/src/main.py $(fc -ln -1)'
+alias oops='oops $(fc -ln -1)'
 
 # For Vim Users
 # vim:ft=sh
