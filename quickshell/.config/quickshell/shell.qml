@@ -16,11 +16,12 @@ ShellRoot {
     readonly property color cal3:  "#4c1111" // Separators
     readonly property color cal6:  "#f9e5c7" // Main Text
     readonly property color cal7:  "#3ec1d3" // Teal
-    readonly property color cal8:  "#ff4646" // Red
+    readonly property color cal8:  "#ff4646" // Red (Mic)
     readonly property color cal9:  "#b45ef7" // Purple
     readonly property color cal10: "#df9d1b" // Gold
     readonly property color cal11: "#ff003c" // Alert Red
     readonly property color cal13: "#73f973" // Green (Battery/RAM/NV)
+    readonly property color cal14: "#ffa500" // Orange (Audio)
     readonly property color cal15: "#e0e0e0" // Silver
 
     property string fontFamily: "JetBrainsMono Nerd Font"
@@ -56,6 +57,12 @@ ShellRoot {
 
     // --- Battery Properties ---
     property string batIcon: "󰢜"; property string batText: "100%"; property bool showBat: false
+
+    // --- Audio Properties (WPCTL Logic) ---
+    property int volumeLevel: 0
+    property bool isMuted: false
+    property int micLevel: 0
+    property bool isMicMuted: false
 
     // --- Logic & Process Control ---
 
@@ -161,8 +168,7 @@ ShellRoot {
         }
     }
 
-    // --- SYSSTATS PROCESSES (Only Battery Remains) ---
-
+    // --- Battery (Sysstats) ---
     Process {
         id: batProc; command: ["sysstats", "battery"]
         stdout: SplitParser {
@@ -170,6 +176,29 @@ ShellRoot {
                 if (!data || data.trim() === "") { root.showBat = false; return }
                 let parts = data.trim().split(/\s+/)
                 if (parts.length >= 2) { root.showBat = true; root.batIcon = parts[0]; root.batText = parts.slice(1).join(" ") }
+            }
+        }
+    }
+
+    // --- Audio (WPCTL - Old Logic) ---
+    Process {
+        id: volProc
+        command: ["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"]
+        stdout: SplitParser {
+            onRead: data => {
+                var match = data.match(/Volume:\s*([\d.]+)(\s*\[MUTED\])?/)
+                if (match) { root.volumeLevel = Math.round(parseFloat(match[1]) * 100); root.isMuted = !!match[2] }
+            }
+        }
+    }
+
+    Process {
+        id: micProc
+        command: ["wpctl", "get-volume", "@DEFAULT_AUDIO_SOURCE@"]
+        stdout: SplitParser {
+            onRead: data => {
+                var match = data.match(/Volume:\s*([\d.]+)(\s*\[MUTED\])?/)
+                if (match) { root.micLevel = Math.round(parseFloat(match[1]) * 100); root.isMicMuted = !!match[2] }
             }
         }
     }
@@ -184,6 +213,8 @@ ShellRoot {
             diskProc.running = false; diskProc.running = true
             wifiProc.running = false; wifiProc.running = true
             batProc.running = false; batProc.running = true
+            volProc.running = false; volProc.running = true
+            micProc.running = false; micProc.running = true
         }
     }
 
@@ -345,8 +376,8 @@ ShellRoot {
                                     Text { id: batTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.batText; color: root.cal13; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
                             MouseArea {
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true
-                                onEntered: batRow.hovered = true; onExited: batRow.hovered = false
+                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true;
+                                onEntered: batRow.hovered = true; onExited: batRow.hovered = false;
                                 onClicked: (m) => { if(m.button === Qt.MiddleButton) batRow.pinned = !batRow.pinned }
                             }
                         }
@@ -367,6 +398,62 @@ ShellRoot {
                                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true
                                 onEntered: wifiRow.hovered = true; onExited: wifiRow.hovered = false
                                 onClicked: (m) => { if(m.button === Qt.MiddleButton) wifiRow.pinned = !wifiRow.pinned; else if (m.button === Qt.LeftButton) { shellCmd.command = ["sh", "-c", "rofi_wifi"]; shellCmd.running = false; shellCmd.running = true } else if (m.button === Qt.RightButton) { shellCmd.command = ["nm-connection-editor"]; shellCmd.running = false; shellCmd.running = true } }
+                            }
+                        }
+
+                        Rectangle { width: 1; height: 12; color: root.cal3 }
+
+                        // Microphone (OLD WPCTL - RED)
+                        Item {
+                            Layout.preferredHeight: 20; Layout.preferredWidth: micRow.width
+                            Row {
+                                id: micRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
+                                Text { text: root.isMicMuted ? "" : ""; color: root.isMicMuted ? root.cal3 : root.cal8; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Item { height: 20; width: parent.expanded ? micTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                                    Text { id: micTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.isMicMuted ? "Muted" : root.micLevel + "%"; color: root.isMicMuted ? root.cal3 : root.cal8; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
+                            }
+                            MouseArea {
+                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true
+                                onEntered: micRow.hovered = true; onExited: micRow.hovered = false
+                                onWheel: (wheel) => {
+                                    if(wheel.angleDelta.y > 0) shellCmd.command = ["wpctl", "set-volume", "-l", "1.5", "@DEFAULT_AUDIO_SOURCE@", "5%+"];
+                                    else shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SOURCE@", "5%-"];
+                                    shellCmd.running = false; shellCmd.running = true
+                                    micProc.running = false; micProc.running = true
+                                }
+                                onClicked: (m) => {
+                                    if(m.button === Qt.MiddleButton) micRow.pinned = !micRow.pinned;
+                                    else if (m.button === Qt.LeftButton) { shellCmd.command = ["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]; shellCmd.running = false; shellCmd.running = true; micProc.running = false; micProc.running = true }
+                                    else if (m.button === Qt.RightButton) { shellCmd.command = ["pavucontrol", "-t", "4"]; shellCmd.running = false; shellCmd.running = true }
+                                }
+                            }
+                        }
+
+                        Rectangle { width: 1; height: 12; color: root.cal3 }
+
+                        // Volume (OLD WPCTL - ORANGE)
+                        Item {
+                            Layout.preferredHeight: 20; Layout.preferredWidth: volRow.width
+                            Row {
+                                id: volRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
+                                Text { text: root.isMuted ? "󰝟" : "󰕾"; color: root.isMuted ? root.cal3 : root.cal14; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Item { height: 20; width: parent.expanded ? volTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                                    Text { id: volTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.isMuted ? "Muted" : root.volumeLevel + "%"; color: root.isMuted ? root.cal3 : root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
+                            }
+                            MouseArea {
+                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true
+                                onEntered: volRow.hovered = true; onExited: volRow.hovered = false
+                                onWheel: (wheel) => {
+                                    if(wheel.angleDelta.y > 0) shellCmd.command = ["wpctl", "set-volume", "-l", "1.5", "@DEFAULT_AUDIO_SINK@", "5%+"];
+                                    else shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%-"];
+                                    shellCmd.running = false; shellCmd.running = true
+                                    volProc.running = false; volProc.running = true
+                                }
+                                onClicked: (m) => {
+                                    if(m.button === Qt.MiddleButton) volRow.pinned = !volRow.pinned;
+                                    else if (m.button === Qt.LeftButton) { shellCmd.command = ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"]; shellCmd.running = false; shellCmd.running = true; volProc.running = false; volProc.running = true }
+                                    else if (m.button === Qt.RightButton) { shellCmd.command = ["pavucontrol", "-t", "3"]; shellCmd.running = false; shellCmd.running = true }
+                                }
                             }
                         }
                     }
