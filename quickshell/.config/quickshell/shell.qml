@@ -15,12 +15,12 @@ ShellRoot {
     readonly property color cal2:  "#2d2d2d" // Pill BG
     readonly property color cal3:  "#4c1111" // Separators
     readonly property color cal6:  "#f9e5c7" // Main Text
-    readonly property color cal7:  "#3ec1d3" // Teal (Blue)
-    readonly property color cal8:  "#ff4646" // Red (Mic)
-    readonly property color cal9:  "#b45ef7" // Purple
-    readonly property color cal10: "#df9d1b" // Gold
+    readonly property color cal7:  "#3ec1d3" // Teal (Storage/Memory)
+    readonly property color cal8:  "#ff4646" // Red
+    readonly property color cal9:  "#b45ef7" // Purple (System Core)
+    readonly property color cal10: "#df9d1b" // Gold (Power)
     readonly property color cal11: "#ff003c" // Alert Red
-    readonly property color cal13: "#73f973" // Green (Battery/RAM/NV)
+    readonly property color cal13: "#73f973" // Green (Network)
     readonly property color cal14: "#ffa500" // Orange (Audio)
     readonly property color cal15: "#e0e0e0" // Silver
 
@@ -144,26 +144,19 @@ ShellRoot {
             onRead: data => {
                 if (!data) return;
                 root.parseSysstats(data, "ethIcon", "ethText")
-                // Only show Ethernet if it is explicitly connected
                 root.showEth = data.includes("Connected")
             }
         }
     }
 
-    // --- WiFi Process (Updated Logic) ---
+    // --- WiFi Process ---
     Process {
         id: wifiProc; command: ["sysstats", "wifi"]
         stdout: SplitParser {
             onRead: data => {
                 if (!data) return;
                 root.parseSysstats(data, "wifiIcon", "wifiText")
-
-                // Logic:
-                // 1. If WiFi is connected, ALWAYS show it (regardless of Ethernet)
-                // 2. If WiFi is disconnected, hide it UNLESS Ethernet is also disconnected (fallback)
                 let isWifiConnected = !data.includes("Offline") && !data.includes("No tool") && !data.includes("Disconnected");
-
-                // Show if connected OR if we have no ethernet (so we see "Offline")
                 root.showWifi = isWifiConnected || !root.showEth;
             }
         }
@@ -190,7 +183,7 @@ ShellRoot {
             diskProc.running = false;   diskProc.running = true
             brightProc.running = false; brightProc.running = true
             wifiProc.running = false;   wifiProc.running = true
-            ethProc.running = false;    ethProc.running = true // Trigger Ethernet
+            ethProc.running = false;    ethProc.running = true
             batProc.running = false;    batProc.running = true
             volProc.running = false;    volProc.running = true
             micProc.running = false;    micProc.running = true
@@ -277,6 +270,7 @@ ShellRoot {
                     RowLayout {
                         id: statsRow; anchors.centerIn: parent; spacing: 12
 
+                        // === SYSTEM CORE GROUP (Purple) ===
                         // Kernel
                         Item {
                             Layout.preferredHeight: 20; Layout.preferredWidth: kernelRow.width
@@ -289,44 +283,46 @@ ShellRoot {
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: kernelRow.hovered = true; onExited: kernelRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) kernelRow.pinned = !kernelRow.pinned } }
                         }
 
-                        Rectangle { width: 1; height: 12; color: root.cal3 }
+                        // No separator (Same Group)
 
                         // CPU
                         Item {
                             Layout.preferredHeight: 20; Layout.preferredWidth: cpuRow.width
                             Row {
                                 id: cpuRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
-                                Text { text: root.cpuIcon; color: root.cal11; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.cpuIcon; color: root.cal9; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
                                 Item { height: 20; width: parent.expanded ? cpuTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                                    Text { id: cpuTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.cpuText; color: root.cal11; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
+                                    Text { id: cpuTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.cpuText; color: root.cal9; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: cpuRow.hovered = true; onExited: cpuRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) cpuRow.pinned = !cpuRow.pinned; } }
                         }
 
-                        Rectangle { width: 1; height: 12; color: root.cal3 }
+                        // No separator (Same Group)
 
                         // GPU
                         Item {
                             Layout.preferredHeight: 20; Layout.preferredWidth: gpuRow.width
                             Row {
                                 id: gpuRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
-                                Text { text: root.gpuIcon; color: root.cal7; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.gpuIcon; color: root.cal9; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
                                 Item { height: 20; width: parent.expanded ? gpuTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                                    Text { id: gpuTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.gpuText; color: root.cal7; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
+                                    Text { id: gpuTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.gpuText; color: root.cal9; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: gpuRow.hovered = true; onExited: gpuRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) gpuRow.pinned = !gpuRow.pinned; } }
                         }
 
+                        // --- Separator: Core -> Memory ---
                         Rectangle { width: 1; height: 12; color: root.cal3 }
 
+                        // === MEMORY & STORAGE GROUP (Teal) ===
                         // RAM
                         Item {
                             Layout.preferredHeight: 20; Layout.preferredWidth: memRow.width
                             Row {
                                 id: memRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
-                                Text { text: root.memIcon; color: root.cal13; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.memIcon; color: root.cal7; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
                                 Item { height: 20; width: parent.expanded ? memTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                                    Text { id: memTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.memText; color: root.cal13; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
+                                    Text { id: memTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.memText; color: root.cal7; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
                             MouseArea {
                                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton; hoverEnabled: true;
@@ -338,7 +334,7 @@ ShellRoot {
                             }
                         }
 
-                        Rectangle { width: 1; height: 12; color: root.cal3 }
+                        // No separator (Same Group)
 
                         // Disk
                         Item {
@@ -352,45 +348,50 @@ ShellRoot {
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: diskRow.hovered = true; onExited: diskRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) diskRow.pinned = !diskRow.pinned; } }
                         }
 
+                        // --- Separator: Storage -> Power ---
+                        Rectangle { width: 1; height: 12; color: root.cal3; visible: root.showBright || root.showBat }
+
+                        // === POWER GROUP (Gold) ===
                         // Brightness
-                        Rectangle { width: 1; height: 12; color: root.cal3; visible: root.showBright }
                         Item {
                             visible: root.showBright
                             Layout.preferredHeight: 20; Layout.preferredWidth: brightRow.width
                             Row {
                                 id: brightRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
-                                Text { text: root.brightIcon; color: root.cal13; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.brightIcon; color: root.cal10; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
                                 Item { height: 20; width: parent.expanded ? brightTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                                    Text { id: brightTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.brightText; color: root.cal13; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
+                                    Text { id: brightTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.brightText; color: root.cal10; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: brightRow.hovered = true; onExited: brightRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) brightRow.pinned = !brightRow.pinned } }
                         }
 
                         // Battery
-                        Rectangle { width: 1; height: 12; color: root.cal3; visible: root.showBat }
+                        // Note: Only show separator if Brightness is HIDDEN, but Battery is VISIBLE. If both visible, they merge.
+                        Rectangle { width: 1; height: 12; color: root.cal3; visible: root.showBat && !root.showBright }
                         Item {
                             visible: root.showBat; Layout.preferredHeight: 20; Layout.preferredWidth: batRow.width
                             Row {
                                 id: batRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
-                                Text { text: root.batIcon; color: root.cal13; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.batIcon; color: root.cal10; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
                                 Item { height: 20; width: parent.expanded ? batTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                                    Text { id: batTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.batText; color: root.cal13; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
+                                    Text { id: batTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.batText; color: root.cal10; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: batRow.hovered = true; onExited: batRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) batRow.pinned = !batRow.pinned } }
                         }
 
-                        Rectangle { width: 1; height: 12; color: root.cal3 }
+                        // --- Separator: Power -> Network ---
+                        Rectangle { width: 1; height: 12; color: root.cal3; visible: (root.showEth || root.showWifi) }
 
-                        // --- Ethernet Module (New) ---
-                        // Visible if Ethernet is connected
+                        // === NETWORK GROUP (Green) ===
+                        // Ethernet Module
                         Item {
                             visible: root.showEth
                             Layout.preferredHeight: 20; Layout.preferredWidth: ethRow.width
                             Row {
                                 id: ethRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
-                                Text { text: root.ethIcon; color: root.cal7; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.ethIcon; color: root.cal13; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
                                 Item { height: 20; width: parent.expanded ? ethTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                                    Text { id: ethTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.ethText; color: root.cal7; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
+                                    Text { id: ethTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.ethText; color: root.cal13; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton | Qt.RightButton; hoverEnabled: true;
                                 onEntered: ethRow.hovered = true; onExited: ethRow.hovered = false;
@@ -398,19 +399,17 @@ ShellRoot {
                             }
                         }
 
-                        // Seperator between Ethernet and WiFi (if both are visible)
-                        Rectangle { width: 1; height: 12; color: root.cal3; visible: root.showEth && root.showWifi }
+                        // No Separator (Same Group) - Merges if both exist
 
-                        // --- WIFI (Conditional Visibility) ---
-                        // Visible if Connected OR if Ethernet is missing (fallback)
+                        // WIFI Module
                         Item {
                             visible: root.showWifi
                             Layout.preferredHeight: 20; Layout.preferredWidth: wifiRow.width
                             Row {
                                 id: wifiRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
-                                Text { text: root.wifiIcon; color: root.cal10; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.wifiIcon; color: root.cal13; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
                                 Item { height: 20; width: parent.expanded ? wifiTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                                    Text { id: wifiTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.wifiText; color: root.cal10; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
+                                    Text { id: wifiTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.wifiText; color: root.cal13; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
                             MouseArea {
                                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true
@@ -423,16 +422,18 @@ ShellRoot {
                             }
                         }
 
+                        // --- Separator: Network -> Audio ---
                         Rectangle { width: 1; height: 12; color: root.cal3 }
 
+                        // === AUDIO GROUP (Orange) ===
                         // Microphone
                         Item {
                             Layout.preferredHeight: 20; Layout.preferredWidth: micRow.width
                             Row {
                                 id: micRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
-                                Text { text: root.micIcon; color: root.cal8; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.micIcon; color: root.cal14; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
                                 Item { height: 20; width: parent.expanded ? micTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                                    Text { id: micTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.micText; color: root.cal8; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
+                                    Text { id: micTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.micText; color: root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
                             MouseArea {
                                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true
@@ -450,7 +451,7 @@ ShellRoot {
                             }
                         }
 
-                        Rectangle { width: 1; height: 12; color: root.cal3 }
+                        // No separator (Same Group)
 
                         // Volume
                         Item {
