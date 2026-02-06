@@ -47,37 +47,38 @@ ShellRoot {
     }
 
     // --- System Data Properties ---
-    // Icons are split from text to allow "expand" animation
 
     // Kernel / CPU / GPU
     property string kernelIcon: ""; property string kernelVersion: "..."
-    property string cpuIcon: ""; property string cpuText: "0%"
-    property string gpuIcon: "󰢮"; property string gpuText: "0%"
+    property string cpuIcon: "";    property string cpuText: "0%"
+    property string gpuIcon: "󰢮";    property string gpuText: "0%"
 
     // Memory
-    property string memIcon: ""; property string memText: "0%"
+    property string memIcon: "";    property string memText: "0%"
 
-    // Disk (Updated: Simple Sysstats)
-    property string diskIcon: "󰋊"; property string diskText: "0%"
+    // Disk
+    property string diskIcon: "󰋊";   property string diskText: "0%"
 
-    // Brightness (Green)
+    // Brightness
     property string brightIcon: "󰃠"; property string brightText: "100%"; property bool showBright: false
 
     // Battery
-    property string batIcon: "󰢜"; property string batText: "100%"; property bool showBat: false
+    property string batIcon: "󰢜";    property string batText: "100%"; property bool showBat: false
+
+    // Ethernet (New)
+    property string ethIcon: "󰲜";    property string ethText: "Disconnected"; property bool showEth: false
 
     // Wifi
-    property string wifiIcon: "󰤮"; property string wifiText: "Offline"
+    property string wifiIcon: "󰤮";   property string wifiText: "Offline"; property bool showWifi: true
 
     // Audio / Mic
-    property string volIcon: "󰕾"; property string volText: "0%"
-    property string micIcon: ""; property string micText: "0%"
+    property string volIcon: "󰕾";    property string volText: "0%"
+    property string micIcon: "";    property string micText: "0%"
 
     // --- Logic & Process Control ---
 
     Process { id: shellCmd }
 
-    // --- Resource Fetchers (Sysstats Parsers) ---
     // Helper function to split "ICON TEXT" output
     function parseSysstats(data, iconProp, textProp) {
         if (!data) return;
@@ -87,46 +88,36 @@ ShellRoot {
     }
 
     Process {
-        id: kernelProc;
-        command: ["sysstats", "kernel"];
+        id: kernelProc; command: ["sysstats", "kernel"];
         stdout: SplitParser { onRead: data => root.parseSysstats(data, "kernelIcon", "kernelVersion") }
     }
 
     Process {
-        id: cpuProc
-        command: ["sysstats", "cpu"]
+        id: cpuProc; command: ["sysstats", "cpu"]
         stdout: SplitParser { onRead: data => root.parseSysstats(data, "cpuIcon", "cpuText") }
     }
 
     Process {
-        id: gpuProc
-        command: ["sysstats", "gpu"]
+        id: gpuProc; command: ["sysstats", "gpu"]
         stdout: SplitParser { onRead: data => root.parseSysstats(data, "gpuIcon", "gpuText") }
     }
 
     Process {
-        id: memProc
-        command: ["sysstats", "mem"]
+        id: memProc; command: ["sysstats", "mem"]
         stdout: SplitParser { onRead: data => root.parseSysstats(data, "memIcon", "memText") }
     }
 
-    // --- Disk (Sysstats) ---
     Process {
-        id: diskProc
-        command: ["sysstats", "disk"]
+        id: diskProc; command: ["sysstats", "disk"]
         stdout: SplitParser { onRead: data => root.parseSysstats(data, "diskIcon", "diskText") }
     }
 
-    // --- Brightness (Sysstats) ---
     Process {
-        id: brightProc;
-        command: ["sysstats", "brightness"]
+        id: brightProc; command: ["sysstats", "brightness"]
         stdout: SplitParser {
             onRead: data => {
-                // Hide if empty or contains "N/A"
                 if (!data || data.trim() === "" || data.includes("N/A")) {
-                    root.showBright = false;
-                    return
+                    root.showBright = false; return
                 }
                 root.showBright = true;
                 root.parseSysstats(data, "brightIcon", "brightText")
@@ -134,10 +125,8 @@ ShellRoot {
         }
     }
 
-    // --- Battery (Sysstats) ---
     Process {
-        id: batProc;
-        command: ["sysstats", "battery"]
+        id: batProc; command: ["sysstats", "battery"]
         stdout: SplitParser {
             onRead: data => {
                 if (!data || data.trim() === "") { root.showBat = false; return }
@@ -147,42 +136,64 @@ ShellRoot {
         }
     }
 
-    // --- WiFi (Sysstats) ---
+    // --- Ethernet Process ---
     Process {
-        id: wifiProc;
-        command: ["sysstats", "wifi"]
-        stdout: SplitParser { onRead: data => root.parseSysstats(data, "wifiIcon", "wifiText") }
+        id: ethProc
+        command: ["sysstats", "ethernet"]
+        stdout: SplitParser {
+            onRead: data => {
+                if (!data) return;
+                root.parseSysstats(data, "ethIcon", "ethText")
+                // Only show Ethernet if it is explicitly connected
+                root.showEth = data.includes("Connected")
+            }
+        }
     }
 
-    // --- Audio (Sysstats) ---
+    // --- WiFi Process (Updated Logic) ---
     Process {
-        id: volProc
-        command: ["sysstats", "volume"]
+        id: wifiProc; command: ["sysstats", "wifi"]
+        stdout: SplitParser {
+            onRead: data => {
+                if (!data) return;
+                root.parseSysstats(data, "wifiIcon", "wifiText")
+
+                // Logic:
+                // 1. If WiFi is connected, ALWAYS show it (regardless of Ethernet)
+                // 2. If WiFi is disconnected, hide it UNLESS Ethernet is also disconnected (fallback)
+                let isWifiConnected = !data.includes("Offline") && !data.includes("No tool") && !data.includes("Disconnected");
+
+                // Show if connected OR if we have no ethernet (so we see "Offline")
+                root.showWifi = isWifiConnected || !root.showEth;
+            }
+        }
+    }
+
+    Process {
+        id: volProc; command: ["sysstats", "volume"]
         stdout: SplitParser { onRead: data => root.parseSysstats(data, "volIcon", "volText") }
     }
 
-    // --- Microphone (Sysstats) ---
     Process {
-        id: micProc
-        command: ["sysstats", "microphone"]
+        id: micProc; command: ["sysstats", "microphone"]
         stdout: SplitParser { onRead: data => root.parseSysstats(data, "micIcon", "micText") }
     }
 
     // Periodic Background Refresh
     Timer {
-        interval: 2000;
-        running: true; repeat: true; triggeredOnStart: true
+        interval: 2000; running: true; repeat: true; triggeredOnStart: true
         onTriggered: {
-            cpuProc.running = false; cpuProc.running = true
-            gpuProc.running = false; gpuProc.running = true
+            cpuProc.running = false;    cpuProc.running = true
+            gpuProc.running = false;    gpuProc.running = true
             kernelProc.running = false; kernelProc.running = true
-            memProc.running = false; memProc.running = true
-            diskProc.running = false; diskProc.running = true
+            memProc.running = false;    memProc.running = true
+            diskProc.running = false;   diskProc.running = true
             brightProc.running = false; brightProc.running = true
-            wifiProc.running = false; wifiProc.running = true
-            batProc.running = false; batProc.running = true
-            volProc.running = false; volProc.running = true
-            micProc.running = false; micProc.running = true
+            wifiProc.running = false;   wifiProc.running = true
+            ethProc.running = false;    ethProc.running = true // Trigger Ethernet
+            batProc.running = false;    batProc.running = true
+            volProc.running = false;    volProc.running = true
+            micProc.running = false;    micProc.running = true
         }
     }
 
@@ -195,47 +206,36 @@ ShellRoot {
             color: root.cal0
 
             RowLayout {
-                anchors.fill: parent;
-                spacing: 8; anchors.leftMargin: 12; anchors.rightMargin: 12
+                anchors.fill: parent; spacing: 8; anchors.leftMargin: 12; anchors.rightMargin: 12
 
                 // 0. Profile
                 Rectangle {
-                    Layout.preferredWidth: 32;
-                    Layout.preferredHeight: 26; color: root.cal2; radius: 13
+                    Layout.preferredWidth: 32; Layout.preferredHeight: 26; color: root.cal2; radius: 13
                     Item {
-                        width: 22;
-                        height: 22; anchors.centerIn: parent
-                        Image { id: profileIcon;
-                        anchors.fill: parent; source: "icon.png"; fillMode: Image.PreserveAspectCrop; visible: false }
-                        Rectangle { id: mask;
-                        anchors.fill: parent; radius: width / 2; visible: false }
-                        OpacityMask { anchors.fill: parent;
-                        source: profileIcon; maskSource: mask }
+                        width: 22; height: 22; anchors.centerIn: parent
+                        Image { id: profileIcon; anchors.fill: parent; source: "icon.png"; fillMode: Image.PreserveAspectCrop; visible: false }
+                        Rectangle { id: mask; anchors.fill: parent; radius: width / 2; visible: false }
+                        OpacityMask { anchors.fill: parent; source: profileIcon; maskSource: mask }
                     }
                     MouseArea {
-                        anchors.fill: parent;
-                        acceptedButtons: Qt.LeftButton | Qt.RightButton
+                        anchors.fill: parent; acceptedButtons: Qt.LeftButton | Qt.RightButton
                         onClicked: (m) => {
                             if (m.button === Qt.LeftButton) shellCmd.command = ["rofi", "-show", "drun"]
                             else shellCmd.command = ["sh", "-c", "rofi_power"]
-                            shellCmd.running = false;
-                            shellCmd.running = true
+                            shellCmd.running = false; shellCmd.running = true
                         }
                     }
                 }
 
                 // 1. Workspaces
                 Rectangle {
-                    Layout.preferredHeight: 26;
-                    Layout.preferredWidth: (26 * 9) + 24; color: root.cal2; radius: 13
+                    Layout.preferredHeight: 26; Layout.preferredWidth: (26 * 9) + 24; color: root.cal2; radius: 13
                     Row {
-                        anchors.centerIn: parent;
-                        spacing: 4
+                        anchors.centerIn: parent; spacing: 4
                         Repeater {
                             model: 9
                             Rectangle {
-                                width: 24; height: 26;
-                                color: "transparent"
+                                width: 24; height: 26; color: "transparent"
                                 property var workspace: Hyprland.workspaces.values.find(ws => ws.id === index + 1) ?? null
                                 property bool isActive: Hyprland.focusedWorkspace?.id === (index + 1)
                                 property bool hasWindows: workspace !== null
@@ -249,8 +249,7 @@ ShellRoot {
                                     Behavior on color { ColorAnimation { duration: 200 } }
                                     Behavior on font.pixelSize { NumberAnimation { duration: 200; easing.type: Easing.OutBack } }
                                 }
-                                MouseArea { anchors.fill: parent;
-                                onClicked: { Hyprland.dispatch("workspace " + (index + 1)) } }
+                                MouseArea { anchors.fill: parent; onClicked: { Hyprland.dispatch("workspace " + (index + 1)) } }
                             }
                         }
                     }
@@ -258,378 +257,222 @@ ShellRoot {
 
                 // 2. Layout
                 Rectangle {
-                    Layout.preferredHeight: 26;
-                    Layout.preferredWidth: layoutText.implicitWidth + 24; color: root.cal2; radius: 13
-                    Text { id: layoutText;
-                    anchors.centerIn: parent; text: root.currentLayout; color: root.cal7; font.pixelSize: root.fontSize - 2; font.family: root.fontFamily;
-                    font.bold: true }
+                    Layout.preferredHeight: 26; Layout.preferredWidth: layoutText.implicitWidth + 24; color: root.cal2; radius: 13
+                    Text { id: layoutText; anchors.centerIn: parent; text: root.currentLayout; color: root.cal7; font.pixelSize: root.fontSize - 2; font.family: root.fontFamily; font.bold: true }
                 }
 
                 // 3. Window
                 Rectangle {
-                    Layout.preferredHeight: 26;
-                    Layout.fillWidth: true; Layout.minimumWidth: 100; color: root.cal2; radius: 13; clip: true
+                    Layout.preferredHeight: 26; Layout.fillWidth: true; Layout.minimumWidth: 100; color: root.cal2; radius: 13; clip: true
                     RowLayout {
-                        anchors.fill: parent;
-                        anchors.leftMargin: 15; anchors.rightMargin: 15; spacing: 10
+                        anchors.fill: parent; anchors.leftMargin: 15; anchors.rightMargin: 15; spacing: 10
                         Text { text: root.activeWindow === "Desktop" ? "󰇄" : "󱂬"; color: root.cal10; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily }
-                        Text { Layout.fillWidth: true;
-                        text: root.activeWindow; color: root.cal6; font.pixelSize: root.fontSize; font.family: root.fontFamily; elide: Text.ElideRight;
-                        horizontalAlignment: Text.AlignHCenter }
+                        Text { Layout.fillWidth: true; text: root.activeWindow; color: root.cal6; font.pixelSize: root.fontSize; font.family: root.fontFamily; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter }
                     }
                 }
 
                 // 4. Stats
                 Rectangle {
-                    Layout.preferredHeight: 26;
-                    Layout.preferredWidth: statsRow.implicitWidth + 30; color: root.cal2; radius: 13
+                    Layout.preferredHeight: 26; Layout.preferredWidth: statsRow.implicitWidth + 30; color: root.cal2; radius: 13
                     RowLayout {
-                        id: statsRow;
-                        anchors.centerIn: parent; spacing: 12
+                        id: statsRow; anchors.centerIn: parent; spacing: 12
 
                         // Kernel
                         Item {
-                            Layout.preferredHeight: 20;
-                            Layout.preferredWidth: kernelRow.width
+                            Layout.preferredHeight: 20; Layout.preferredWidth: kernelRow.width
                             Row {
-                                id: kernelRow;
-                                spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
-                                Text {
-                                    text: root.kernelIcon
-                                    color: root.cal9; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Item {
-                                    height: 20;
-                                    width: parent.expanded ? kernelTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter;
-                                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                                    Text { id: kernelTxt;
-                                        anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter;
-                                        text: root.kernelVersion
-                                        color: root.cal9; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0;
-                                        Behavior on opacity { NumberAnimation { duration: 200 } }
-                                    }
-                                }
+                                id: kernelRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
+                                Text { text: root.kernelIcon; color: root.cal9; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Item { height: 20; width: parent.expanded ? kernelTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                                    Text { id: kernelTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.kernelVersion; color: root.cal9; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
-                            MouseArea {
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true;
-                                onEntered: kernelRow.hovered = true; onExited: kernelRow.hovered = false;
-                                onClicked: (m) => { if(m.button === Qt.MiddleButton) kernelRow.pinned = !kernelRow.pinned }
-                            }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: kernelRow.hovered = true; onExited: kernelRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) kernelRow.pinned = !kernelRow.pinned } }
                         }
 
                         Rectangle { width: 1; height: 12; color: root.cal3 }
 
                         // CPU
                         Item {
-                            Layout.preferredHeight: 20;
-                            Layout.preferredWidth: cpuRow.width
+                            Layout.preferredHeight: 20; Layout.preferredWidth: cpuRow.width
                             Row {
-                                id: cpuRow;
-                                spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
-                                Text {
-                                    text: root.cpuIcon
-                                    color: root.cal11; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Item {
-                                    height: 20;
-                                    width: parent.expanded ? cpuTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter;
-                                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                                    Text { id: cpuTxt;
-                                        anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter;
-                                        text: root.cpuText
-                                        color: root.cal11; font.pixelSize: root.fontSize;
-                                        font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0;
-                                        Behavior on opacity { NumberAnimation { duration: 200 } }
-                                    }
-                                }
+                                id: cpuRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
+                                Text { text: root.cpuIcon; color: root.cal11; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Item { height: 20; width: parent.expanded ? cpuTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                                    Text { id: cpuTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.cpuText; color: root.cal11; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
-                            MouseArea {
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true;
-                                onEntered: cpuRow.hovered = true; onExited: cpuRow.hovered = false;
-                                onClicked: (m) => { if(m.button === Qt.MiddleButton) cpuRow.pinned = !cpuRow.pinned; }
-                            }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: cpuRow.hovered = true; onExited: cpuRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) cpuRow.pinned = !cpuRow.pinned; } }
                         }
 
                         Rectangle { width: 1; height: 12; color: root.cal3 }
 
                         // GPU
                         Item {
-                            Layout.preferredHeight: 20;
-                            Layout.preferredWidth: gpuRow.width
+                            Layout.preferredHeight: 20; Layout.preferredWidth: gpuRow.width
                             Row {
-                                id: gpuRow;
-                                spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
-                                Text {
-                                    text: root.gpuIcon
-                                    color: root.cal7; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily;
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Item {
-                                    height: 20;
-                                    width: parent.expanded ? gpuTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter;
-                                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                                    Text { id: gpuTxt;
-                                        anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter;
-                                        text: root.gpuText
-                                        color: root.cal7; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0;
-                                        Behavior on opacity { NumberAnimation { duration: 200 } }
-                                    }
-                                }
+                                id: gpuRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
+                                Text { text: root.gpuIcon; color: root.cal7; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Item { height: 20; width: parent.expanded ? gpuTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                                    Text { id: gpuTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.gpuText; color: root.cal7; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
-                            MouseArea {
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true;
-                                onEntered: gpuRow.hovered = true; onExited: gpuRow.hovered = false;
-                                onClicked: (m) => { if(m.button === Qt.MiddleButton) gpuRow.pinned = !gpuRow.pinned; }
-                            }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: gpuRow.hovered = true; onExited: gpuRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) gpuRow.pinned = !gpuRow.pinned; } }
                         }
 
                         Rectangle { width: 1; height: 12; color: root.cal3 }
 
                         // RAM
                         Item {
-                            Layout.preferredHeight: 20;
-                            Layout.preferredWidth: memRow.width
+                            Layout.preferredHeight: 20; Layout.preferredWidth: memRow.width
                             Row {
-                                id: memRow;
-                                spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
-                                Text {
-                                    text: root.memIcon
-                                    color: root.cal13; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Item {
-                                    height: 20;
-                                    width: parent.expanded ? memTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter;
-                                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                                    Text { id: memTxt;
-                                        anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter;
-                                        text: root.memText
-                                        color: root.cal13; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0;
-                                        Behavior on opacity { NumberAnimation { duration: 200 } }
-                                    }
-                                }
+                                id: memRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
+                                Text { text: root.memIcon; color: root.cal13; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Item { height: 20; width: parent.expanded ? memTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                                    Text { id: memTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.memText; color: root.cal13; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
                             MouseArea {
                                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton; hoverEnabled: true;
                                 onEntered: memRow.hovered = true; onExited: memRow.hovered = false;
                                 onClicked: (m) => {
                                     if(m.button === Qt.MiddleButton) memRow.pinned = !memRow.pinned;
-                                    else if (m.button === Qt.LeftButton) {
-                                        memProc.running = false; memProc.running = true
-                                    }
+                                    else if (m.button === Qt.LeftButton) { memProc.running = false; memProc.running = true }
                                 }
                             }
                         }
+
                         Rectangle { width: 1; height: 12; color: root.cal3 }
 
-                        // Disk (Updated: Simple Sysstats)
+                        // Disk
                         Item {
-                            Layout.preferredHeight: 20;
-                            Layout.preferredWidth: diskRow.width
+                            Layout.preferredHeight: 20; Layout.preferredWidth: diskRow.width
                             Row {
-                                id: diskRow;
-                                spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
-                                Text {
-                                    text: root.diskIcon
-                                    color: root.cal7; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Item {
-                                    height: 20;
-                                    width: parent.expanded ? diskTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter;
-                                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                                    Text { id: diskTxt;
-                                        anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter;
-                                        text: root.diskText
-                                        color: root.cal7; font.pixelSize: root.fontSize; font.family: root.fontFamily;
-                                        opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } }
-                                    }
-                                }
+                                id: diskRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
+                                Text { text: root.diskIcon; color: root.cal7; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Item { height: 20; width: parent.expanded ? diskTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                                    Text { id: diskTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.diskText; color: root.cal7; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
-                            MouseArea {
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true;
-                                onEntered: diskRow.hovered = true; onExited: diskRow.hovered = false;
-                                onClicked: (m) => { if(m.button === Qt.MiddleButton) diskRow.pinned = !diskRow.pinned; }
-                            }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: diskRow.hovered = true; onExited: diskRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) diskRow.pinned = !diskRow.pinned; } }
                         }
 
-                        // Brightness (Green, sysstats) - Positioned after Disk
+                        // Brightness
                         Rectangle { width: 1; height: 12; color: root.cal3; visible: root.showBright }
                         Item {
                             visible: root.showBright
-                            Layout.preferredHeight: 20;
-                            Layout.preferredWidth: brightRow.width
+                            Layout.preferredHeight: 20; Layout.preferredWidth: brightRow.width
                             Row {
-                                id: brightRow;
-                                spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
-                                Text {
-                                    text: root.brightIcon
-                                    color: root.cal13; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Item {
-                                    height: 20;
-                                    width: parent.expanded ? brightTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter;
-                                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                                    Text { id: brightTxt;
-                                        anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter;
-                                        text: root.brightText
-                                        color: root.cal13; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0;
-                                        Behavior on opacity { NumberAnimation { duration: 200 } }
-                                    }
-                                }
+                                id: brightRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
+                                Text { text: root.brightIcon; color: root.cal13; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Item { height: 20; width: parent.expanded ? brightTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                                    Text { id: brightTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.brightText; color: root.cal13; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
-                            MouseArea {
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true;
-                                onEntered: brightRow.hovered = true; onExited: brightRow.hovered = false;
-                                onClicked: (m) => { if(m.button === Qt.MiddleButton) brightRow.pinned = !brightRow.pinned }
-                            }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: brightRow.hovered = true; onExited: brightRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) brightRow.pinned = !brightRow.pinned } }
                         }
 
-                        // Battery (Green)
+                        // Battery
                         Rectangle { width: 1; height: 12; color: root.cal3; visible: root.showBat }
                         Item {
-                            visible: root.showBat;
-                            Layout.preferredHeight: 20; Layout.preferredWidth: batRow.width
+                            visible: root.showBat; Layout.preferredHeight: 20; Layout.preferredWidth: batRow.width
                             Row {
-                                id: batRow;
-                                spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned ||
-                                hovered
-                                Text { text: root.batIcon;
-                                color: root.cal13; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
-                                Item { height: 20;
-                                width: parent.expanded ? batTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300;
-                                easing.type: Easing.OutCubic } }
-                                    Text { id: batTxt;
-                                    anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.batText; color: root.cal13; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ?
-                                    1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
+                                id: batRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
+                                Text { text: root.batIcon; color: root.cal13; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Item { height: 20; width: parent.expanded ? batTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                                    Text { id: batTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.batText; color: root.cal13; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
-                            MouseArea {
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true;
-                                onEntered: batRow.hovered = true; onExited: batRow.hovered = false;
-                                onClicked: (m) => { if(m.button === Qt.MiddleButton) batRow.pinned = !batRow.pinned }
-                            }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: batRow.hovered = true; onExited: batRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) batRow.pinned = !batRow.pinned } }
                         }
 
                         Rectangle { width: 1; height: 12; color: root.cal3 }
 
-                        // WIFI (Updated: sysstats)
+                        // --- Ethernet Module (New) ---
+                        // Visible if Ethernet is connected
                         Item {
-                            Layout.preferredHeight: 20;
-                            Layout.preferredWidth: wifiRow.width
+                            visible: root.showEth
+                            Layout.preferredHeight: 20; Layout.preferredWidth: ethRow.width
                             Row {
-                                id: wifiRow;
-                                spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
-                                Text {
-                                    text: root.wifiIcon
-                                    color: root.cal10; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Item {
-                                    height: 20;
-                                    width: parent.expanded ? wifiTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter;
-                                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                                    Text { id: wifiTxt;
-                                        anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter;
-                                        text: root.wifiText
-                                        color: root.cal10; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0;
-                                        Behavior on opacity { NumberAnimation { duration: 200 } }
-                                    }
-                                }
+                                id: ethRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
+                                Text { text: root.ethIcon; color: root.cal7; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Item { height: 20; width: parent.expanded ? ethTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                                    Text { id: ethTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.ethText; color: root.cal7; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
+                            }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton | Qt.RightButton; hoverEnabled: true;
+                                onEntered: ethRow.hovered = true; onExited: ethRow.hovered = false;
+                                onClicked: (m) => { if(m.button === Qt.MiddleButton) ethRow.pinned = !ethRow.pinned; else if (m.button === Qt.RightButton) { shellCmd.command = ["nm-connection-editor"]; shellCmd.running = false; shellCmd.running = true } }
+                            }
+                        }
+
+                        // Seperator between Ethernet and WiFi (if both are visible)
+                        Rectangle { width: 1; height: 12; color: root.cal3; visible: root.showEth && root.showWifi }
+
+                        // --- WIFI (Conditional Visibility) ---
+                        // Visible if Connected OR if Ethernet is missing (fallback)
+                        Item {
+                            visible: root.showWifi
+                            Layout.preferredHeight: 20; Layout.preferredWidth: wifiRow.width
+                            Row {
+                                id: wifiRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
+                                Text { text: root.wifiIcon; color: root.cal10; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Item { height: 20; width: parent.expanded ? wifiTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                                    Text { id: wifiTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.wifiText; color: root.cal10; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
                             MouseArea {
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton;
-                                hoverEnabled: true
+                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true
                                 onEntered: wifiRow.hovered = true; onExited: wifiRow.hovered = false
-                                onClicked: (m) => { if(m.button === Qt.MiddleButton) wifiRow.pinned = !wifiRow.pinned;
-                                else if (m.button === Qt.LeftButton) { shellCmd.command = ["sh", "-c", "rofi_wifi"]; shellCmd.running = false;
-                                shellCmd.running = true } else if (m.button === Qt.RightButton) { shellCmd.command = ["nm-connection-editor"]; shellCmd.running = false;
-                                shellCmd.running = true } }
+                                onClicked: (m) => {
+                                    if(m.button === Qt.MiddleButton) wifiRow.pinned = !wifiRow.pinned;
+                                    else if (m.button === Qt.LeftButton) { shellCmd.command = ["sh", "-c", "rofi_wifi"]; shellCmd.running = false; shellCmd.running = true }
+                                    else if (m.button === Qt.RightButton) { shellCmd.command = ["nm-connection-editor"]; shellCmd.running = false; shellCmd.running = true }
+                                }
                             }
                         }
 
                         Rectangle { width: 1; height: 12; color: root.cal3 }
 
-                        // Microphone (Updated: sysstats)
+                        // Microphone
                         Item {
-                            Layout.preferredHeight: 20;
-                            Layout.preferredWidth: micRow.width
+                            Layout.preferredHeight: 20; Layout.preferredWidth: micRow.width
                             Row {
-                                id: micRow;
-                                spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
-                                Text {
-                                    text: root.micIcon
-                                    color: root.cal8; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Item {
-                                    height: 20;
-                                    width: parent.expanded ? micTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter;
-                                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                                    Text { id: micTxt;
-                                        anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter;
-                                        text: root.micText
-                                        color: root.cal8; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0;
-                                        Behavior on opacity { NumberAnimation { duration: 200 } }
-                                    }
-                                }
+                                id: micRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
+                                Text { text: root.micIcon; color: root.cal8; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Item { height: 20; width: parent.expanded ? micTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                                    Text { id: micTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.micText; color: root.cal8; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
                             MouseArea {
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton;
-                                hoverEnabled: true
+                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true
                                 onEntered: micRow.hovered = true; onExited: micRow.hovered = false
                                 onWheel: (wheel) => {
                                     if(wheel.angleDelta.y > 0) shellCmd.command = ["wpctl", "set-volume", "-l", "1.5", "@DEFAULT_AUDIO_SOURCE@", "5%+"];
                                     else shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SOURCE@", "5%-"];
-                                    shellCmd.running = false; shellCmd.running = true
-                                    micProc.running = false; micProc.running = true
+                                    shellCmd.running = false; shellCmd.running = true; micProc.running = false; micProc.running = true
                                 }
                                 onClicked: (m) => {
                                     if(m.button === Qt.MiddleButton) micRow.pinned = !micRow.pinned;
-                                    else if (m.button === Qt.LeftButton) { shellCmd.command = ["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]; shellCmd.running = false; shellCmd.running = true;
-                                    micProc.running = false; micProc.running = true }
-                                    else if (m.button === Qt.RightButton) { shellCmd.command = ["pavucontrol", "-t", "4"];
-                                    shellCmd.running = false; shellCmd.running = true }
+                                    else if (m.button === Qt.LeftButton) { shellCmd.command = ["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]; shellCmd.running = false; shellCmd.running = true; micProc.running = false; micProc.running = true }
+                                    else if (m.button === Qt.RightButton) { shellCmd.command = ["pavucontrol", "-t", "4"]; shellCmd.running = false; shellCmd.running = true }
                                 }
                             }
                         }
 
                         Rectangle { width: 1; height: 12; color: root.cal3 }
 
-                        // Volume (Updated: sysstats)
+                        // Volume
                         Item {
-                            Layout.preferredHeight: 20;
-                            Layout.preferredWidth: volRow.width
+                            Layout.preferredHeight: 20; Layout.preferredWidth: volRow.width
                             Row {
-                                id: volRow;
-                                spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
-                                Text {
-                                    text: root.volIcon
-                                    color: root.cal14; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Item {
-                                    height: 20;
-                                    width: parent.expanded ? volTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter;
-                                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                                    Text { id: volTxt;
-                                        anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter;
-                                        text: root.volText
-                                        color: root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0;
-                                        Behavior on opacity { NumberAnimation { duration: 200 } }
-                                    }
-                                }
+                                id: volRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
+                                Text { text: root.volIcon; color: root.cal14; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Item { height: 20; width: parent.expanded ? volTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                                    Text { id: volTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.volText; color: root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
                             MouseArea {
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton;
-                                hoverEnabled: true
+                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true
                                 onEntered: volRow.hovered = true; onExited: volRow.hovered = false
                                 onWheel: (wheel) => {
                                     if(wheel.angleDelta.y > 0) shellCmd.command = ["wpctl", "set-volume", "-l", "1.5", "@DEFAULT_AUDIO_SINK@", "5%+"];
                                     else shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%-"];
-                                    shellCmd.running = false; shellCmd.running = true
-                                    volProc.running = false; volProc.running = true
+                                    shellCmd.running = false; shellCmd.running = true; volProc.running = false; volProc.running = true
                                 }
                                 onClicked: (m) => {
                                     if(m.button === Qt.MiddleButton) volRow.pinned = !volRow.pinned;
-                                    else if (m.button === Qt.LeftButton) { shellCmd.command = ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"]; shellCmd.running = false; shellCmd.running = true;
-                                    volProc.running = false; volProc.running = true }
-                                    else if (m.button === Qt.RightButton) { shellCmd.command = ["pavucontrol", "-t", "3"];
-                                    shellCmd.running = false; shellCmd.running = true }
+                                    else if (m.button === Qt.LeftButton) { shellCmd.command = ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"]; shellCmd.running = false; shellCmd.running = true; volProc.running = false; volProc.running = true }
+                                    else if (m.button === Qt.RightButton) { shellCmd.command = ["pavucontrol", "-t", "3"]; shellCmd.running = false; shellCmd.running = true }
                                 }
                             }
                         }
@@ -639,15 +482,11 @@ ShellRoot {
 
                 // 5. Clock
                 Rectangle {
-                    Layout.preferredHeight: 26;
-                    Layout.preferredWidth: clockText.implicitWidth + 30; color: root.cal2; radius: 13
+                    Layout.preferredHeight: 26; Layout.preferredWidth: clockText.implicitWidth + 30; color: root.cal2; radius: 13
                     Text {
-                        id: clockText;
-                        anchors.centerIn: parent; property var dateTime: new Date(); text: Qt.formatDateTime(dateTime, "󰥔  hh:mm AP |   dddd MMMM dd yyyy")
-                        color: root.cal6;
-                        font.pixelSize: root.fontSize; font.family: root.fontFamily; font.bold: true
-                        Timer { interval: 1000;
-                        running: true; repeat: true; onTriggered: parent.dateTime = new Date() }
+                        id: clockText; anchors.centerIn: parent; property var dateTime: new Date(); text: Qt.formatDateTime(dateTime, "󰥔  hh:mm AP |   dddd MMMM dd yyyy")
+                        color: root.cal6; font.pixelSize: root.fontSize; font.family: root.fontFamily; font.bold: true
+                        Timer { interval: 1000; running: true; repeat: true; onTriggered: parent.dateTime = new Date() }
                     }
                 }
             }
