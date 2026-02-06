@@ -65,11 +65,10 @@ ShellRoot {
     // Battery
     property string batIcon: "󰢜";    property string batText: "100%"; property bool showBat: false
 
-    // Ethernet (New)
+    // Network (Ethernet, Wifi, Tailscale)
     property string ethIcon: "󰲜";    property string ethText: "Disconnected"; property bool showEth: false
-
-    // Wifi
     property string wifiIcon: "󰤮";   property string wifiText: "Offline"; property bool showWifi: true
+    property string tailIcon: "󰈂";   property string tailText: "Not connected"; property bool showTail: false
 
     // Audio / Mic
     property string volIcon: "󰕾";    property string volText: "0%"
@@ -136,7 +135,7 @@ ShellRoot {
         }
     }
 
-    // --- Ethernet Process ---
+    // --- Network Processes ---
     Process {
         id: ethProc
         command: ["sysstats", "ethernet"]
@@ -149,7 +148,6 @@ ShellRoot {
         }
     }
 
-    // --- WiFi Process ---
     Process {
         id: wifiProc; command: ["sysstats", "wifi"]
         stdout: SplitParser {
@@ -158,6 +156,18 @@ ShellRoot {
                 root.parseSysstats(data, "wifiIcon", "wifiText")
                 let isWifiConnected = !data.includes("Offline") && !data.includes("No tool") && !data.includes("Disconnected");
                 root.showWifi = isWifiConnected || !root.showEth;
+            }
+        }
+    }
+
+    Process {
+        id: tailProc
+        command: ["sysstats", "tail"]
+        stdout: SplitParser {
+            onRead: data => {
+                if (!data) return;
+                root.parseSysstats(data, "tailIcon", "tailText")
+                root.showTail = data.includes("Connected") && !data.includes("Not connected")
             }
         }
     }
@@ -184,6 +194,7 @@ ShellRoot {
             brightProc.running = false; brightProc.running = true
             wifiProc.running = false;   wifiProc.running = true
             ethProc.running = false;    ethProc.running = true
+            tailProc.running = false;   tailProc.running = true
             batProc.running = false;    batProc.running = true
             volProc.running = false;    volProc.running = true
             micProc.running = false;    micProc.running = true
@@ -283,8 +294,6 @@ ShellRoot {
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: kernelRow.hovered = true; onExited: kernelRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) kernelRow.pinned = !kernelRow.pinned } }
                         }
 
-                        // No separator (Same Group)
-
                         // CPU
                         Item {
                             Layout.preferredHeight: 20; Layout.preferredWidth: cpuRow.width
@@ -296,8 +305,6 @@ ShellRoot {
                             }
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: cpuRow.hovered = true; onExited: cpuRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) cpuRow.pinned = !cpuRow.pinned; } }
                         }
-
-                        // No separator (Same Group)
 
                         // GPU
                         Item {
@@ -334,8 +341,6 @@ ShellRoot {
                             }
                         }
 
-                        // No separator (Same Group)
-
                         // Disk
                         Item {
                             Layout.preferredHeight: 20; Layout.preferredWidth: diskRow.width
@@ -366,7 +371,6 @@ ShellRoot {
                         }
 
                         // Battery
-                        // Note: Only show separator if Brightness is HIDDEN, but Battery is VISIBLE. If both visible, they merge.
                         Rectangle { width: 1; height: 12; color: root.cal3; visible: root.showBat && !root.showBright }
                         Item {
                             visible: root.showBat; Layout.preferredHeight: 20; Layout.preferredWidth: batRow.width
@@ -380,10 +384,10 @@ ShellRoot {
                         }
 
                         // --- Separator: Power -> Network ---
-                        Rectangle { width: 1; height: 12; color: root.cal3; visible: (root.showEth || root.showWifi) }
+                        Rectangle { width: 1; height: 12; color: root.cal3; visible: (root.showEth || root.showWifi || root.showTail) }
 
                         // === NETWORK GROUP (Green) ===
-                        // Ethernet Module
+                        // Ethernet
                         Item {
                             visible: root.showEth
                             Layout.preferredHeight: 20; Layout.preferredWidth: ethRow.width
@@ -399,9 +403,7 @@ ShellRoot {
                             }
                         }
 
-                        // No Separator (Same Group) - Merges if both exist
-
-                        // WIFI Module
+                        // WIFI
                         Item {
                             visible: root.showWifi
                             Layout.preferredHeight: 20; Layout.preferredWidth: wifiRow.width
@@ -422,6 +424,23 @@ ShellRoot {
                             }
                         }
 
+                        // Tailscale
+                        Item {
+                            visible: root.showTail
+                            Layout.preferredHeight: 20; Layout.preferredWidth: tailRow.width
+                            Row {
+                                id: tailRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
+                                Text { text: root.tailIcon; color: root.cal13; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+                                Item { height: 20; width: parent.expanded ? tailTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                                    Text { id: tailTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.tailText; color: root.cal13; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
+                            }
+                            MouseArea {
+                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true
+                                onEntered: tailRow.hovered = true; onExited: tailRow.hovered = false
+                                onClicked: (m) => { if(m.button === Qt.MiddleButton) tailRow.pinned = !tailRow.pinned }
+                            }
+                        }
+
                         // --- Separator: Network -> Audio ---
                         Rectangle { width: 1; height: 12; color: root.cal3 }
 
@@ -439,7 +458,7 @@ ShellRoot {
                                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true
                                 onEntered: micRow.hovered = true; onExited: micRow.hovered = false
                                 onWheel: (wheel) => {
-                                    if(wheel.angleDelta.y > 0) shellCmd.command = ["wpctl", "set-volume", "-l", "1.5", "@DEFAULT_AUDIO_SOURCE@", "5%+"];
+                                    if(wheel.angleDelta.y > 0) shellCmd.command = ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SOURCE@", "5%+"];
                                     else shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SOURCE@", "5%-"];
                                     shellCmd.running = false; shellCmd.running = true; micProc.running = false; micProc.running = true
                                 }
@@ -450,8 +469,6 @@ ShellRoot {
                                 }
                             }
                         }
-
-                        // No separator (Same Group)
 
                         // Volume
                         Item {
@@ -466,7 +483,7 @@ ShellRoot {
                                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true
                                 onEntered: volRow.hovered = true; onExited: volRow.hovered = false
                                 onWheel: (wheel) => {
-                                    if(wheel.angleDelta.y > 0) shellCmd.command = ["wpctl", "set-volume", "-l", "1.5", "@DEFAULT_AUDIO_SINK@", "5%+"];
+                                    if(wheel.angleDelta.y > 0) shellCmd.command = ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SINK@", "5%+"];
                                     else shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%-"];
                                     shellCmd.running = false; shellCmd.running = true; volProc.running = false; volProc.running = true
                                 }
