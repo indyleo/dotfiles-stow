@@ -1,7 +1,142 @@
-mouse = true
-hide_blocked_users = true
-show_attachment_links = true
-messages_limit = 100
+# =========================
+# Core behavior
+# =========================
+auto_focus = false
+mouse = false
+autocomplete_limit = 0
 
-[identify]
-status = "dnd"
+# =========================
+# Notifications (silent, visual only)
+# =========================
+[notifications]
+enabled = true
+duration = 0
+
+[notifications.sound]
+enabled = false
+
+# =========================
+# Typing indicator
+# =========================
+[typing_indicator]
+send = true
+receive = true
+
+# =========================
+# Global keybinds (Vim-consistent)
+# =========================
+[keybinds]
+focus_guilds_tree = "Ctrl+g"
+focus_messages_list = "Ctrl+t"
+focus_message_input = "Ctrl+i"
+focus_previous = "Ctrl+h"
+focus_next = "Ctrl+l"
+quit = "Ctrl+c"
+logout = "Ctrl+d"
+
+# =========================
+# Picker navigation (Vim)
+# =========================
+[keybinds.picker]
+up = "k"
+down = "j"
+top = "g"
+bottom = "G"
+select = "Enter"
+cancel = "Esc"
+
+# =========================
+# Guild tree (Vim motions)
+# =========================
+[keybinds.guilds_tree]
+up = "k"
+down = "j"
+top = "g"
+bottom = "G"
+select_current = "l"
+collapse_parent_node = "h"
+move_to_parent_node = "h"
+yank_id = "y"
+
+# =========================
+# Messages list (Vim model)
+# =========================
+[keybinds.messages_list]
+select_up = "k"
+select_down = "j"
+select_top = "g"
+select_bottom = "G"
+scroll_up = "Ctrl+u"
+scroll_down = "Ctrl+d"
+scroll_top = "gg"
+scroll_bottom = "G"
+select_reply = "s"
+reply = "r"
+reply_mention = "R"
+edit = "e"
+delete = "D"
+delete_confirm = "d"
+open = "o"
+yank_content = "y"
+yank_url = "u"
+yank_id = "i"
+cancel = "Esc"
+
+# =========================
+# Message input (insert-like)
+# =========================
+[keybinds.message_input]
+send = "Enter"
+cancel = "Esc"
+tab_complete = "Tab"
+paste = "Ctrl+v"
+open_editor = "Ctrl+e"
+open_file_picker = "Ctrl+\\"
+
+# =========================
+# Mentions list (Vim)
+# =========================
+[keybinds.mentions_list]
+up = "k"
+down = "j"
+top = "g"
+bottom = "G"
+
+# =========================
+# Theme — terminal-native
+# =========================
+[theme.title]
+normal_style = { attributes = "dim" }
+active_style = { attributes = "bold" }
+
+[theme.footer]
+normal_style = { attributes = "dim" }
+active_style = { attributes = "bold" }
+
+[theme.border]
+enabled = true
+padding = [0, 0, 0, 0]
+normal_style = { attributes = "dim" }
+active_style = { attributes = "bold" }
+normal_set = "plain"
+active_set = "plain"
+
+[theme.guilds_tree]
+auto_expand_folders = true
+graphics = true
+graphics_color = "default"
+
+[theme.messages_list]
+reply_indicator = ">"
+forwarded_indicator = "<"
+message_style = {}
+selected_message_style = { attributes = "reverse" }
+mention_style = { attributes = "bold" }
+url_style = { attributes = "underline" }
+
+[theme.mentions_list]
+min_width = 0
+max_height = 0
+
+[theme.dialog]
+background_style = { attributes = "dim" }
