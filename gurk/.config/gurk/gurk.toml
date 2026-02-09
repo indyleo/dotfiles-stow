@@ -5,7 +5,7 @@ colored_messages = true
 default_keybindings = true
 
 [notifications]
-enabled = true
+enabled = false
 show_message_text = true
 show_message_chat = true
 show_reactions = true
