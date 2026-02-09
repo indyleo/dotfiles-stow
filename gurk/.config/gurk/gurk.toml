@@ -1,12 +1,12 @@
 first_name_only = false
 show_receipts = true
-bell = true
+bell = false
 colored_messages = true
 default_keybindings = true
 
 [notifications]
-enabled = false
-show_message_text = true
+enabled = true
+show_message_text = false
 show_message_chat = true
 show_reactions = true
 mute_reactions_bell = false
