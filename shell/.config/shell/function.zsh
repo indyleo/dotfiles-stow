@@ -163,7 +163,7 @@ function scrky() {
 
 function edit() {
     local files
-    files=$(find . -maxdepth 5 -type f | fzf -m --preview='batcat --color=always --style=numbers {}')
+    files=$(find . -maxdepth 5 -type f | fzf -m --preview='bat --color=always --style=numbers {}')
     [[ -z "$files" ]] && return
 
     # Turn newline-separated string into array safely
