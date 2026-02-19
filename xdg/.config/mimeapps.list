@@ -20,6 +20,7 @@ audio/x-vorbis+ogg=vlc.desktop;
 audio/x-wav=vlc.desktop;
 x-scheme-handler/http=com.brave.Browser.desktop;brave-browser.desktop;kfmclient_html.desktop;floorp.desktop;
 x-scheme-handler/https=com.brave.Browser.desktop;brave-browser.desktop;kfmclient_html.desktop;floorp.desktop;
+application/pdf=org.pwmt.zathura-pdf-poppler.desktop;
 
 [Default Applications]
 audio/aac=vlc.desktop;
