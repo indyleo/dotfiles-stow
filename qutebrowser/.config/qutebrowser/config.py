@@ -172,8 +172,6 @@ c.fonts.statusbar = '11pt "SauceCodePro NF"'
 config.bind("cs", "config-source ;; message-info 'Config reloaded!'")
 config.bind("ct", "config-cycle colors.webpage.darkmode.enabled true false")
 
-config.bind("Pm", "mode-enter insert ;; spawn --detach bitwarden.py")
-config.bind("Pb", "spawn --detach bookmarks.py qutebrowser")
 config.bind("PP", "spawn --detach qutebrowser_private")
 config.bind("PV", "spawn --detach mpv --volume=45 {url}")
 
