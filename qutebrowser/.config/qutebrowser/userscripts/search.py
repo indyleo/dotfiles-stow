@@ -1,12 +1,28 @@
 #!/usr/bin/env python3
 """
-websearch.py — Web search / URL launcher via rofi with live completions.
+search.py — Web search / URL launcher via rofi with "press-to-fetch" completions.
 
-Rofi script-mode: rofi calls this script with the current input on every keystroke.
+Because standard Rofi does not support making live API calls to the web on every
+single keystroke, this script uses a customized workaround to get you web
+suggestions without leaving the search bar.
+
+How to use it:
+  1. Type your query: Rofi will instantly filter your local history. To prevent
+     fuzzy-matching from getting in the way (e.g., highlighting  "steam client"
+     when you just want "steam"), your exact typed text is ALWAYS forced to
+     the very top of the list.
+  2. Press [Enter]: Immediately searches the exact text you typed (or opens
+     whichever history/suggestion item you have highlighted).
+  3. Press [Shift+Enter]*: Fetches live web suggestions from the internet
+     (DuckDuckGo/Brave) and instantly refreshes the Rofi menu to show them.
+
+     *Note: Shift+Enter is Rofi's default for submitting custom text (retv=2).
+     Depending on your config, this might be Ctrl+Enter instead.
+
 Modes:
-  search   — main search bar with live completions + history
-  history  — browse/delete history entries
-  confirm  — yes/no confirmation prompt
+  search   — main search bar with history and fetchable live completions
+  history  — browse or delete specific history entries
+  confirm  — yes/no confirmation prompt for clearing all history
 """
 
 import argparse
@@ -22,16 +38,15 @@ from datetime import datetime
 
 # ── Config ────────────────────────────────────────────────────────────────────
 DEFAULT_HISTORY_FILE = os.path.expanduser("~/.local/share/rofi-websearch/history.txt")
-STATE_FILE = "/tmp/rofi-websearch-mode.txt"
+STATE_FILE = "/tmp/search-mode.txt"
 MAX_HISTORY = 200
 COMPLETION_TIMEOUT = 1.5  # seconds to wait for suggestion API
 MAX_COMPLETIONS = 6
-LOG_FILE = ""  # set to "/tmp/websearch-debug.log" to enable
+LOG_FILE = "/tmp/search-debug.log"  # set to "" to disable
 
 SEARCH_ENGINES = {
     "duckduckgo": "https://duckduckgo.com/?q={}",
     "brave": "https://search.brave.com/search?q={}",
-    "google": "https://www.google.com/search?q={}",
 }
 DEFAULT_ENGINE = "brave"
 
@@ -153,25 +168,83 @@ def _log(msg: str) -> None:
         f.write(f"{datetime.now().isoformat()} - {msg}\n")
 
 
-def fetch_completions(query: str, engine: str) -> list[str]:
-    """Fetch search suggestions from the chosen search engine's API."""
-    if not query or len(query) < 3:
-        return []
+# ── Completion cache ──────────────────────────────────────────────────────────
+CACHE_FILE = "/tmp/search-completions.json"
+
+
+def _cache_key(query: str, engine: str) -> str:
+    """Stable cache key for a query+engine pair."""
+    return f"{engine}:{query.lower().strip()}"
+
+
+def _read_cache() -> dict:
+    """Load the completion cache, returning empty dict on any error."""
+    try:
+        with open(CACHE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _write_cache(cache: dict) -> None:
+    """Persist the completion cache atomically, tolerating concurrent writers."""
+    tmp = f"{CACHE_FILE}.{os.getpid()}.tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(cache, f)
+        os.replace(tmp, CACHE_FILE)
+    except OSError as e:
+        _log(f"_write_cache: error {e}")
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+
+
+def _bg_fetch(query: str, engine: str) -> None:
+    """Fetch completions and store in cache."""
+    _log(f"bg_fetch: started query={query!r} engine={engine!r}")
     try:
         q = urllib.parse.quote_plus(query)
         if engine == "google":
             url = f"https://suggestqueries.google.com/complete/search?client=firefox&q={q}"
         else:
             url = f"https://duckduckgo.com/ac/?q={q}&type=list"
-
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=COMPLETION_TIMEOUT) as resp:
             data = json.loads(resp.read().decode())
             suggestions = data[1] if isinstance(data, list) and len(data) > 1 else []
-            return [s for s in suggestions if s != query][:MAX_COMPLETIONS]
+            results = [s for s in suggestions if s != query][:MAX_COMPLETIONS]
+        cache = _read_cache()
+        cache[_cache_key(query, engine)] = results
+        if len(cache) > 50:
+            keys = list(cache.keys())
+            for k in keys[:-50]:
+                del cache[k]
+        _write_cache(cache)
+        _log(f"completions: cached {results} for {query!r}")
     except (urllib.error.URLError, json.JSONDecodeError, OSError) as e:
-        _log(f"Completion error: {e}")
+        _log(f"completions: bg fetch error {type(e).__name__}: {e}")
+
+
+def fetch_completions(query: str, engine: str) -> list[str]:
+    """Return cached completions instantly, and kick off a background refresh."""
+    if not query or len(query) < 3:
         return []
+
+    key = _cache_key(query, engine)
+    cache = _read_cache()
+    cached = cache.get(key, [])
+    _log(f"completions: cache {'hit' if cached else 'miss'} for {query!r} -> {cached}")
+
+    _log(f"completions: spawning bg fetch for {query!r} engine={engine!r}")
+    subprocess.Popen(  # pylint: disable=consider-using-with
+        [sys.executable, sys.argv[0], "--_bg-fetch", query, engine],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+    return cached
 
 
 # ── Open URL ──────────────────────────────────────────────────────────────────
@@ -205,18 +278,25 @@ def set_message(msg: str) -> None:
 # ── Modes ─────────────────────────────────────────────────────────────────────
 def mode_search(query: str, history: list[tuple[str, str]], engine: str) -> None:
     """Display completions and history for the main search interface."""
-    set_prompt(f"Search / URL ({engine})")
+    set_prompt(f" Search / URL ({engine}):")
+
+    # NEW: Always force exactly what you are typing to the top of the list
+    if query:
+        print_option(query)
+
     completions = fetch_completions(query, engine) if query else []
     for c in completions:
-        print_option(c)
+        if c != query:  # Prevent it from showing up twice
+            print_option(c)
     for e, ts in history:
-        print_option(e, meta=ts)
+        if e != query:  # Prevent it from showing up twice
+            print_option(e, meta=ts)
     print_option(HISTORY_ENTRY)
 
 
 def mode_history(history: list[tuple[str, str]]) -> None:
     """Display the history management menu."""
-    set_prompt("History — select to DELETE")
+    set_prompt("  History — select to DELETE")
     set_message("Type to filter • select entry to remove it")
     print_option(CLEAR_ALL)
     for e, ts in history:
@@ -225,16 +305,29 @@ def mode_history(history: list[tuple[str, str]]) -> None:
 
 def mode_confirm() -> None:
     """Display the confirmation prompt for clearing all history."""
-    set_prompt("Clear ALL history?")
+    set_prompt(" Clear ALL history?")
     sys.stdout.write(ROFI_NO_CUSTOM)
     print_option(CONFIRM_YES)
     print_option(CONFIRM_NO)
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
+def _rofi_cmd(script: str) -> list[str]:
+    """Return the rofi command list used for all launches."""
+    return [
+        "rofi",
+        "-show",
+        "websearch",
+        "-modi",
+        f"websearch:{script}",
+        "-no-fixed-num-lines",
+        "-markup-rows",
+        "-sync",  # re-invoke on every keystroke for live completions
+    ]
+
+
 def launch_rofi(args: argparse.Namespace) -> None:
-    """Initialise and launch Rofi in script-mode."""
-    set_mode("search")
+    """Launch Rofi in script-mode, re-launching if Esc is pressed in a sub-mode."""
     env = os.environ.copy()
     env.update(
         {
@@ -244,20 +337,21 @@ def launch_rofi(args: argparse.Namespace) -> None:
             "WEBSEARCH_ACTIVE": "1",
         }
     )
-    subprocess.run(
-        [
-            "rofi",
-            "-show",
-            "websearch",
-            "-modi",
-            f"websearch:{sys.argv[0]}",
-            "-no-fixed-num-lines",
-            "-markup-rows",
-            "-sync",  # re-invoke on every keystroke for live completions
-        ],
-        env=env,
-        check=False,
-    )
+    set_mode("search")
+
+    while True:
+        subprocess.run(_rofi_cmd(sys.argv[0]), env=env, check=False)
+
+        # Rofi exited (Esc or window close). Check what mode we were in.
+        mode = get_mode()
+        if mode == "search":
+            # Esc on the root search screen — genuinely quit.
+            break
+        if mode in ("history", "confirm"):
+            # Esc inside a sub-menu — go back to search.
+            set_mode("search")
+            continue
+        break
 
 
 def script_mode(args: argparse.Namespace) -> None:
@@ -267,9 +361,14 @@ def script_mode(args: argparse.Namespace) -> None:
     engine = str(os.environ.get("WEBSEARCH_ENGINE") or args.engine)
     browser = str(os.environ.get("WEBSEARCH_BROWSER") or args.browser)
     hfile = str(os.environ.get("WEBSEARCH_HISTORY") or args.history_file)
+    # ROFI_RETV: 0=init, 1=selected existing, 2=custom text entered
+    retv = int(os.environ.get("ROFI_RETV", "0"))
 
     mode = get_mode()
     history = load_history(hfile)
+    _log(
+        f"script_mode: mode={mode!r} query={query!r} retv={retv} engine={engine!r} argv={sys.argv}"
+    )
 
     if mode == "confirm":
         if query == CONFIRM_YES:
@@ -299,22 +398,38 @@ def script_mode(args: argparse.Namespace) -> None:
         mode_history(history)
         return
 
-    if query:
+    if query and retv == 1:
+        # User confirmed a selection from the list (history or suggestion) — open it.
         history = save_history(hfile, query, history)
         if looks_like_url(query):
             url = normalise_url(query)
         else:
             url = SEARCH_ENGINES[engine].format(urllib.parse.quote_plus(query))
         open_url(url, browser)
-        set_mode("search")
-        mode_search("", history, engine)  # re-render so rofi stays open
+        # Return without printing anything to close Rofi
         return
 
+    if query and retv == 2:
+        # User pressed Shift+Enter (or custom shortcut) on custom text.
+        # Fetch suggestions synchronously so they appear immediately on screen.
+        _bg_fetch(query, engine)
+        set_mode("search")
+
+        # Render the completions and history (with the query forced to the top)
+        mode_search(query, history, engine)
+        return
+
+    # retv=0: rofi is rendering/updating — show completions + history.
     mode_search(query, history, engine)
 
 
 def main() -> None:
     """Parse CLI arguments and decide between launching Rofi or running logic."""
+    # Internal flag used by background completion fetcher — handle before argparse
+    if len(sys.argv) == 4 and sys.argv[1] == "--_bg-fetch":
+        _bg_fetch(query=sys.argv[2], engine=sys.argv[3])
+        return
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--browser", default="xdg-open")
     parser.add_argument(
