@@ -145,13 +145,7 @@ c.url.searchengines = {
     "!tv": "https://www.twitch.tv/search?term={}",
 }
 
-c.completion.open_categories = [
-    "searchengines",
-    "quickmarks",
-    "bookmarks",
-    "history",
-    "filesystem",
-]
+c.completion.open_categories = []
 
 # --- Tabs ---
 c.window.transparent = True
@@ -178,6 +172,7 @@ config.unbind("m")
 # Rebinds
 config.bind("o", "spawn --userscript search.py")
 config.bind("b", "spawn --userscript bookmarks.py")
+config.bind("q", "spawn --userscript quickmarks.py")
 
 # New binds
 config.bind("cs", "config-source ;; message-info 'Config reloaded!'")
@@ -192,6 +187,7 @@ config.bind("tc", "open -t -- {clipboard}")
 config.bind("T", "hint links")
 config.bind("th", "history")
 
+config.bind("pg", "open http://127.0.0.1:8080")
 config.bind("tt", "cmd-set-text -s :open -t")
 config.bind("tw", "cmd-set-text -s :open -w")
 

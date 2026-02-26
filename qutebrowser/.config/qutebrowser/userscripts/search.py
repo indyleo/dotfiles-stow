@@ -2,22 +2,17 @@
 """
 search.py — Web search / URL launcher via rofi with "press-to-fetch" completions.
 
-Because standard Rofi does not support making live API calls to the web on every
-single keystroke, this script uses a customized workaround to get you web
-suggestions without leaving the search bar.
+Bang shortcuts (!):
+  Prefix your query with a bang to search a specific site directly, e.g.:
+    !yt linux tips        → YouTube search
+    !aw pacman            → Arch Wiki search
+    !gh rust async        → GitHub search
+  Type just "!" to see all available bangs listed in the menu.
 
 How to use it:
-  1. Type your query: Rofi will instantly filter your local history. To prevent
-     fuzzy-matching from getting in the way (e.g., highlighting  "steam client"
-     when you just want "steam"), your exact typed text is ALWAYS forced to
-     the very top of the list.
-  2. Press [Enter]: Immediately searches the exact text you typed (or opens
-     whichever history/suggestion item you have highlighted).
-  3. Press [Shift+Enter]*: Fetches live web suggestions from the internet
-     (DuckDuckGo/Brave) and instantly refreshes the Rofi menu to show them.
-
-     *Note: Shift+Enter is Rofi's default for submitting custom text (retv=2).
-     Depending on your config, this might be Ctrl+Enter instead.
+  1. Type your query: Rofi will instantly filter your local history.
+  2. Press [Enter]: Immediately searches the exact text you typed.
+  3. Press [Shift+Enter]*: Fetches live web suggestions from the internet.
 
 Modes:
   search   — main search bar with history and fetchable live completions
@@ -40,7 +35,7 @@ from datetime import datetime
 DEFAULT_HISTORY_FILE = os.path.expanduser("~/.local/share/rofi-websearch/history.txt")
 STATE_FILE = "/tmp/search-mode.txt"
 MAX_HISTORY = 200
-COMPLETION_TIMEOUT = 1.5  # seconds to wait for suggestion API
+COMPLETION_TIMEOUT = 1.5
 MAX_COMPLETIONS = 6
 LOG_FILE = "/tmp/search-debug.log"  # set to "" to disable
 
@@ -50,7 +45,70 @@ SEARCH_ENGINES = {
 }
 DEFAULT_ENGINE = "brave"
 
-# Rofi script-mode protocol
+# ── Bang shortcuts ─────────────────────────────────────────────────────────────
+# Format: "!bang": ("Display Label", "https://example.com/search?q={}")
+# The {} placeholder is replaced with the URL-encoded query.
+BANGS: dict[str, tuple[str, str]] = {
+    # ── Dev / code ────────────────────────────────────────────────────────────
+    "!gh": ("GitHub", "https://github.com/search?q={}"),
+    "!so": ("Stack Overflow", "https://stackoverflow.com/search?q={}"),
+    "!pypi": ("PyPI", "https://pypi.org/search/?q={}"),
+    "!cra": ("crates.io", "https://crates.io/search?q={}"),
+    "!npm": ("npm", "https://www.npmjs.com/search?q={}"),
+    # ── Linux / distro ────────────────────────────────────────────────────────
+    "!dp": ("Debian Packages", "https://packages.debian.org/search?keywords={}"),
+    "!aw": ("Arch Wiki", "https://wiki.archlinux.org/?search={}"),
+    "!ah": ("Arch Packages", "https://archlinux.org/packages/?sort=&q={}"),
+    "!ar": ("AUR", "https://aur.archlinux.org/packages?O=0&K={}"),
+    "!fh": ("Flathub", "https://flathub.org/apps/search?q={}"),
+    "!gw": ("Gentoo Wiki", "https://wiki.gentoo.org/index.php?search={}"),
+    "!nw": ("NixOS Wiki", "https://wiki.nixos.org/w/index.php?search={}"),
+    # ── Reference ─────────────────────────────────────────────────────────────
+    "!wiki": ("Wikipedia", "https://en.wikipedia.org/wiki/{}"),
+    "!wikt": ("Wiktionary", "https://en.wiktionary.org/wiki/{}"),
+    "!wb": ("Wolfram Alpha", "https://www.wolframalpha.com/input?i={}"),
+    # ── Media / entertainment ─────────────────────────────────────────────────
+    "!yt": ("YouTube", "https://www.youtube.com/search?q={}"),
+    "!tv": ("Twitch", "https://www.twitch.tv/search?term={}"),
+    "!pd": ("ProtonDB", "https://www.protondb.com/search?q={}"),
+    "!rd": ("Reddit", "https://www.reddit.com/search/?q={}"),
+}
+
+
+# ── Bang helpers ───────────────────────────────────────────────────────────────
+
+
+def parse_bang(text: str) -> tuple[str | None, str]:
+    """
+    Split a query into (bang, rest).
+
+    Returns (None, text) when no recognised bang is present.
+    A bare bang with no query (e.g. "!yt") returns (bang, "").
+    """
+    m = re.match(r"^(![\w]+)\s*(.*)", text.strip(), re.IGNORECASE)
+    if m:
+        bang = m.group(1).lower()
+        rest = m.group(2).strip()
+        if bang in BANGS:
+            return bang, rest
+    return None, text.strip()
+
+
+def bang_url(bang: str, query: str) -> str:
+    """Build the destination URL for a bang + query pair."""
+    _, url_template = BANGS[bang]
+    if query:
+        return url_template.format(urllib.parse.quote_plus(query))
+    # No query — navigate to the site root
+    return re.sub(r"(https?://[^/]+).*", r"\1", url_template)
+
+
+def bang_hint_entries() -> list[str]:
+    """One display line per bang, shown when the user types a lone '!'."""
+    return [f"{bang}  —  {label}" for bang, (label, _) in sorted(BANGS.items())]
+
+
+# ── Rofi script-mode protocol ─────────────────────────────────────────────────
 ROFI_PROMPT = "\0prompt\x1f"
 ROFI_MESSAGE = "\0message\x1f"
 ROFI_URGENT = "\0urgent\x1f"
@@ -73,21 +131,18 @@ _URL_RE = re.compile(
 
 
 def looks_like_url(text: str) -> bool:
-    """Check if the input string looks like a URL."""
     return bool(_URL_RE.match(text.strip()))
 
 
 def normalise_url(text: str) -> str:
-    """Prepend https:// if the URL is missing a scheme."""
     text = text.strip()
     if not re.match(r"^[a-zA-Z][a-zA-Z0-9+\-.]*://", text):
         text = "https://" + text
     return text
 
 
-# ── State Management ──────────────────────────────────────────────────────────
+# ── State management ──────────────────────────────────────────────────────────
 def get_mode() -> str:
-    """Retrieve the current UI mode from the temporary state file."""
     if os.path.exists(STATE_FILE):
         with open(STATE_FILE, "r", encoding="utf-8") as f:
             return f.read().strip()
@@ -95,14 +150,12 @@ def get_mode() -> str:
 
 
 def set_mode(mode: str) -> None:
-    """Persist the current UI mode to the temporary state file."""
     with open(STATE_FILE, "w", encoding="utf-8") as f:
         f.write(mode)
 
 
 # ── History ───────────────────────────────────────────────────────────────────
 def load_history(path: str) -> list[tuple[str, str]]:
-    """Load search history from the flat file into a list of tuples."""
     if not os.path.isfile(path):
         return []
     entries = []
@@ -121,7 +174,6 @@ def load_history(path: str) -> list[tuple[str, str]]:
 def save_history(
     path: str, entry: str, existing: list[tuple[str, str]]
 ) -> list[tuple[str, str]]:
-    """Save a new entry to history and maintain the MAX_HISTORY limit."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     seen: set[str] = set()
     new_entries: list[tuple[str, str]] = []
@@ -138,21 +190,18 @@ def save_history(
 def delete_entry(
     path: str, entry: str, existing: list[tuple[str, str]]
 ) -> list[tuple[str, str]]:
-    """Remove a specific entry from the history file."""
     new_entries = [(e, ts) for e, ts in existing if e != entry]
     _write_history(path, new_entries)
     return new_entries
 
 
 def clear_all_history(path: str) -> None:
-    """Truncate the history file to zero length."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8"):
         pass
 
 
 def _write_history(path: str, entries: list[tuple[str, str]]) -> None:
-    """Internal helper to write the list of history tuples to disk."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         for e, ts in reversed(entries):
@@ -161,24 +210,20 @@ def _write_history(path: str, entries: list[tuple[str, str]]) -> None:
 
 # ── Completions ───────────────────────────────────────────────────────────────
 def _log(msg: str) -> None:
-    """Log debug messages to a file if LOG_FILE is configured."""
     if not LOG_FILE:
         return
     with open(LOG_FILE, "a", encoding="utf-8") as f:
         f.write(f"{datetime.now().isoformat()} - {msg}\n")
 
 
-# ── Completion cache ──────────────────────────────────────────────────────────
 CACHE_FILE = "/tmp/search-completions.json"
 
 
 def _cache_key(query: str, engine: str) -> str:
-    """Stable cache key for a query+engine pair."""
     return f"{engine}:{query.lower().strip()}"
 
 
 def _read_cache() -> dict:
-    """Load the completion cache, returning empty dict on any error."""
     try:
         with open(CACHE_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -187,7 +232,6 @@ def _read_cache() -> dict:
 
 
 def _write_cache(cache: dict) -> None:
-    """Persist the completion cache atomically, tolerating concurrent writers."""
     tmp = f"{CACHE_FILE}.{os.getpid()}.tmp"
     try:
         with open(tmp, "w", encoding="utf-8") as f:
@@ -202,7 +246,6 @@ def _write_cache(cache: dict) -> None:
 
 
 def _bg_fetch(query: str, engine: str) -> None:
-    """Fetch completions and store in cache."""
     _log(f"bg_fetch: started query={query!r} engine={engine!r}")
     try:
         q = urllib.parse.quote_plus(query)
@@ -231,34 +274,27 @@ def fetch_completions(query: str, engine: str) -> list[str]:
     """Return cached completions instantly, and kick off a background refresh."""
     if not query or len(query) < 3:
         return []
-
     key = _cache_key(query, engine)
     cache = _read_cache()
     cached = cache.get(key, [])
     _log(f"completions: cache {'hit' if cached else 'miss'} for {query!r} -> {cached}")
-
-    _log(f"completions: spawning bg fetch for {query!r} engine={engine!r}")
     subprocess.Popen(  # pylint: disable=consider-using-with
         [sys.executable, sys.argv[0], "--_bg-fetch", query, engine],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-
     return cached
 
 
 # ── Open URL ──────────────────────────────────────────────────────────────────
 def open_url(url: str, browser: str) -> None:
-    """Spawn the browser process detached from the current script."""
-    # pylint: disable=consider-using-with
-    subprocess.Popen(
+    subprocess.Popen(  # pylint: disable=consider-using-with
         [browser, url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
     )
 
 
-# ── Rofi Helpers ──────────────────────────────────────────────────────────────
+# ── Rofi helpers ──────────────────────────────────────────────────────────────
 def print_option(text: str, meta: str = "") -> None:
-    """Format and print a single line for Rofi's menu."""
     if meta:
         print(f"{text}\0meta\x1f{meta}")
     else:
@@ -266,37 +302,60 @@ def print_option(text: str, meta: str = "") -> None:
 
 
 def set_prompt(prompt: str) -> None:
-    """Send the script-mode command to change the Rofi prompt."""
     sys.stdout.write(f"{ROFI_PROMPT}{prompt}\n")
 
 
 def set_message(msg: str) -> None:
-    """Send the script-mode command to change the Rofi message bar."""
     sys.stdout.write(f"{ROFI_MESSAGE}{msg}\n")
 
 
 # ── Modes ─────────────────────────────────────────────────────────────────────
 def mode_search(query: str, history: list[tuple[str, str]], engine: str) -> None:
-    """Display completions and history for the main search interface."""
-    set_prompt(f" Search / URL ({engine}):")
+    """Render the main search interface, with bang-aware prompt/completions."""
+    bang, rest = parse_bang(query)
 
-    # NEW: Always force exactly what you are typing to the top of the list
+    # ── Bang mode: user has typed a valid "!bang [query]" ─────────────────────
+    if bang:
+        label, _ = BANGS[bang]
+        set_prompt(f" {label}:")
+        set_message(
+            f"<b>{bang}</b> → {label}  "
+            f"•  Enter to search  •  no query opens the site"
+        )
+        # Pin the full typed text to the top so Enter always does what you see
+        print_option(query)
+        # Sub-query completions (re-use the normal engine's suggestion API)
+        if rest and len(rest) >= 3:
+            for c in fetch_completions(rest, engine):
+                full = f"{bang} {c}"
+                if full != query:
+                    print_option(full)
+        return
+
+    # ── Bang cheatsheet: user typed a lone "!" ────────────────────────────────
+    if query.strip() == "!":
+        set_prompt(" Bang shortcuts:")
+        set_message("Type <b>!bang query</b> to target a specific site")
+        for entry in bang_hint_entries():
+            print_option(entry)
+        return
+
+    # ── Normal search / URL ───────────────────────────────────────────────────
+    set_prompt(f" Search / URL ({engine}):")
     if query:
         print_option(query)
-
     completions = fetch_completions(query, engine) if query else []
     for c in completions:
-        if c != query:  # Prevent it from showing up twice
+        if c != query:
             print_option(c)
     for e, ts in history:
-        if e != query:  # Prevent it from showing up twice
+        if e != query:
             print_option(e, meta=ts)
     print_option(HISTORY_ENTRY)
 
 
 def mode_history(history: list[tuple[str, str]]) -> None:
-    """Display the history management menu."""
-    set_prompt("  History — select to DELETE")
+    set_prompt("  History — select to DELETE")
     set_message("Type to filter • select entry to remove it")
     print_option(CLEAR_ALL)
     for e, ts in history:
@@ -304,16 +363,14 @@ def mode_history(history: list[tuple[str, str]]) -> None:
 
 
 def mode_confirm() -> None:
-    """Display the confirmation prompt for clearing all history."""
-    set_prompt(" Clear ALL history?")
+    set_prompt(" Clear ALL history?")
     sys.stdout.write(ROFI_NO_CUSTOM)
     print_option(CONFIRM_YES)
     print_option(CONFIRM_NO)
 
 
-# ── Entry point ───────────────────────────────────────────────────────────────
+# ── Rofi launch ───────────────────────────────────────────────────────────────
 def _rofi_cmd(script: str) -> list[str]:
-    """Return the rofi command list used for all launches."""
     return [
         "rofi",
         "-show",
@@ -322,12 +379,11 @@ def _rofi_cmd(script: str) -> list[str]:
         f"websearch:{script}",
         "-no-fixed-num-lines",
         "-markup-rows",
-        "-sync",  # re-invoke on every keystroke for live completions
+        "-sync",
     ]
 
 
 def launch_rofi(args: argparse.Namespace) -> None:
-    """Launch Rofi in script-mode, re-launching if Esc is pressed in a sub-mode."""
     env = os.environ.copy()
     env.update(
         {
@@ -338,17 +394,12 @@ def launch_rofi(args: argparse.Namespace) -> None:
         }
     )
     set_mode("search")
-
     while True:
         subprocess.run(_rofi_cmd(sys.argv[0]), env=env, check=False)
-
-        # Rofi exited (Esc or window close). Check what mode we were in.
         mode = get_mode()
         if mode == "search":
-            # Esc on the root search screen — genuinely quit.
             break
         if mode in ("history", "confirm"):
-            # Esc inside a sub-menu — go back to search.
             set_mode("search")
             continue
         break
@@ -357,19 +408,16 @@ def launch_rofi(args: argparse.Namespace) -> None:
 def script_mode(args: argparse.Namespace) -> None:
     """Handle keystrokes and selections passed from Rofi."""
     query = sys.argv[1] if len(sys.argv) > 1 else ""
-    # Ensure types for pyright by providing explicit fallbacks
     engine = str(os.environ.get("WEBSEARCH_ENGINE") or args.engine)
     browser = str(os.environ.get("WEBSEARCH_BROWSER") or args.browser)
     hfile = str(os.environ.get("WEBSEARCH_HISTORY") or args.history_file)
-    # ROFI_RETV: 0=init, 1=selected existing, 2=custom text entered
     retv = int(os.environ.get("ROFI_RETV", "0"))
 
     mode = get_mode()
     history = load_history(hfile)
-    _log(
-        f"script_mode: mode={mode!r} query={query!r} retv={retv} engine={engine!r} argv={sys.argv}"
-    )
+    _log(f"script_mode: mode={mode!r} query={query!r} retv={retv} engine={engine!r}")
 
+    # ── Confirm mode ──────────────────────────────────────────────────────────
     if mode == "confirm":
         if query == CONFIRM_YES:
             clear_all_history(hfile)
@@ -380,6 +428,7 @@ def script_mode(args: argparse.Namespace) -> None:
             mode_history(history)
         return
 
+    # ── History mode ──────────────────────────────────────────────────────────
     if mode == "history":
         if query == CLEAR_ALL:
             set_mode("confirm")
@@ -393,39 +442,46 @@ def script_mode(args: argparse.Namespace) -> None:
         mode_history(history)
         return
 
+    # ── Switch to history view ────────────────────────────────────────────────
     if query == HISTORY_ENTRY:
         set_mode("history")
         mode_history(history)
         return
 
-    if query and retv == 1:
-        # User confirmed a selection from the list (history or suggestion) — open it.
+    # ── User confirmed a selection (Enter on existing item or custom text) ────
+    if query and retv in (1, 2):
+        # If the user selected a bang cheatsheet hint line ("!yt  —  YouTube"),
+        # keep the menu open so they can append their query.
+        hint_match = re.match(r"^(![\w]+)\s+—\s+", query)
+        if hint_match:
+            bang_token = hint_match.group(1).lower()
+            set_mode("search")
+            # Pre-fill the bang token and a trailing space
+            mode_search(bang_token + " ", history, engine)
+            return
+
+        # Resolve bang → URL
+        bang, rest = parse_bang(query)
+        if bang:
+            history = save_history(hfile, query, history)
+            open_url(bang_url(bang, rest), browser)
+            return
+
+        # Normal search / URL
         history = save_history(hfile, query, history)
         if looks_like_url(query):
             url = normalise_url(query)
         else:
             url = SEARCH_ENGINES[engine].format(urllib.parse.quote_plus(query))
         open_url(url, browser)
-        # Return without printing anything to close Rofi
         return
 
-    if query and retv == 2:
-        # User pressed Shift+Enter (or custom shortcut) on custom text.
-        # Fetch suggestions synchronously so they appear immediately on screen.
-        _bg_fetch(query, engine)
-        set_mode("search")
-
-        # Render the completions and history (with the query forced to the top)
-        mode_search(query, history, engine)
-        return
-
-    # retv=0: rofi is rendering/updating — show completions + history.
+    # ── retv=0: Rofi is rendering / updating the list ─────────────────────────
     mode_search(query, history, engine)
 
 
+# ── Entry point ───────────────────────────────────────────────────────────────
 def main() -> None:
-    """Parse CLI arguments and decide between launching Rofi or running logic."""
-    # Internal flag used by background completion fetcher — handle before argparse
     if len(sys.argv) == 4 and sys.argv[1] == "--_bg-fetch":
         _bg_fetch(query=sys.argv[2], engine=sys.argv[3])
         return
