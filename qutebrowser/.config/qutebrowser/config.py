@@ -170,9 +170,9 @@ config.unbind("M")
 config.unbind("m")
 
 # Rebinds
-config.bind("o", "spawn --userscript search.py")
-config.bind("b", "spawn --userscript bookmarks.py")
-config.bind("q", "spawn --userscript quickmarks.py")
+config.bind("o", "spawn --userscript search.py --browser qutebrowser")
+config.bind("b", "spawn --userscript bookmarks.py --browser qutebrowser")
+config.bind("q", "spawn --userscript quickmarks.py --browser qutebrowser")
 
 # New binds
 config.bind("cs", "config-source ;; message-info 'Config reloaded!'")
