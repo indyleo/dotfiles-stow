@@ -37,6 +37,7 @@ _comp_options+=(globdots)		# Include hidden files.
 # Completions
 eval "$(gh completion -s zsh)"
 eval "$(rustup completions zsh)"
+eval "$(rbw gen-completions zsh)"
 fpath+=$PLUGINDIR/zsh-completions/src
 
 # Startup
