@@ -2,8 +2,6 @@
 c = c  # noqa: F821 pylint: disable=E0602,C0103
 config = config  # noqa: F821 pylint: disable=E0602,C0103
 
-import os
-
 # --- Color Palette ---
 palette = {
     "bg0": "#0f0f0f",  # Background
@@ -169,11 +167,23 @@ c.fonts.prompts = "default_size sans-serif"
 c.fonts.statusbar = '11pt "SauceCodePro NF"'
 
 # --- Keybindings ---
+
+# Unbinds
+config.unbind("O")
+config.unbind("Sq")
+config.unbind("gb")
+config.unbind("M")
+config.unbind("m")
+
+# Rebinds
+config.bind("o", "spawn --userscript search.py")
+config.bind("b", "spawn --userscript bookmarks.py")
+
+# New binds
 config.bind("cs", "config-source ;; message-info 'Config reloaded!'")
 config.bind("ct", "config-cycle colors.webpage.darkmode.enabled true false")
 
 config.bind("PP", "spawn --userscript private.sh")
-config.bind("Pb", "spawn --userscript bookmarks.py")
 config.bind("PV", "spawn --detach mpv --volume=45 {url}")
 
 config.bind("tP", "open -- {primary}")
