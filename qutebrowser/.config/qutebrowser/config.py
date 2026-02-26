@@ -180,6 +180,7 @@ config.bind("ct", "config-cycle colors.webpage.darkmode.enabled true false")
 
 config.bind("PP", "spawn --userscript private.sh")
 config.bind("PV", "spawn --detach mpv --volume=45 {url}")
+config.bind("z", "spawn --userscript password.sh")
 
 config.bind("tP", "open -- {primary}")
 config.bind("tp", "open -- {clipboard}")
