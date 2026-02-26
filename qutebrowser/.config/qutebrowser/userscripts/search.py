@@ -103,9 +103,9 @@ def bang_url(bang: str, query: str) -> str:
     return re.sub(r"(https?://[^/]+).*", r"\1", url_template)
 
 
-def bang_hint_entries() -> list[str]:
+def bang_hint_entries() -> list[tuple[str, str]]:
     """One display line per bang, shown when the user types a lone '!'."""
-    return [f"{bang}  —  {label}" for bang, (label, _) in sorted(BANGS.items())]
+    return [(f"{bang}  —  {label}", bang) for bang, (label, _) in sorted(BANGS.items())]
 
 
 # ── Rofi script-mode protocol ─────────────────────────────────────────────────
@@ -332,14 +332,6 @@ def mode_search(query: str, history: list[tuple[str, str]], engine: str) -> None
                     print_option(full)
         return
 
-    # ── Bang cheatsheet: user typed a lone "!" ────────────────────────────────
-    if query.strip() == "!":
-        set_prompt(" Bang shortcuts:")
-        set_message("Type <b>!bang query</b> to target a specific site")
-        for entry in bang_hint_entries():
-            print_option(entry)
-        return
-
     # ── Normal search / URL ───────────────────────────────────────────────────
     set_prompt(f" Search / URL ({engine}):")
     if query:
@@ -448,16 +440,32 @@ def script_mode(args: argparse.Namespace) -> None:
         mode_history(history)
         return
 
-    # ── User confirmed a selection (Enter on existing item or custom text) ────
-    if query and retv in (1, 2):
+    # ── Shift+Enter (retv=2): fetch live suggestions, search via main engine ──
+    if query and retv == 2:
+        bang, rest = parse_bang(query)
+        if bang:
+            # Strip the bang and search the rest with the main engine
+            search_query = rest if rest else query
+            _bg_fetch(search_query, engine)
+            history = save_history(hfile, search_query, history)
+            url = SEARCH_ENGINES[engine].format(urllib.parse.quote_plus(search_query))
+            open_url(url, browser)
+            return
+        # Normal Shift+Enter: fetch suggestions and re-render
+        _bg_fetch(query, engine)
+        set_mode("search")
+        mode_search(query, history, engine)
+        return
+
+    # ── Enter (retv=1): open selected / typed item ────────────────────────────
+    if query and retv == 1:
         # If the user selected a bang cheatsheet hint line ("!yt  —  YouTube"),
-        # keep the menu open so they can append their query.
+        # open the site root (no query given).
         hint_match = re.match(r"^(![\w]+)\s+—\s+", query)
         if hint_match:
             bang_token = hint_match.group(1).lower()
-            set_mode("search")
-            # Pre-fill the bang token and a trailing space
-            mode_search(bang_token + " ", history, engine)
+            if bang_token in BANGS:
+                open_url(bang_url(bang_token, ""), browser)
             return
 
         # Resolve bang → URL
