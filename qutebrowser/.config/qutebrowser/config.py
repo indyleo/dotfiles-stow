@@ -189,8 +189,6 @@ config.bind("T", "hint links")
 config.bind("th", "history")
 
 config.bind("pg", "open http://127.0.0.1:8080")
-config.bind("tt", "cmd-set-text -s :open -t")
-config.bind("tw", "cmd-set-text -s :open -w")
 
 config.bind("<", "back")
 config.bind(">", "forward")
