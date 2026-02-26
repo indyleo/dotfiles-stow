@@ -440,16 +440,13 @@ def script_mode(args: argparse.Namespace) -> None:
         mode_history(history)
         return
 
-    # ── Shift+Enter (retv=2): fetch live suggestions, search via main engine ──
+    # ── Shift+Enter (retv=2): open bang URL or fetch live suggestions ─────────
     if query and retv == 2:
         bang, rest = parse_bang(query)
         if bang:
-            # Strip the bang and search the rest with the main engine
-            search_query = rest if rest else query
-            _bg_fetch(search_query, engine)
-            history = save_history(hfile, search_query, history)
-            url = SEARCH_ENGINES[engine].format(urllib.parse.quote_plus(search_query))
-            open_url(url, browser)
+            # Bang + Shift+Enter: open the bang URL (same as regular Enter)
+            history = save_history(hfile, query, history)
+            open_url(bang_url(bang, rest), browser)
             return
         # Normal Shift+Enter: fetch suggestions and re-render
         _bg_fetch(query, engine)
