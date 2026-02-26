@@ -30,7 +30,7 @@ def load_quickmarks(filepath):
     return marks
 
 
-def rofi_select(items, prompt=" Quickmarks"):
+def rofi_select(items, prompt=" Quickmarks:"):
     result = subprocess.run(
         ["rofi", "-dmenu", "-i", "-p", prompt],
         input="\n".join(items),
