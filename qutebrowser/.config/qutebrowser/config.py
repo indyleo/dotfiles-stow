@@ -188,8 +188,6 @@ config.bind("tc", "open -t -- {clipboard}")
 config.bind("T", "hint links")
 config.bind("th", "history")
 
-config.bind("pg", "open http://127.0.0.1:8080")
-
 config.bind("<", "back")
 config.bind(">", "forward")
 
