@@ -132,17 +132,6 @@ c.tabs.title.format = "{audio}{current_title}"
 # --- Search engines ---
 c.url.searchengines = {
     "DEFAULT": "https://search.brave.com/search?q={}",
-    "!dp": "https://packages.debian.org/search?keywords={}",
-    "!aw": "https://wiki.archlinux.org/?search={}",
-    "!ah": "https://archlinux.org/packages/?sort=&q={}",
-    "!ar": "https://aur.archlinux.org/packages?O=0&K={}",
-    "!fh": "https://flathub.org/apps/search?q={}",
-    "!gw": "https://wiki.gentoo.org/index.php?search={}",
-    "!nw": "https://wiki.nixos.org/w/index.php?search={}",
-    "!wiki": "https://https://en.wikipedia.org/wiki/{}",
-    "!pd": "https://www.protondb.com/search?q={}",
-    "!yt": "https://www.youtube.com/search?q={}",
-    "!tv": "https://www.twitch.tv/search?term={}",
 }
 
 c.completion.open_categories = []
