@@ -182,6 +182,7 @@ config.bind("Pp", "spawn --userscript private.sh")
 config.bind("Pm", "spawn --userscript mediampv.sh")
 config.bind("z", "spawn --userscript password.sh")
 
+config.bind("pg", "open")
 config.bind("tP", "open -- {primary}")
 config.bind("tp", "open -- {clipboard}")
 config.bind("tc", "open -t -- {clipboard}")
