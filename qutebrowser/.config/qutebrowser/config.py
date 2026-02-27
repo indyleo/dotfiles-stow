@@ -178,8 +178,8 @@ config.bind("q", "spawn --userscript quickmarks.py --browser qutebrowser")
 config.bind("cs", "config-source ;; message-info 'Config reloaded!'")
 config.bind("ct", "config-cycle colors.webpage.darkmode.enabled true false")
 
-config.bind("PP", "spawn --userscript private.sh")
-config.bind("PV", "spawn --detach mpv --volume=45 {url}")
+config.bind("Pp", "spawn --userscript private.sh")
+config.bind("Pm", "spawn --userscript mediampv.sh")
 config.bind("z", "spawn --userscript password.sh")
 
 config.bind("tP", "open -- {primary}")
