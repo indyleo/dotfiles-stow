@@ -109,13 +109,34 @@ config.set("content.javascript.clipboard", "access")
 # --- Adblock lists ---
 c.content.blocking.method = "both"
 c.content.blocking.adblock.lists = [
+    # Core
     "https://easylist.to/easylist/easylist.txt",
     "https://easylist.to/easylist/easyprivacy.txt",
     "https://easylist-downloads.adblockplus.org/easylistdutch.txt",
     "https://easylist-downloads.adblockplus.org/abp-filters-anti-cv.txt",
     "https://www.i-dont-care-about-cookies.eu/abp/",
     "https://secure.fanboy.co.nz/fanboy-cookiemonster.txt",
+    # Annoyances (popups, overlays, newsletter prompts, chat widgets)
+    "https://secure.fanboy.co.nz/fanboy-annoyance.txt",
+    "https://easylist.to/easylist/fanboy-social.txt",
+    "https://easylist-downloads.adblockplus.org/fanboy-notifications.txt",
+    # Malware & Scam Protection
+    "https://malware-filter.gitlab.io/malware-filter/urlhaus-filter-online.txt",
+    "https://phishing.army/download/phishing_army_blocklist_extended.txt",
+    "https://raw.githubusercontent.com/DandelionSprout/adfilt/master/Alternate%20versions%20Anti-Malware%20List/AntiMalwareAdGuard.txt",
+    # Additional Tracker & Privacy
+    "https://raw.githubusercontent.com/disconnectme/disconnect-tracking-protection/master/services.json",
+    "https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/spy.txt",
+    # uBlock Origin filter lists (widely trusted)
+    "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/filters.txt",
+    "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/privacy.txt",
+    "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/badware.txt",
+    "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/annoyances.txt",
+    "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/resource-abuse.txt",
 ]
+
+# User Agent
+c.content.headers.user_agent = "Mozilla/5.0 (Windows NT 11.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.166 Safari/537.36"
 
 # Startpage
 startpage = "http://127.0.0.1:8080"

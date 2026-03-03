@@ -46,3 +46,5 @@ x-scheme-handler/http=brave-browser.desktop
 x-scheme-handler/https=brave-browser.desktop
 text/html=brave-browser.desktop
 x-scheme-handler/discord=vesktop.desktop
+x-scheme-handler/sgnl=signal.desktop
+x-scheme-handler/signalcaptcha=signal.desktop
