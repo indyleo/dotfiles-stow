@@ -177,3 +177,6 @@ vim.api.nvim_create_autocmd("LspAttach", {
 map("n", "<leader>u", function()
   require("undotree").toggle()
 end, "Toggle undotree")
+
+-- Slides
+map("n", "<leader>sp", ":Slide<CR>", "Open slides")
