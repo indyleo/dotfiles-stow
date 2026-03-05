@@ -16,6 +16,8 @@ return {
       "gitignore",
       "markdown",
       "markdown_inline",
+      "qmljs",
+      "qmldir",
       "regex",
       "git_config",
       "gitcommit",
