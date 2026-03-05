@@ -202,7 +202,7 @@ ShellRoot {
                 const monitor = Hyprland.monitorFor(modelData);
                 const top = Hyprland.activeToplevel;
 
-                if (top && top.monitor === monitor) {
+                if (top && top.monitor && monitor && top.monitor.id === monitor.id) {
                     return (top.title && top.title.trim() !== "") ? top.title.trim() : "Untitled";
                 }
                 return "Desktop";
@@ -235,67 +235,13 @@ ShellRoot {
                     }
                 }
 
-                // 1. Workspaces (Integrated with hyprsplit)
-                Rectangle {
-                    Layout.preferredHeight: 26;
-                    Layout.preferredWidth: (26 * 9) + 24;
-                    color: root.cal2; radius: 13
-
-                    Row {
-                        anchors.centerIn: parent; spacing: 4
-
-                        Repeater {
-                            model: 9
-                            Rectangle {
-                                width: 24; height: 26; color: "transparent"
-
-                                property var workspace: Hyprland.workspaces.values.find(ws =>
-                                    ws.monitor === Hyprland.monitorFor(modelData) &&
-                                    (ws.id % 10 || 10) === (index + 1)
-                                ) ?? null
-
-                                property bool isActive: {
-                                    const focused = Hyprland.focusedWorkspace;
-                                    return focused &&
-                                           (focused.id % 10 || 10) === (index + 1) &&
-                                           focused.monitor === Hyprland.monitorFor(modelData);
-                                }
-
-                                // FIX: Use primitive check rather than object comparison to circumvent QML C++ wrapper quirks
-                                property bool hasWindows: {
-                                    if (!workspace) return false;
-                                    if (workspace.windows !== undefined) return workspace.windows > 0;
-                                    return Hyprland.toplevels.values.some(top => top.workspace && top.workspace.id === workspace.id);
-                                }
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: parent.isActive ? "" : (parent.hasWindows ? "" : "")
-                                    color: parent.isActive ? root.cal8 : (parent.hasWindows ? root.cal9 : root.cal3)
-                                    font.pixelSize: parent.isActive ? root.fontSize + 2 : root.fontSize
-                                    font.family: root.fontFamily
-
-                                    Behavior on color { ColorAnimation { duration: 200 } }
-                                    Behavior on font.pixelSize { NumberAnimation { duration: 200; easing.type: Easing.OutBack } }
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent;
-                                    onClicked: { Hyprland.dispatch(`split:workspace ${index + 1}`) }
-                                }
-                            }
-                        }
-                    }
-                }
-
-
-                // 2. Layout
+                // 1. Layout
                 Rectangle {
                     Layout.preferredHeight: 26; Layout.preferredWidth: layoutText.implicitWidth + 24; color: root.cal2; radius: 13
                     Text { id: layoutText; anchors.centerIn: parent; text: root.currentLayout; color: root.cal7; font.pixelSize: root.fontSize - 2; font.family: root.fontFamily; font.bold: true }
                 }
 
-                // 3. Window (Uses localActiveWindow)
+                // 2. Window (Uses localActiveWindow)
                 Rectangle {
                     Layout.preferredHeight: 26; Layout.fillWidth: true; Layout.minimumWidth: 100; color: root.cal2; radius: 13; clip: true
                     RowLayout {
@@ -305,7 +251,7 @@ ShellRoot {
                     }
                 }
 
-                // 4. Stats
+                // 3. Stats
                 Rectangle {
                     visible: isPrimary
                     Layout.preferredHeight: 26; Layout.preferredWidth: statsRow.implicitWidth + 30; color: root.cal2; radius: 13
@@ -526,7 +472,7 @@ ShellRoot {
                     }
                 }
 
-                // 5. Clock
+                // 4. Clock
                 Rectangle {
                     visible: isPrimary
                     Layout.preferredHeight: 26; Layout.preferredWidth: clockText.implicitWidth + 30; color: root.cal2; radius: 13
