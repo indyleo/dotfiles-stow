@@ -209,6 +209,9 @@ ShellRoot {
 			// ADD THIS LINE: Explicitly declare the injected screen data
 			required property var modelData
 
+			// ADD THIS: Define what "Primary" means for this window instance
+			readonly property bool isPrimary: modelData === Quickshell.screens[0]
+
 			screen: modelData
 			anchors { top: true; left: true; right: true }
 			implicitHeight: 34
@@ -285,6 +288,7 @@ ShellRoot {
 
 				// 4. Stats
 				Rectangle {
+					visible: isPrimary
 					Layout.preferredHeight: 26; Layout.preferredWidth: statsRow.implicitWidth + 30; color: root.cal2; radius: 13
 					RowLayout {
 						id: statsRow; anchors.centerIn: parent; spacing: 12
@@ -508,6 +512,7 @@ ShellRoot {
 
 			// 5. Clock
 			Rectangle {
+				visible: isPrimary
 				Layout.preferredHeight: 26; Layout.preferredWidth: clockText.implicitWidth + 30; color: root.cal2; radius: 13
 				Text {
 					id: clockText; anchors.centerIn: parent; property var dateTime: new Date(); text: Qt.formatDateTime(dateTime, "󰥔  hh:mm AP |   dddd MMMM dd yyyy")
