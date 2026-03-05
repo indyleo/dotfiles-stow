@@ -208,8 +208,6 @@ ShellRoot {
 		PanelWindow {
 			// ADD THIS LINE: Explicitly declare the injected screen data
 			required property var modelData
-
-			// ADD THIS: Define what "Primary" means for this window instance
 			readonly property bool isPrimary: modelData === Quickshell.screens[0]
 
 			screen: modelData
