@@ -205,3 +205,16 @@ cmd drag ${{
 }}
 map dr drag
 
+### Secure Copy ###
+cmd scp ${{
+  read -rp "Port (default 22): " port
+  port="${port:-22}"
+  read -rp "Host (user@host:/path): " host
+  [ -z "$host" ] && exit
+  if [ -n "$fx" ]; then
+    echo "$fx" | xargs -I{} scp -P "$port" "{}" "$host"
+  else
+    scp -P "$port" "$f" "$host"
+  fi
+}}
+map cs scp
