@@ -40,10 +40,11 @@ MAX_COMPLETIONS = 6
 LOG_FILE = "/tmp/search-debug.log"  # set to "" to disable
 
 SEARCH_ENGINES = {
-    "duckduckgo": "https://duckduckgo.com/?q={}",
+    "searxng": "https://searxng.linuxlab.work/search?q={}",
     "brave": "https://search.brave.com/search?q={}",
+    "duckduckgo": "https://duckduckgo.com/?q={}",
 }
-DEFAULT_ENGINE = "brave"
+DEFAULT_ENGINE = "searxng"
 
 # ── Bang shortcuts ─────────────────────────────────────────────────────────────
 # Format: "!bang": ("Display Label", "https://example.com/search?q={}")
