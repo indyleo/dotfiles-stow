@@ -24,4 +24,16 @@
 	<patterns>*</patterns>
 	<directories/>
 </action>
+<action>
+	<icon>nvim</icon>
+	<name>Neovim Open</name>
+	<submenu></submenu>
+	<unique-id>1774128345347711-1</unique-id>
+	<command>foot -e nvim %f</command>
+	<description>Open files in neovim</description>
+	<range>*</range>
+	<patterns>*</patterns>
+	<other-files/>
+	<text-files/>
+</action>
 </actions>
