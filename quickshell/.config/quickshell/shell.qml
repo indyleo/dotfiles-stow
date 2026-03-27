@@ -222,13 +222,12 @@ ShellRoot {
 
                     let art = parts[6] || "";
 
-                    // Smart URL Parsing:
                     if (art.startsWith("http://") || art.startsWith("https://")) {
-                        root.mediaArtUrl = art; // Keep web stream intact
+                        root.mediaArtUrl = art;
                     } else if (art.startsWith("file://")) {
-                        root.mediaArtUrl = art; // Standard local file protocol
+                        root.mediaArtUrl = art;
                     } else if (art !== "") {
-                        root.mediaArtUrl = "file://" + art; // Absolute paths transformed to local URL
+                        root.mediaArtUrl = "file://" + art;
                     } else {
                         root.mediaArtUrl = "";
                     }
@@ -281,7 +280,7 @@ ShellRoot {
             RowLayout {
                 anchors.fill: parent; spacing: 8; anchors.leftMargin: 12; anchors.rightMargin: 12
 
-                // 0. The Overhauled Profile/Music Pill
+                // 0. The Locked Profile + Dynamic Play/Pause and Title Pill
                 Rectangle {
                     Layout.preferredHeight: 26
                     Layout.preferredWidth: profileMediaLayout.implicitWidth + 12
@@ -300,7 +299,7 @@ ShellRoot {
                         anchors.rightMargin: 6
                         spacing: 8
 
-                        // 🖼️ LOCK 1: Icon PNG (Always visible)
+                        // 🖼️ Always-Visible Icon (Profile Pic)
                         Item {
                             Layout.preferredWidth: 22
                             Layout.preferredHeight: 22
@@ -317,7 +316,7 @@ ShellRoot {
                             OpacityMask { anchors.fill: parent; source: profileImg; maskSource: profileMask }
                         }
 
-                        // 🔗 LOCK 2: Music UI (Shows only when active)
+                        // 🎵 Dynamic Music Row
                         RowLayout {
                             visible: root.showMedia
                             spacing: 8
@@ -329,29 +328,18 @@ ShellRoot {
                                 color: root.cal3
                             }
 
-                            // 🎵 Thumbnail and Separator Contextual Section
+                            // 📦 Music Thumbnail
                             Item {
                                 Layout.preferredWidth: 22
                                 Layout.preferredHeight: 22
 
-                                // Standard stream art (Supports HTTP and file:// protocols natively)
                                 Image {
                                     id: musicArt
                                     anchors.fill: parent
                                     source: root.mediaArtUrl
                                     fillMode: Image.PreserveAspectCrop
                                     visible: false
-                                    asynchronous: true // Doesn't freeze the bar while loading Navidrome art!
-                                }
-
-                                // If stream art fails or doesn't exist, use an icon fallback
-                                Text {
-                                    visible: root.mediaArtUrl === ""
-                                    text: root.mediaIcon
-                                    color: root.cal14
-                                    font.pixelSize: root.fontSize + 2
-                                    font.family: root.fontFamily
-                                    anchors.centerIn: parent
+                                    asynchronous: true
                                 }
 
                                 Rectangle { id: musicMask; anchors.fill: parent; radius: width / 2; visible: false }
@@ -363,6 +351,15 @@ ShellRoot {
                                 }
                             }
 
+                            // ▶️ Play/Pause Indicator Status
+                            Text {
+                                text: root.mediaIcon
+                                color: root.cal14
+                                font.pixelSize: root.fontSize + 2
+                                font.family: root.fontFamily
+                            }
+
+                            // 📜 Song Name
                             Text {
                                 text: root.mediaTitle !== "" ? root.mediaTitle : "Unknown Title"
                                 color: root.cal6
@@ -382,7 +379,6 @@ ShellRoot {
 
                         onClicked: (m) => {
                             if (root.showMedia) {
-                                // Dynamic UI Mouse states
                                 if (m.button === Qt.LeftButton) {
                                     shellCmd.command = ["mediactl", "play-pause"]
                                 } else if (m.button === Qt.RightButton) {
@@ -392,6 +388,8 @@ ShellRoot {
                                 }
                                 shellCmd.running = false
                                 shellCmd.running = true
+
+                                // ⚡ Forces instant UI refresh on click events
                                 mediaProc.running = false
                                 mediaProc.running = true
                             } else {
@@ -411,6 +409,8 @@ ShellRoot {
                                 }
                                 shellCmd.running = false
                                 shellCmd.running = true
+
+                                // ⚡ Forces instant UI refresh on scroll events
                                 mediaProc.running = false
                                 mediaProc.running = true
                             }
