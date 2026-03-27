@@ -38,38 +38,53 @@ ShellRoot {
     }
 
     // --- System Data Properties ---
+    property string kernelIcon: ""
+    property string kernelVersion: "..."
+    property string cpuIcon: ""
+    property string cpuText: "0%"
+    property string gpuIcon: "󰢮"
+    property string gpuText: "0%"
+    property string memIcon: ""
+    property string memText: "0%"
+    property string diskIcon: "󰋊"
+    property string diskText: "0%"
 
-    // Kernel / CPU / GPU
-    property string kernelIcon: ""; property string kernelVersion: "..."
-    property string cpuIcon: "";    property string cpuText: "0%"
-    property string gpuIcon: "󰢮";    property string gpuText: "0%"
+    property string brightIcon: "󰃠"
+    property string brightText: "100%"
+    property bool showBright: false
 
-    // Memory
-    property string memIcon: "";    property string memText: "0%"
+    property string batIcon: "󰢜"
+    property string batText: "100%"
+    property bool showBat: false
 
-    // Disk
-    property string diskIcon: "󰋊";    property string diskText: "0%"
+    property string ethIcon: "󰲜"
+    property string ethText: "Disconnected"
+    property bool showEth: false
 
-    // Brightness
-    property string brightIcon: "󰃠"; property string brightText: "100%"; property bool showBright: false
+    property string wifiIcon: "󰤮"
+    property string wifiText: "Offline"
+    property bool showWifi: true
 
-    // Battery
-    property string batIcon: "󰢜";    property string batText: "100%"; property bool showBat: false
+    property string tailIcon: "󰈂"
+    property string tailText: "Not connected"
+    property bool showTail: false
 
-    // Network (Ethernet, Wifi, Tailscale)
-    property string ethIcon: "󰲜";    property string ethText: "Disconnected"; property bool showEth: false
-    property string wifiIcon: "󰤮";   property string wifiText: "Offline"; property bool showWifi: true
-    property string tailIcon: "󰈂";   property string tailText: "Not connected"; property bool showTail: false
+    property string volIcon: "󰕾"
+    property string volText: "0%"
+    property string micIcon: ""
+    property string micText: "0%"
 
-    // Audio / Mic
-    property string volIcon: "󰕾";    property string volText: "0%"
-    property string micIcon: "";    property string micText: "0%"
+    // --- Media Data Properties ---
+    property string mediaIcon: "󰝚"
+    property string mediaTitle: ""
+    property string mediaArtist: ""
+    property string mediaArtUrl: ""
+    property bool mediaIsPlaying: false
+    property bool showMedia: false
 
     // --- Logic & Process Control ---
-
     Process { id: shellCmd }
 
-    // Helper function to split "ICON TEXT" output
     function parseSysstats(data, iconProp, textProp) {
         if (!data) return;
         let parts = data.trim().split(/\s+/);
@@ -78,53 +93,65 @@ ShellRoot {
     }
 
     Process {
-        id: kernelProc; command: ["sysstats", "kernel"];
+        id: kernelProc
+        command: ["sysstats", "kernel"]
         stdout: SplitParser { onRead: data => root.parseSysstats(data, "kernelIcon", "kernelVersion") }
     }
 
     Process {
-        id: cpuProc; command: ["sysstats", "cpu"]
+        id: cpuProc
+        command: ["sysstats", "cpu"]
         stdout: SplitParser { onRead: data => root.parseSysstats(data, "cpuIcon", "cpuText") }
     }
 
     Process {
-        id: gpuProc; command: ["sysstats", "gpu"]
+        id: gpuProc
+        command: ["sysstats", "gpu"]
         stdout: SplitParser { onRead: data => root.parseSysstats(data, "gpuIcon", "gpuText") }
     }
 
     Process {
-        id: memProc; command: ["sysstats", "mem"]
+        id: memProc
+        command: ["sysstats", "mem"]
         stdout: SplitParser { onRead: data => root.parseSysstats(data, "memIcon", "memText") }
     }
 
     Process {
-        id: diskProc; command: ["sysstats", "disk"]
+        id: diskProc
+        command: ["sysstats", "disk"]
         stdout: SplitParser { onRead: data => root.parseSysstats(data, "diskIcon", "diskText") }
     }
 
     Process {
-        id: brightProc; command: ["sysstats", "brightness"]
+        id: brightProc
+        command: ["sysstats", "brightness"]
         stdout: SplitParser {
             onRead: data => {
                 if (!data || data.trim() === "" || data.includes("N/A")) {
-                    root.showBright = false; return
+                    root.showBright = false;
+                    return
                 }
-                root.showBright = true; root.parseSysstats(data, "brightIcon", "brightText")
+                root.showBright = true;
+                root.parseSysstats(data, "brightIcon", "brightText")
             }
         }
     }
 
     Process {
-        id: batProc; command: ["sysstats", "battery"]
+        id: batProc
+        command: ["sysstats", "battery"]
         stdout: SplitParser {
             onRead: data => {
-                if (!data || data.trim() === "") { root.showBat = false; return }
-                root.showBat = true; root.parseSysstats(data, "batIcon", "batText")
+                if (!data || data.trim() === "") {
+                    root.showBat = false;
+                    return
+                }
+                root.showBat = true;
+                root.parseSysstats(data, "batIcon", "batText")
             }
         }
     }
 
-    // --- Network Processes ---
     Process {
         id: ethProc
         command: ["sysstats", "ethernet"]
@@ -138,7 +165,8 @@ ShellRoot {
     }
 
     Process {
-        id: wifiProc; command: ["sysstats", "wifi"]
+        id: wifiProc
+        command: ["sysstats", "wifi"]
         stdout: SplitParser {
             onRead: data => {
                 if (!data) return;
@@ -162,16 +190,53 @@ ShellRoot {
     }
 
     Process {
-        id: volProc; command: ["sysstats", "volume"]
+        id: volProc
+        command: ["sysstats", "volume"]
         stdout: SplitParser { onRead: data => root.parseSysstats(data, "volIcon", "volText") }
     }
 
     Process {
-        id: micProc; command: ["sysstats", "microphone"]
+        id: micProc
+        command: ["sysstats", "microphone"]
         stdout: SplitParser { onRead: data => root.parseSysstats(data, "micIcon", "micText") }
     }
 
-    // Periodic Background Refresh
+    // Mediactl Process
+    Process {
+        id: mediaProc
+        command: ["mediactl", "status"]
+        stdout: SplitParser {
+            onRead: data => {
+                if (!data || data.trim() === "" || data.includes("idle||Idle")) {
+                    root.showMedia = false;
+                    return;
+                }
+                root.showMedia = true;
+
+                let parts = data.trim().split("|");
+                if (parts.length >= 7) {
+                    root.mediaIsPlaying = (parts[2] === "Playing");
+                    root.mediaIcon = root.mediaIsPlaying ? "" : "";
+                    root.mediaTitle = parts[3] || "Unknown Title";
+                    root.mediaArtist = parts[4] || "Unknown Artist";
+
+                    let art = parts[6] || "";
+
+                    // Smart URL Parsing:
+                    if (art.startsWith("http://") || art.startsWith("https://")) {
+                        root.mediaArtUrl = art; // Keep web stream intact
+                    } else if (art.startsWith("file://")) {
+                        root.mediaArtUrl = art; // Standard local file protocol
+                    } else if (art !== "") {
+                        root.mediaArtUrl = "file://" + art; // Absolute paths transformed to local URL
+                    } else {
+                        root.mediaArtUrl = "";
+                    }
+                }
+            }
+        }
+    }
+
     Timer {
         interval: 2000; running: true; repeat: true; triggeredOnStart: true
         onTriggered: {
@@ -187,6 +252,7 @@ ShellRoot {
             batProc.running = false; batProc.running = true
             volProc.running = false; volProc.running = true
             micProc.running = false; micProc.running = true
+            mediaProc.running = false; mediaProc.running = true
         }
     }
 
@@ -197,7 +263,6 @@ ShellRoot {
             required property var modelData
             readonly property bool isPrimary: modelData === Quickshell.screens[0]
 
-            // --- Independent Window Title Logic ---
             readonly property string localActiveWindow: {
                 const monitor = Hyprland.monitorFor(modelData);
                 const top = Hyprland.activeToplevel;
@@ -216,21 +281,139 @@ ShellRoot {
             RowLayout {
                 anchors.fill: parent; spacing: 8; anchors.leftMargin: 12; anchors.rightMargin: 12
 
-                // 0. Profile
+                // 0. The Overhauled Profile/Music Pill
                 Rectangle {
-                    Layout.preferredWidth: 32; Layout.preferredHeight: 26; color: root.cal2; radius: 13
-                    Item {
-                        width: 22; height: 22; anchors.centerIn: parent
-                        Image { id: profileIcon; anchors.fill: parent; source: "icon.png"; fillMode: Image.PreserveAspectCrop; visible: false }
-                        Rectangle { id: mask; anchors.fill: parent; radius: width / 2; visible: false }
-                        OpacityMask { anchors.fill: parent; source: profileIcon; maskSource: mask }
+                    Layout.preferredHeight: 26
+                    Layout.preferredWidth: profileMediaLayout.implicitWidth + 12
+                    color: root.cal2
+                    radius: 13
+                    clip: true
+
+                    Behavior on Layout.preferredWidth {
+                        NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
                     }
+
+                    RowLayout {
+                        id: profileMediaLayout
+                        anchors.fill: parent
+                        anchors.leftMargin: 6
+                        anchors.rightMargin: 6
+                        spacing: 8
+
+                        // 🖼️ LOCK 1: Icon PNG (Always visible)
+                        Item {
+                            Layout.preferredWidth: 22
+                            Layout.preferredHeight: 22
+                            Layout.alignment: Qt.AlignVCenter
+
+                            Image {
+                                id: profileImg
+                                anchors.fill: parent
+                                source: "icon.png"
+                                fillMode: Image.PreserveAspectCrop
+                                visible: false
+                            }
+                            Rectangle { id: profileMask; anchors.fill: parent; radius: width / 2; visible: false }
+                            OpacityMask { anchors.fill: parent; source: profileImg; maskSource: profileMask }
+                        }
+
+                        // 🔗 LOCK 2: Music UI (Shows only when active)
+                        RowLayout {
+                            visible: root.showMedia
+                            spacing: 8
+                            Layout.alignment: Qt.AlignVCenter
+
+                            Rectangle {
+                                width: 1
+                                height: 12
+                                color: root.cal3
+                            }
+
+                            // 🎵 Thumbnail and Separator Contextual Section
+                            Item {
+                                Layout.preferredWidth: 22
+                                Layout.preferredHeight: 22
+
+                                // Standard stream art (Supports HTTP and file:// protocols natively)
+                                Image {
+                                    id: musicArt
+                                    anchors.fill: parent
+                                    source: root.mediaArtUrl
+                                    fillMode: Image.PreserveAspectCrop
+                                    visible: false
+                                    asynchronous: true // Doesn't freeze the bar while loading Navidrome art!
+                                }
+
+                                // If stream art fails or doesn't exist, use an icon fallback
+                                Text {
+                                    visible: root.mediaArtUrl === ""
+                                    text: root.mediaIcon
+                                    color: root.cal14
+                                    font.pixelSize: root.fontSize + 2
+                                    font.family: root.fontFamily
+                                    anchors.centerIn: parent
+                                }
+
+                                Rectangle { id: musicMask; anchors.fill: parent; radius: width / 2; visible: false }
+                                OpacityMask {
+                                    anchors.fill: parent
+                                    source: musicArt
+                                    maskSource: musicMask
+                                    visible: root.mediaArtUrl !== ""
+                                }
+                            }
+
+                            Text {
+                                text: root.mediaTitle !== "" ? root.mediaTitle : "Unknown Title"
+                                color: root.cal6
+                                font.pixelSize: root.fontSize
+                                font.family: root.fontFamily
+                                elide: Text.ElideRight
+                                Layout.maximumWidth: 180
+                            }
+                        }
+                    }
+
                     MouseArea {
-                        anchors.fill: parent; acceptedButtons: Qt.LeftButton | Qt.RightButton
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                        hoverEnabled: true
+
                         onClicked: (m) => {
-                            if (m.button === Qt.LeftButton) shellCmd.command = ["rofi", "-show", "drun"]
-                            else shellCmd.command = ["sh", "-c", "rofi_power"]
-                            shellCmd.running = false; shellCmd.running = true
+                            if (root.showMedia) {
+                                // Dynamic UI Mouse states
+                                if (m.button === Qt.LeftButton) {
+                                    shellCmd.command = ["mediactl", "play-pause"]
+                                } else if (m.button === Qt.RightButton) {
+                                    shellCmd.command = ["rofi", "-show", "drun"]
+                                } else if (m.button === Qt.MiddleButton) {
+                                    shellCmd.command = ["sh", "-c", "rofi_power"]
+                                }
+                                shellCmd.running = false
+                                shellCmd.running = true
+                                mediaProc.running = false
+                                mediaProc.running = true
+                            } else {
+                                if (m.button === Qt.LeftButton) shellCmd.command = ["rofi", "-show", "drun"]
+                                else shellCmd.command = ["sh", "-c", "rofi_power"]
+                                shellCmd.running = false
+                                shellCmd.running = true
+                            }
+                        }
+
+                        onWheel: (wheel) => {
+                            if (root.showMedia) {
+                                if (wheel.angleDelta.y > 0) {
+                                    shellCmd.command = ["mediactl", "next"]
+                                } else {
+                                    shellCmd.command = ["mediactl", "previous"]
+                                }
+                                shellCmd.running = false
+                                shellCmd.running = true
+                                mediaProc.running = false
+                                mediaProc.running = true
+                            }
                         }
                     }
                 }
@@ -241,7 +424,7 @@ ShellRoot {
                     Text { id: layoutText; anchors.centerIn: parent; text: root.currentLayout; color: root.cal7; font.pixelSize: root.fontSize - 2; font.family: root.fontFamily; font.bold: true }
                 }
 
-                // 2. Window (Uses localActiveWindow)
+                // 2. Window
                 Rectangle {
                     Layout.preferredHeight: 26; Layout.fillWidth: true; Layout.minimumWidth: 100; color: root.cal2; radius: 13; clip: true
                     RowLayout {
@@ -258,7 +441,6 @@ ShellRoot {
                     RowLayout {
                         id: statsRow; anchors.centerIn: parent; spacing: 12
 
-                        // === SYSTEM CORE GROUP (Purple) ===
                         // Kernel
                         Item {
                             Layout.preferredHeight: 20; Layout.preferredWidth: kernelRow.width
@@ -295,10 +477,8 @@ ShellRoot {
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: gpuRow.hovered = true; onExited: gpuRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) gpuRow.pinned = !gpuRow.pinned; } }
                         }
 
-                        // --- Separator: Core -> Memory ---
                         Rectangle { width: 1; height: 12; color: root.cal3 }
 
-                        // === MEMORY & STORAGE GROUP (Teal) ===
                         // RAM
                         Item {
                             Layout.preferredHeight: 20; Layout.preferredWidth: memRow.width
@@ -308,14 +488,7 @@ ShellRoot {
                                 Item { height: 20; width: parent.expanded ? memTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
                                 Text { id: memTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.memText; color: root.cal7; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
-                            MouseArea {
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton; hoverEnabled: true;
-                                onEntered: memRow.hovered = true; onExited: memRow.hovered = false;
-                                onClicked: (m) => {
-                                    if(m.button === Qt.MiddleButton) memRow.pinned = !memRow.pinned;
-                                    else if (m.button === Qt.LeftButton) { memProc.running = false; memProc.running = true }
-                                }
-                            }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton; hoverEnabled: true; onEntered: memRow.hovered = true; onExited: memRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) memRow.pinned = !memRow.pinned; else if (m.button === Qt.LeftButton) { memProc.running = false; memProc.running = true } } }
                         }
 
                         // Disk
@@ -330,10 +503,8 @@ ShellRoot {
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: diskRow.hovered = true; onExited: diskRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) diskRow.pinned = !diskRow.pinned; } }
                         }
 
-                        // --- Separator: Storage -> Power ---
                         Rectangle { width: 1; height: 12; color: root.cal3; visible: root.showBright || root.showBat }
 
-                        // === POWER GROUP (Gold) ===
                         // Brightness
                         Item {
                             visible: root.showBright
@@ -360,10 +531,8 @@ ShellRoot {
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: batRow.hovered = true; onExited: batRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) batRow.pinned = !batRow.pinned } }
                         }
 
-                        // --- Separator: Power -> Network ---
                         Rectangle { width: 1; height: 12; color: root.cal3; visible: (root.showEth || root.showWifi || root.showTail) }
 
-                        // === NETWORK GROUP (Green) ===
                         // Ethernet
                         Item {
                             visible: root.showEth
@@ -374,8 +543,7 @@ ShellRoot {
                                 Item { height: 20; width: parent.expanded ? ethTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
                                 Text { id: ethTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.ethText; color: root.cal13; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
-                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton | Qt.RightButton; hoverEnabled: true;
-                            onEntered: ethRow.hovered = true; onExited: ethRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) ethRow.pinned = !ethRow.pinned; else if (m.button === Qt.RightButton) { shellCmd.command = ["nm-connection-editor"]; shellCmd.running = false; shellCmd.running = true } } }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: ethRow.hovered = true; onExited: ethRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) ethRow.pinned = !ethRow.pinned; else if (m.button === Qt.RightButton) { shellCmd.command = ["nm-connection-editor"]; shellCmd.running = false; shellCmd.running = true } } }
                         }
 
                         // WIFI
@@ -388,15 +556,7 @@ ShellRoot {
                                 Item { height: 20; width: parent.expanded ? wifiTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
                                 Text { id: wifiTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.wifiText; color: root.cal13; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
-                            MouseArea {
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true
-                                onEntered: wifiRow.hovered = true; onExited: wifiRow.hovered = false
-                                onClicked: (m) => {
-                                    if(m.button === Qt.MiddleButton) wifiRow.pinned = !wifiRow.pinned;
-                                    else if (m.button === Qt.LeftButton) { shellCmd.command = ["sh", "-c", "rofi_wifi"]; shellCmd.running = false; shellCmd.running = true }
-                                    else if (m.button === Qt.RightButton) { shellCmd.command = ["nm-connection-editor"]; shellCmd.running = false; shellCmd.running = true }
-                                }
-                            }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: wifiRow.hovered = true; onExited: wifiRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) wifiRow.pinned = !wifiRow.pinned; else if (m.button === Qt.LeftButton) { shellCmd.command = ["sh", "-c", "rofi_wifi"]; shellCmd.running = false; shellCmd.running = true } else if (m.button === Qt.RightButton) { shellCmd.command = ["nm-connection-editor"]; shellCmd.running = false; shellCmd.running = true } } }
                         }
 
                         // Tailscale
@@ -409,17 +569,11 @@ ShellRoot {
                                 Item { height: 20; width: parent.expanded ? tailTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
                                 Text { id: tailTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.tailText; color: root.cal13; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
-                            MouseArea {
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true
-                                onEntered: tailRow.hovered = true; onExited: tailRow.hovered = false
-                                onClicked: (m) => { if(m.button === Qt.MiddleButton) tailRow.pinned = !tailRow.pinned }
-                            }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: tailRow.hovered = true; onExited: tailRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) tailRow.pinned = !tailRow.pinned } }
                         }
 
-                        // --- Separator: Network -> Audio ---
                         Rectangle { width: 1; height: 12; color: root.cal3 }
 
-                        // === AUDIO GROUP (Orange) ===
                         // Microphone
                         Item {
                             Layout.preferredHeight: 20; Layout.preferredWidth: micRow.width
@@ -429,20 +583,7 @@ ShellRoot {
                                 Item { height: 20; width: parent.expanded ? micTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
                                 Text { id: micTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.micText; color: root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
-                            MouseArea {
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true
-                                onEntered: micRow.hovered = true; onExited: micRow.hovered = false
-                                onWheel: (wheel) => {
-                                    if(wheel.angleDelta.y > 0) shellCmd.command = ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SOURCE@", "5%+"];
-                                    else shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SOURCE@", "5%-"];
-                                    shellCmd.running = false; shellCmd.running = true; micProc.running = false; micProc.running = true
-                                }
-                                onClicked: (m) => {
-                                    if(m.button === Qt.MiddleButton) micRow.pinned = !micRow.pinned;
-                                    else if (m.button === Qt.LeftButton) { shellCmd.command = ["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]; shellCmd.running = false; shellCmd.running = true; micProc.running = false; micProc.running = true }
-                                    else if (m.button === Qt.RightButton) { shellCmd.command = ["pavucontrol", "-t", "4"]; shellCmd.running = false; shellCmd.running = true }
-                                }
-                            }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: micRow.hovered = true; onExited: micRow.hovered = false; onWheel: (wheel) => { if(wheel.angleDelta.y > 0) shellCmd.command = ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SOURCE@", "5%+"]; else shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SOURCE@", "5%-"]; shellCmd.running = false; shellCmd.running = true; micProc.running = false; micProc.running = true }; onClicked: (m) => { if(m.button === Qt.MiddleButton) micRow.pinned = !micRow.pinned; else if (m.button === Qt.LeftButton) { shellCmd.command = ["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]; shellCmd.running = false; shellCmd.running = true; micProc.running = false; micProc.running = true } else if (m.button === Qt.RightButton) { shellCmd.command = ["pavucontrol", "-t", "4"]; shellCmd.running = false; shellCmd.running = true } } }
                         }
 
                         // Volume
@@ -454,20 +595,7 @@ ShellRoot {
                                 Item { height: 20; width: parent.expanded ? volTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
                                 Text { id: volTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.volText; color: root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
                             }
-                            MouseArea {
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true
-                                onEntered: volRow.hovered = true; onExited: volRow.hovered = false
-                                onWheel: (wheel) => {
-                                    if(wheel.angleDelta.y > 0) shellCmd.command = ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SINK@", "5%+"];
-                                    else shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%-"];
-                                    shellCmd.running = false; shellCmd.running = true; volProc.running = false; volProc.running = true
-                                }
-                                onClicked: (m) => {
-                                    if(m.button === Qt.MiddleButton) volRow.pinned = !volRow.pinned;
-                                    else if (m.button === Qt.LeftButton) { shellCmd.command = ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"]; shellCmd.running = false; shellCmd.running = true; volProc.running = false; volProc.running = true }
-                                    else if (m.button === Qt.RightButton) { shellCmd.command = ["pavucontrol", "-t", "3"]; shellCmd.running = false; shellCmd.running = true }
-                                }
-                            }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: volRow.hovered = true; onExited: volRow.hovered = false; onWheel: (wheel) => { if(wheel.angleDelta.y > 0) shellCmd.command = ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SINK@", "5%+"]; else shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%-"]; shellCmd.running = false; shellCmd.running = true; volProc.running = false; volProc.running = true }; onClicked: (m) => { if(m.button === Qt.MiddleButton) volRow.pinned = !volRow.pinned; else if (m.button === Qt.LeftButton) { shellCmd.command = ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"]; shellCmd.running = false; shellCmd.running = true; volProc.running = false; volProc.running = true } else if (m.button === Qt.RightButton) { shellCmd.command = ["pavucontrol", "-t", "3"]; shellCmd.running = false; shellCmd.running = true } } }
                         }
                     }
                 }
