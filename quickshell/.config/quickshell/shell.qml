@@ -393,7 +393,7 @@ ShellRoot {
                                         // Only animate if the text is longer than 180px AND music is playing
                                         running: songTxt.implicitWidth > 180 && root.mediaIsPlaying
 
-                                        PauseAnimation { duration: 1500 } // Wait 1.5s before scrolling
+                                        PauseAnimation { duration: 1000 } // Wait 1.5s before scrolling
 
                                         NumberAnimation {
                                             from: 0
@@ -402,13 +402,12 @@ ShellRoot {
                                             duration: (songTxt.implicitWidth - 180) * 30
                                         }
 
-                                        PauseAnimation { duration: 1500 } // Pause at the end of the text
+                                        PauseAnimation { duration: 1000 } // Pause at the end of the text
 
                                         NumberAnimation {
                                             from: -(songTxt.implicitWidth - 180)
                                             to: 0
-                                            duration: 600 // Quick, smooth slide back to the beginning
-                                            easing.type: Easing.InOutQuad
+                                            duration: (songTxt.implicitWidth - 180) * 30
                                         }
                                     }
                                 }
