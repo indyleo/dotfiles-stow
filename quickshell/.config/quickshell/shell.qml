@@ -212,14 +212,12 @@ ShellRoot {
                     return;
                 }
                 root.showMedia = true;
-
                 let parts = data.trim().split("|");
                 if (parts.length >= 7) {
                     root.mediaIsPlaying = (parts[2] === "Playing");
                     root.mediaIcon = root.mediaIsPlaying ? "" : "";
                     root.mediaTitle = parts[3] || "Unknown Title";
                     root.mediaArtist = parts[4] || "Unknown Artist";
-
                     let art = parts[6] || "";
 
                     if (art.startsWith("http://") || art.startsWith("https://")) {
@@ -237,7 +235,8 @@ ShellRoot {
     }
 
     Timer {
-        interval: 2000; running: true; repeat: true; triggeredOnStart: true
+        interval: 2000;
+        running: true; repeat: true; triggeredOnStart: true
         onTriggered: {
             cpuProc.running = false; cpuProc.running = true
             gpuProc.running = false; gpuProc.running = true
@@ -265,7 +264,6 @@ ShellRoot {
             readonly property string localActiveWindow: {
                 const monitor = Hyprland.monitorFor(modelData);
                 const top = Hyprland.activeToplevel;
-
                 if (top && top.monitor && monitor && top.monitor.id === monitor.id) {
                     return (top.title && top.title.trim() !== "") ? top.title.trim() : "Untitled";
                 }
@@ -328,7 +326,7 @@ ShellRoot {
                                 color: root.cal3
                             }
 
-                            // 📦 Music Thumbnail
+                            // 📦 Music Thumbnail (Circular & Spinning)
                             Item {
                                 Layout.preferredWidth: 22
                                 Layout.preferredHeight: 22
@@ -342,12 +340,28 @@ ShellRoot {
                                     asynchronous: true
                                 }
 
-                                Rectangle { id: musicMask; anchors.fill: parent; radius: width / 2; visible: false }
+                                // This creates the circle mask
+                                Rectangle {
+                                    id: musicMask;
+                                    anchors.fill: parent;
+                                    radius: width / 2;
+                                    visible: false
+                                }
+
                                 OpacityMask {
                                     anchors.fill: parent
                                     source: musicArt
                                     maskSource: musicMask
                                     visible: root.mediaArtUrl !== ""
+
+                                    // 🌀 Spins the circular thumbnail when playing
+                                    RotationAnimation on rotation {
+                                        loops: Animation.Infinite
+                                        from: 0
+                                        to: 360
+                                        duration: 5000 // 5 seconds per full rotation
+                                        running: root.mediaIsPlaying
+                                    }
                                 }
                             }
 
@@ -359,14 +373,45 @@ ShellRoot {
                                 font.family: root.fontFamily
                             }
 
-                            // 📜 Song Name
-                            Text {
-                                text: root.mediaTitle !== "" ? root.mediaTitle : "Unknown Title"
-                                color: root.cal6
-                                font.pixelSize: root.fontSize
-                                font.family: root.fontFamily
-                                elide: Text.ElideRight
+                            // 📜 Song Name (Scrolling Marquee)
+                            Item {
                                 Layout.maximumWidth: 180
+                                Layout.preferredWidth: Math.min(180, songTxt.implicitWidth)
+                                Layout.preferredHeight: songTxt.implicitHeight
+                                clip: true // Hides the text when it scrolls outside the 180px boundary
+
+                                Text {
+                                    id: songTxt
+                                    text: root.mediaTitle !== "" ? root.mediaTitle : "Unknown Title"
+                                    color: root.cal6
+                                    font.pixelSize: root.fontSize
+                                    font.family: root.fontFamily
+                                    // elide is intentionally removed to allow scrolling
+
+                                    SequentialAnimation on x {
+                                        loops: Animation.Infinite
+                                        // Only animate if the text is longer than 180px AND music is playing
+                                        running: songTxt.implicitWidth > 180 && root.mediaIsPlaying
+
+                                        PauseAnimation { duration: 1500 } // Wait 1.5s before scrolling
+
+                                        NumberAnimation {
+                                            from: 0
+                                            to: -(songTxt.implicitWidth - 180)
+                                            // Speed calculates dynamically based on text length (~30ms per pixel)
+                                            duration: (songTxt.implicitWidth - 180) * 30
+                                        }
+
+                                        PauseAnimation { duration: 1500 } // Pause at the end of the text
+
+                                        NumberAnimation {
+                                            from: -(songTxt.implicitWidth - 180)
+                                            to: 0
+                                            duration: 600 // Quick, smooth slide back to the beginning
+                                            easing.type: Easing.InOutQuad
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
