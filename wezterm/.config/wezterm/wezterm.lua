@@ -4,37 +4,41 @@ local config = wezterm.config_builder()
 ------------------------------------------------------------
 -- Color Schemes
 ------------------------------------------------------------
-local nord = {
-	foreground = "#d8dee9",
-	background = "#2e3440",
-	cursor_bg = "#d8dee9",
-	cursor_fg = "#2e3440",
-	cursor_border = "#d8dee9",
-	selection_fg = "#d8dee9",
-	selection_bg = "#434c5e",
+local calamity = {
+	background = "#0f0f0f",
+	foreground = "#f9e5c7",
+
+	cursor_bg = "#df9d1b", -- Auric Gold (fits theme highlight)
+	cursor_fg = "#0f0f0f", -- match background for contrast
+	cursor_border = "#df9d1b",
+
+	selection_fg = "#0f0f0f",
+	selection_bg = "#8fbcbb", -- soft cyan highlight
+
 	ansi = {
-		"#3b4252",
-		"#bf616a",
-		"#a3be8c",
-		"#ebcb8b",
-		"#81a1c1",
-		"#b48ead",
-		"#88c0d0",
-		"#e5e9f0",
-	},
-	brights = {
-		"#4c566a",
-		"#bf616a",
-		"#a3be8c",
-		"#ebcb8b",
-		"#81a1c1",
-		"#b48ead",
+		"#1a1a1a",
+		"#ff003c",
+		"#73f973",
+		"#df9d1b",
+		"#3ec1d3",
+		"#b45ef7",
 		"#8fbcbb",
+		"#e0e0e0",
+	},
+
+	brights = {
+		"#2d2d2d",
+		"#ff4646",
+		"#a3be8c",
+		"#ffa500",
+		"#81a1c1",
+		"#b48ead",
+		"#f9e5c7",
 		"#eceff4",
 	},
 }
 
-config.colors = nord
+config.colors = calamity
 
 ------------------------------------------------------------
 -- Terminal identity + shell
@@ -59,6 +63,8 @@ config.visual_bell = {
 	fade_in_duration_ms = 0,
 	fade_out_duration_ms = 0,
 }
+config.front_end = "WebGpu"
+config.enable_wayland = false
 
 config.mouse_bindings = {
 	-- Right-click paste (Alacritty style)
