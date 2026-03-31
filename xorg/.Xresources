@@ -1,45 +1,46 @@
-! Nord .Xresourceses
-#define nord0 #2E3440
-#define nord1 #3B4252
-#define nord2 #434C5E
-#define nord3 #4C566A
-#define nord4 #D8DEE9
-#define nord5 #E5E9F0
-#define nord6 #ECEFF4
-#define nord7 #8FBCBB
-#define nord8 #88C0D0
-#define nord9 #81A1C1
-#define nord10 #5E81AC
-#define nord11 #BF616A
-#define nord12 #D08770
-#define nord13 #EBCB8B
-#define nord14 #A3BE8C
-#define nord15 #B48EAD
+! Gruvbox .Xresources
 
-*.foreground:   nord4
-*.background:   nord0
-*.cursorColor:  nord4
+#define gb0  #282828
+#define gb1  #3c3836
+#define gb2  #504945
+#define gb3  #665c54
+#define gb4  #bdae93
+#define gb5  #d5c4a1
+#define gb6  #ebdbb2
+#define gb7  #fbf1c7
+#define gb8  #83a598
+#define gb9  #458588
+#define gb10 #689d6a
+#define gb11 #cc241d
+#define gb12 #d65d0e
+#define gb13 #d79921
+#define gb14 #98971a
+#define gb15 #b16286
+
+*.foreground:   gb4
+*.background:   gb0
+*.cursorColor:  gb4
 *fading: 35
-*fadeColor: nord3
+*fadeColor: gb3
 
-*.color0: nord1
-*.color1: nord11
-*.color2: nord14
-*.color3: nord13
-*.color4: nord9
-*.color5: nord15
-*.color6: nord8
-*.color7: nord5
-*.color8: nord3
-*.color9: nord11
-*.color10: nord14
-*.color11: nord13
-*.color12: nord9
-*.color13: nord15
-*.color14: nord7
-*.color15: nord6
+*.color0: gb1
+*.color1: gb11
+*.color2: gb14
+*.color3: gb13
+*.color4: gb9
+*.color5: gb15
+*.color6: gb8
+*.color7: gb5
+*.color8: gb3
+*.color9: gb11
+*.color10: gb14
+*.color11: gb13
+*.color12: gb9
+*.color13: gb15
+*.color14: gb8
+*.color15: gb6
 
-Xcursor.theme: Capitaine Cursors (Nord)
+Xcursor.theme: Capitaine Cursors
 Xcursor.size: 24
 *.font: Ubuntu:style=bold:size=11
 Xft.dpi: 96

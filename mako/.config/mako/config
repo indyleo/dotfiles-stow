@@ -1,8 +1,6 @@
 # --- Global Settings ---
 max-history=20
 sort=-time
-# Mako uses 'anchor' instead of 'geometry' coordinates
-# top-right with margin covers your "-13+32" offset logic
 anchor=top-right
 
 # --- Text & Appearance ---
@@ -14,31 +12,30 @@ border-radius=10
 markup=1
 
 # --- Progress & Icons ---
-# Your format included %p twice, Mako handles progress via progress-color
-progress-color=over #5E81ACbf
+progress-color=over #83A598bf
 icons=1
 max-icon-size=128
 icon-path=/usr/share/icons/Papirus-Dark/16x16/status/:/usr/share/icons/Papirus-Dark/16x16/devices/
 
 # Base
-background-color=#0F0F0FCC
-text-color=#F9E5C7FF
-border-color=#00A6C8FF
+background-color=#282828CC
+text-color=#EBDBB2FF
+border-color=#83A598FF
 border-size=2
 
 [urgency=low]
-background-color=#1A1A1ACC
-text-color=#F9E5C7FF
+background-color=#3C3836CC
+text-color=#EBDBB2FF
 
 [urgency=normal]
-background-color=#2D2D2DCC
-text-color=#E0E0E0FF
-border-color=#00A6C8FF
+background-color=#504945CC
+text-color=#BDAE93FF
+border-color=#83A598FF
 
 [urgency=critical]
-background-color=#1A0000CC
-text-color=#FF4646FF
-border-color=#FF003CFF
+background-color=#3C1F1ECC
+text-color=#FB4934FF
+border-color=#CC241DFF
 
 # --- Bindings ---
 on-button-left=dismiss

@@ -4,36 +4,54 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="starticon.png" type="image/png" />
-    <title>Start Page (Calamity)</title>
+    <title>Start Page (Gruvbox)</title>
     <style>
       :root {
-        /* --- Calamity Palette --- */
-        --bg: #0f0f0f;
-        --bg-alt: #1a1a1a;
-        --fg: #f9e5c7;
-        --fg-dim: #e0e0e0;
-        --border: #3ec1d3;
-        --accent: #df9d1b;
-        --alert: #ff003c;
-        --highlight: #b45ef7;
+        /* --- Gruvbox Dark Hard --- exact values from morhetz/gruvbox --- */
+        --bg0-h: #1d2021; /* hard dark bg */
+        --bg: #282828; /* normal bg */
+        --bg1: #3c3836;
+        --bg2: #504945;
+        --bg3: #665c54;
+        --bg4: #7c6f64;
 
-        /* Effects */
-        --glass-bg: rgba(15, 15, 15, 0.75);
-        --glass-border: rgba(62, 193, 211, 0.2);
-        --glass-blur: blur(12px);
-        --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        --fg: #ebdbb2; /* normal fg */
+        --fg1: #d5c4a1;
+        --fg2: #bdae93;
+        --fg3: #a89984;
+
+        /* Bright (vivid) accents — these are the punchy ones */
+        --red: #fb4934;
+        --green: #b8bb26;
+        --yellow: #fabd2f;
+        --blue: #83a598;
+        --purple: #d3869b;
+        --aqua: #8ec07c;
+        --orange: #fe8019;
+        --gray: #928374;
+
+        /* Semantic roles */
+        --accent: #fabd2f; /* yellow — headings, labels */
+        --alert: #fb4934; /* red — hover borders, warnings */
+        --border: #83a598; /* blue — category headers */
+        --highlight: #d3869b; /* purple */
+        --ok: #b8bb26; /* green — matrix rain primary */
+
+        /* Glass — alpha matches foot.ini alpha=0.85 */
+        --glass-bg: rgba(29, 32, 33, 0.85);
+        --glass-border: rgba(254, 128, 25, 0.25); /* orange tint border */
+        --glass-blur: blur(10px);
+        --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.9);
+      }
+
+      * {
+        box-sizing: border-box;
       }
 
       body {
         margin: 0;
-        background-color: var(--bg);
-        background-position: center;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-        background-size: 100% 100%;
-
-        font-family:
-          "Segoe UI", "Roboto", "Inter", Helvetica, Arial, sans-serif;
+        background-color: var(--bg0-h);
+        font-family: "CaskaydiaCove NF", "CaskaydiaCove Nerd Font", "JetBrains Mono", "Fira Mono", "Cascadia Code", monospace;
         color: var(--fg);
         display: flex;
         flex-direction: column;
@@ -42,21 +60,42 @@
         min-height: 100vh;
         text-align: center;
         overflow: hidden;
+        position: relative;
       }
 
+      /* ---- MATRIX CANVAS ---- */
+      #matrix-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0.22;
+      }
+
+      /* All content sits above canvas */
+      body > *:not(#matrix-canvas) {
+        position: relative;
+        z-index: 1;
+      }
+
+      /* ---- GLASS ---- */
       .glass-panel {
         background: var(--glass-bg);
         backdrop-filter: var(--glass-blur);
         -webkit-backdrop-filter: var(--glass-blur);
         border: 1px solid var(--glass-border);
         box-shadow: var(--shadow);
-        border-radius: 12px;
+        border-radius: 8px;
       }
 
+      /* ---- GREETING ---- */
       h1 {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
         margin-bottom: 10px;
-        padding: 20px 40px;
+        padding: 18px 36px;
         color: var(--accent);
         text-transform: uppercase;
         letter-spacing: 2px;
@@ -64,8 +103,9 @@
         flex-direction: column;
         gap: 8px;
         min-width: 450px;
-        border: 1px solid var(--glass-border);
+        border: 1px solid rgba(254, 128, 25, 0.3);
         transition: border-color 0.3s ease;
+        font-weight: 700;
       }
 
       h1:hover {
@@ -73,26 +113,28 @@
       }
 
       .quote-text {
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         text-transform: none;
-        color: var(--fg-dim);
+        color: var(--fg2);
         font-style: italic;
-        font-weight: normal;
-        opacity: 0.8;
-        margin-top: 5px;
+        font-weight: 400;
+        opacity: 0.85;
+        margin-top: 4px;
+        letter-spacing: 0;
       }
 
+      /* ---- CLOCK ---- */
       #datetime {
-        font-size: 1.1rem;
-        color: var(--fg-dim);
-        padding: 8px 20px;
-        margin-bottom: 2rem;
-        font-family: "JetBrains Mono", monospace;
-        border-color: rgba(223, 157, 27, 0.2);
+        font-size: 1rem;
+        color: var(--fg1);
+        padding: 8px 22px;
+        margin-bottom: 1.8rem;
+        border-color: rgba(250, 189, 47, 0.18);
       }
 
+      /* ---- SEARCH ---- */
       .search-container {
-        margin-bottom: 2rem;
+        margin-bottom: 1.8rem;
         z-index: 10;
       }
 
@@ -105,26 +147,31 @@
 
       form:focus-within {
         transform: scale(1.02);
-        box-shadow: 0 0 20px rgba(255, 0, 60, 0.15);
+        box-shadow: 0 0 20px rgba(251, 73, 52, 0.25);
         border-color: var(--alert);
       }
 
       .search-bar input {
         padding: 10px 15px;
-        font-size: 1.1rem;
+        font-size: 1rem;
         width: 350px;
         border: none;
         background: transparent;
         color: var(--fg);
         text-align: center;
+        font-family: inherit;
       }
 
+      .search-bar input::placeholder {
+        color: var(--fg2);
+      }
       .search-bar input:focus {
         outline: none;
       }
 
+      /* ---- QUICKLINKS ---- */
       .quicklines-box {
-        padding: 2.5rem;
+        padding: 2.2rem;
         max-width: 900px;
         width: 85%;
       }
@@ -142,9 +189,9 @@
       }
 
       .category h3 {
-        color: var(--border);
+        color: var(--aqua);
         margin-bottom: 1rem;
-        font-size: 1.1rem;
+        font-size: 1rem;
         border-bottom: 1px solid var(--alert);
         padding-bottom: 5px;
         text-transform: uppercase;
@@ -154,40 +201,42 @@
       .category a {
         display: flex;
         align-items: center;
-        color: var(--fg-dim);
+        color: var(--fg1);
         text-decoration: none;
-        margin-bottom: 0.6em;
+        margin-bottom: 0.55em;
         padding: 5px 8px;
-        border-radius: 6px;
+        border-radius: 4px;
         transition: 0.2s;
+        font-size: 0.9rem;
       }
 
       .category a img {
         margin-right: 10px;
-        filter: grayscale(0.5);
+        filter: grayscale(0.4) brightness(0.9);
         transition: 0.3s;
       }
 
       .category a:hover {
-        background: rgba(223, 157, 27, 0.1);
+        background: rgba(250, 189, 47, 0.12);
         color: var(--accent);
         transform: translateX(5px);
       }
 
       .category a:hover img {
-        filter: grayscale(0);
+        filter: grayscale(0) brightness(1.1);
         transform: scale(1.1);
       }
 
+      /* ---- SYS INFO ---- */
       .sys-info {
         position: fixed;
         bottom: 20px;
         display: flex;
         gap: 20px;
-        padding: 10px 20px;
-        font-family: monospace;
-        font-size: 0.8rem;
-        color: var(--fg-dim);
+        padding: 8px 18px;
+        font-family: inherit;
+        font-size: 0.78rem;
+        color: var(--fg2);
       }
 
       .sys-label {
@@ -201,7 +250,7 @@
       @media (max-width: 600px) {
         h1 {
           min-width: 90%;
-          font-size: 1.1rem;
+          font-size: 1rem;
         }
         .sys-info {
           flex-direction: column;
@@ -214,6 +263,9 @@
     </style>
   </head>
   <body id="main-body">
+    <!-- Matrix rain -->
+    <canvas id="matrix-canvas"></canvas>
+
     <audio id="sun-audio" src="here-comes-the-sun.mp3" loop></audio>
 
     <h1 id="greeting" class="glass-panel">
@@ -326,35 +378,59 @@
     </div>
 
     <script>
-      /* --- CONFIG --- */
-      const wallpaperFolder = "Wallpapers/";
-      const wallpaperList = [
-        "wall.jpg",
-        "wall1.jpg",
-        "wall2.jpg",
-        "wall3.jpg",
-        "wall4.jpg",
-        "wall5.jpg",
-        "wall6.jpg",
-      ];
+      /* ---- MATRIX RAIN ---- */
+      (function () {
+        const canvas = document.getElementById("matrix-canvas");
+        const ctx = canvas.getContext("2d");
 
-      function pickRandomWallpaper() {
-        const body = document.getElementById("main-body");
-        const selected =
-          wallpaperList[Math.floor(Math.random() * wallpaperList.length)];
-        const fullPath = wallpaperFolder + selected;
-        body.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('${fullPath}')`;
-      }
+        // Gruvbox vivid brights — green, aqua, yellow, orange
+        const colors = ["#b8bb26", "#8ec07c", "#fe8019", "#fabd2f", "#83a598"];
+        const fontSize = 14;
+        let cols, drops;
 
-      /* --- AUDIO TRIGGER LOGIC --- */
+        function resize() {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+          cols = Math.floor(canvas.width / fontSize);
+          drops = Array.from({ length: cols }, () => (Math.random() * -50) | 0);
+        }
+
+        function draw() {
+          // Fade trail using bg0-h with alpha
+          ctx.fillStyle = "rgba(29, 32, 33, 0.055)";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          ctx.font = fontSize + "px 'JetBrains Mono', monospace";
+
+          for (let i = 0; i < drops.length; i++) {
+            // Random katakana / ascii mix
+            const char =
+              Math.random() > 0.5
+                ? String.fromCharCode(0x30a0 + Math.floor(Math.random() * 96))
+                : String.fromCharCode(33 + Math.floor(Math.random() * 93));
+
+            ctx.fillStyle = colors[i % colors.length];
+            ctx.fillText(char, i * fontSize, drops[i] * fontSize);
+
+            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+              drops[i] = 0;
+            }
+            drops[i]++;
+          }
+        }
+
+        resize();
+        window.addEventListener("resize", resize);
+        setInterval(draw, 45);
+      })();
+
+      /* ---- AUDIO ---- */
       function playSunAudio() {
         const audio = document.getElementById("sun-audio");
         audio.volume = 0.4;
-
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(() => {
-            // If browser blocks autoplay, wait for interaction
+        const p = audio.play();
+        if (p !== undefined) {
+          p.catch(() => {
             const start = () => {
               audio.play();
               document.removeEventListener("click", start);
@@ -366,7 +442,7 @@
         }
       }
 
-      /* --- GREETING & CLOCK --- */
+      /* ---- GREETING & CLOCK ---- */
       let currentQuote = "The air is getting warmer around you...";
       let currentRandomPhrase = "Devourer of Gods";
 
@@ -376,16 +452,12 @@
             fetch("quotes.txt"),
             fetch("randomphrases.txt"),
           ]);
-
           if (quoteRes.ok) {
             const quotes = (await quoteRes.text())
               .split("\n")
-              .filter((l) => l.trim() !== "");
+              .filter((l) => l.trim());
             currentQuote =
               quotes[Math.floor(Math.random() * quotes.length)].trim();
-
-            /* --- THE FIX: STRICT MATCH ONLY --- */
-            // Only plays if the quote contains this exact long phrase
             if (
               currentQuote
                 .toLowerCase()
@@ -397,7 +469,7 @@
           if (phraseRes.ok) {
             const phrases = (await phraseRes.text())
               .split("\n")
-              .filter((l) => l.trim() !== "");
+              .filter((l) => l.trim());
             currentRandomPhrase =
               phrases[Math.floor(Math.random() * phrases.length)];
           }
@@ -437,20 +509,19 @@
         document.getElementById("datetime").textContent =
           `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()} • ${h % 12 || 12}:${String(now.getMinutes()).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 
-        let stdGreet =
+        const greet =
           h < 12 ? "Good Morning" : h < 17 ? "Good Afternoon" : "Good Evening";
         document.getElementById("greet-line").textContent =
-          `${stdGreet} — ${currentRandomPhrase}`;
+          `${greet} — ${currentRandomPhrase}`;
         document.getElementById("quote-line").textContent = `"${currentQuote}"`;
       }
 
-      /* --- INITIALIZE --- */
+      /* ---- SYS INFO ---- */
       function initSysInfo() {
         const ua = navigator.userAgent;
         let os = "Linux";
-        if (ua.indexOf("Win") != -1) os = "Windows";
-        else if (ua.indexOf("Mac") != -1) os = "MacOS";
-
+        if (ua.indexOf("Win") !== -1) os = "Windows";
+        else if (ua.indexOf("Mac") !== -1) os = "MacOS";
         document.getElementById("os-val").textContent = os;
         if (os === "Linux")
           document.getElementById("distro-val").textContent = "Arch";
@@ -465,7 +536,7 @@
             : "Safari";
       }
 
-      pickRandomWallpaper();
+      /* ---- INIT ---- */
       loadTextFiles();
       initSysInfo();
       setInterval(updateClock, 1000);

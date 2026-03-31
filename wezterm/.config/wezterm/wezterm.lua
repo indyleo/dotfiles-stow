@@ -4,41 +4,41 @@ local config = wezterm.config_builder()
 ------------------------------------------------------------
 -- Color Schemes
 ------------------------------------------------------------
-local calamity = {
-	background = "#0f0f0f",
-	foreground = "#f9e5c7",
+local gruvbox = {
+	background = "#282828",
+	foreground = "#ebdbb2",
 
-	cursor_bg = "#df9d1b", -- Auric Gold (fits theme highlight)
-	cursor_fg = "#0f0f0f", -- match background for contrast
-	cursor_border = "#df9d1b",
+	cursor_bg = "#fabd2f", -- Gruvbox yellow
+	cursor_fg = "#282828",
+	cursor_border = "#fabd2f",
 
-	selection_fg = "#0f0f0f",
-	selection_bg = "#8fbcbb", -- soft cyan highlight
+	selection_fg = "#282828",
+	selection_bg = "#83a598", -- Gruvbox aqua
 
 	ansi = {
-		"#1a1a1a",
-		"#ff003c",
-		"#73f973",
-		"#df9d1b",
-		"#3ec1d3",
-		"#b45ef7",
-		"#8fbcbb",
-		"#e0e0e0",
+		"#282828",
+		"#cc241d",
+		"#98971a",
+		"#d79921",
+		"#458588",
+		"#b16286",
+		"#689d6a",
+		"#a89984",
 	},
 
 	brights = {
-		"#2d2d2d",
-		"#ff4646",
-		"#a3be8c",
-		"#ffa500",
-		"#81a1c1",
-		"#b48ead",
-		"#f9e5c7",
-		"#eceff4",
+		"#928374",
+		"#fb4934",
+		"#b8bb26",
+		"#fabd2f",
+		"#83a598",
+		"#d3869b",
+		"#8ec07c",
+		"#ebdbb2",
 	},
 }
 
-config.colors = calamity
+config.colors = gruvbox-
 
 ------------------------------------------------------------
 -- Terminal identity + shell

@@ -1,32 +1,31 @@
 /**
- * Calamity Mod rofi theme
- * Adapted from Nordic rofi theme
+ * Calamity Mod rofi theme (Gruvbox version)
  */
 
 * {
-    /* Calamity Color Palette */
-    cal0:  #0f0f0f; /* Background */
-    cal1:  #1a1a1a; /* Dark Charcoal */
-    cal2:  #2d2d2d; /* Lighter Charcoal */
-    cal3:  #e0e0e0; /* Exo Silver */
-    cal4:  #f9e5c7; /* Auric Silk / FG */
-    cal5:  #eceff4; /* Bright White */
-    cal6:  #ff003c; /* Profaned Flame */
-    cal7:  #73f973; /* Sulphurous Green */
-    cal8:  #df9d1b; /* Auric Gold */
-    cal9:  #3ec1d3; /* Abyss Teal */
-    cal10: #b45ef7; /* Cosmic Purple */
-    cal11: #ff4646; /* Brimstone Red */
-    cal12: #ffa500; /* Yharon Orange */
+    /* Gruvbox Dark Palette */
+    cal0:  #282828; /* bg0 */
+    cal1:  #3c3836; /* bg1 */
+    cal2:  #504945; /* bg2 */
+    cal3:  #bdae93; /* fg2 */
+    cal4:  #ebdbb2; /* fg1 */
+    cal5:  #fbf1c7; /* fg0 */
+    cal6:  #fb4934; /* red */
+    cal7:  #b8bb26; /* green */
+    cal8:  #fabd2f; /* yellow */
+    cal9:  #83a598; /* blue */
+    cal10: #d3869b; /* purple */
+    cal11: #fe8019; /* orange */
+    cal12: #8ec07c; /* aqua */
 
-    /* Theme Variables mapped like original */
-    foreground: @cal10;         /* Cosmic Purple (Primary accent) */
-    backlight:  #f9e5c7dd;      /* Auric Silk with alpha */
+    /* Theme Variables */
+    foreground: @cal10;         /* purple accent */
+    backlight:  #ebdbb2dd;      /* fg1 with alpha */
     background-color: transparent;
-    highlight: underline bold #f9e5c7;
-    transparent: rgba(15, 15, 15, 0);
+    highlight: underline bold #ebdbb2;
+    transparent: rgba(40, 40, 40, 0);
 
-    /* Default Text Properties */
+    /* Default Text */
     text-color: @foreground;
 }
 
@@ -55,8 +54,8 @@ message {
     border: 0px 2px 2px 2px;
     border-color: @foreground;
     border-radius: 0px;
-    background-color: @cal8;    /* Auric Gold */
-    text-color: @cal0;          /* Dark Background */
+    background-color: @cal8;    /* yellow */
+    text-color: @cal0;
 }
 
 inputbar {
@@ -64,8 +63,8 @@ inputbar {
     border: 1px;
     border-radius: 6px 6px 0px 0px;
     border-color: @cal10;
-    background-color: @cal1;    /* Dark Charcoal */
-    text-color: @cal4;          /* Auric Silk */
+    background-color: @cal1;
+    text-color: @cal4;
     spacing: 0;
     children: [prompt, entry];
 }
@@ -91,7 +90,7 @@ listview {
     border: 0px 1px 1px 1px;
     border-radius: 0px 0px 6px 6px;
     border-color: @cal10;
-    background-color: rgba(15, 15, 15, 0.9); /* Dark Charcoal with transparency */
+    background-color: rgba(40, 40, 40, 0.9);
     dynamic: false;
     spacing: 2px;
 }
@@ -110,8 +109,8 @@ element normal.normal {
 }
 
 element selected.normal {
-    background-color: @cal10;   /* Cosmic Purple */
-    text-color: @cal0;          /* Dark Background */
+    background-color: @cal10;
+    text-color: @cal0;
 }
 
 element alternate.normal {
@@ -152,7 +151,7 @@ textbox {
     border: 1px;
     border-radius: 6px;
     border-color: @cal10;
-    background-color: rgba(15, 15, 15, 0.9);
+    background-color: rgba(40, 40, 40, 0.9);
     text-color: @backlight;
     vertical-align: 0.5;
 }

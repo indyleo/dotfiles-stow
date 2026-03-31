@@ -15,7 +15,7 @@ DAEMON_PROCS=(
     "organizer.py --daemon"
 )
 ONESHOT_CMDS=(
-    "desktopctl wallpaper theme-time"
+    "desktopctl time ~/Pictures/Wallpapers/gruvbox 900"
     "xss-lock slock"
 )
 

@@ -9,20 +9,21 @@ import Qt5Compat.GraphicalEffects
 ShellRoot {
 	id: root
 
-	// --- Calamity Theme Colors ---
-	readonly property color cal0:  "#0f0f0f" // Background
-	readonly property color cal1:  "#1a1a1a" // Pills
-	readonly property color cal2:  "#2d2d2d" // Pill BG
-	readonly property color cal3:  "#4c1111" // Separators
-	readonly property color cal6:  "#f9e5c7" // Main Text
-	readonly property color cal7:  "#3ec1d3" // Teal (Storage/Memory)
-	readonly property color cal8:  "#ff4646" // Red
-	readonly property color cal9:  "#b45ef7" // Purple (System Core)
-	readonly property color cal10: "#df9d1b" // Gold (Power)
-	readonly property color cal11: "#ff003c" // Alert Red
-	readonly property color cal13: "#73f973" // Green (Network)
-	readonly property color cal14: "#ffa500" // Orange (Audio)
-	readonly property color cal15: "#e0e0e0" // Silver
+	// --- Gruvbox Theme Colors ---
+	readonly property color cal0:  "#282828" // Background (bg0)
+	readonly property color cal1:  "#3c3836" // Pills (bg1)
+	readonly property color cal2:  "#504945" // Pill BG (bg2)
+	readonly property color cal3:  "#7c6f64" // Separators (bg3)
+
+	readonly property color cal6:  "#ebdbb2" // Main Text (fg1)
+	readonly property color cal7:  "#83a598" // Teal → Blue (storage/memory)
+	readonly property color cal8:  "#fb4934" // Red
+	readonly property color cal9:  "#d3869b" // Purple (system core)
+	readonly property color cal10: "#fabd2f" // Gold → Yellow (power)
+	readonly property color cal11: "#cc241d" // Alert Red (darker red)
+	readonly property color cal13: "#b8bb26" // Green (network)
+	readonly property color cal14: "#fe8019" // Orange (audio)
+	readonly property color cal15: "#bdae93" // Silver (fg2)
 
 	property string fontFamily: "JetBrainsMono Nerd Font"
 	property int fontSize: 13
@@ -142,7 +143,8 @@ ShellRoot {
 		command: ["sysstats", "battery"]
 		stdout: SplitParser {
 			onRead: data => {
-				if (!data || data.trim() === "") {
+				// Catches "" (empty) and "No acpi" from your bash script
+				if (!data || data.trim() === "" || data.includes("N/A") || data.includes("No") || data.includes("Not") || data.includes("0%")) {
 					root.showBat = false;
 					return
 				}

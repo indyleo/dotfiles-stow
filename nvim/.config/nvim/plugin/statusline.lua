@@ -6,32 +6,32 @@ local api, fn, uv = vim.api, vim.fn, vim.loop or vim.uv
 -- ========================
 -- Theme selection
 -- ========================
-local preferd_theme = "calamity"
+local preferd_theme = "gruvbox"
 
 -- ========================
 -- Theme color definitions (Calamity)
 -- ========================
 local themes = {
-  calamity = {
-    -- Background: #0f0f0f (Deep Void)
-    -- Foreground/Text: #f9e5c7 (Auric Silk)
+  gruvbox = {
+    -- Background: #282828 (bg0)
+    -- Foreground/Text: #ebdbb2 (fg1)
 
-    normal = { fg = "#0f0f0f", bg = "#73f973" }, -- Sulphurous Green
-    insert = { fg = "#0f0f0f", bg = "#3ec1d3" }, -- Abyss Teal
-    visual = { fg = "#0f0f0f", bg = "#b45ef7" }, -- Cosmic Purple
-    replace = { fg = "#0f0f0f", bg = "#ff4646" }, -- Brimstone Red
-    command = { fg = "#0f0f0f", bg = "#df9d1b" }, -- Auric Gold
-    terminal = { fg = "#0f0f0f", bg = "#ffa500" }, -- Yharon Orange
-    inactive = { fg = "#4c1111", bg = "#1a1a1a" }, -- Dried Blood on Dark Charcoal
+    normal = { fg = "#282828", bg = "#b8bb26" }, -- green
+    insert = { fg = "#282828", bg = "#83a598" }, -- blue
+    visual = { fg = "#282828", bg = "#d3869b" }, -- purple
+    replace = { fg = "#282828", bg = "#fb4934" }, -- red
+    command = { fg = "#282828", bg = "#fabd2f" }, -- yellow
+    terminal = { fg = "#282828", bg = "#fe8019" }, -- orange
+    inactive = { fg = "#7c6f64", bg = "#3c3836" }, -- muted fg on bg1
 
-    git = { fg = "#73f973", bg = "#0f0f0f" }, -- Sulphurous Green
-    diag_error = { fg = "#ff003c", bg = "#0f0f0f" }, -- Profaned Flame
-    diag_warn = { fg = "#df9d1b", bg = "#0f0f0f" }, -- Auric Gold
-    diag_info = { fg = "#3ec1d3", bg = "#0f0f0f" }, -- Abyss Teal
+    git = { fg = "#b8bb26", bg = "#282828" }, -- green
+    diag_error = { fg = "#fb4934", bg = "#282828" }, -- red
+    diag_warn = { fg = "#fabd2f", bg = "#282828" }, -- yellow
+    diag_info = { fg = "#83a598", bg = "#282828" }, -- blue
 
-    main = { fg = "#f9e5c7", bg = "#2d2d2d" }, -- Auric Silk on Light Charcoal
-    filetype = { fg = "#b45ef7", bg = "#0f0f0f" }, -- Cosmic Purple
-    encoding = { fg = "#e0e0e0", bg = "#0f0f0f" }, -- Exo Silver
+    main = { fg = "#ebdbb2", bg = "#504945" }, -- fg1 on bg2
+    filetype = { fg = "#d3869b", bg = "#282828" }, -- purple
+    encoding = { fg = "#bdae93", bg = "#282828" }, -- fg2
   },
 }
 

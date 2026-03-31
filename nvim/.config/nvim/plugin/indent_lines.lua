@@ -26,21 +26,21 @@ local custom_excluded_buftypes = {
 
 -- FIX 1: Define a fallback theme constant so validate_config() has something
 -- to reference when theme_current holds an invalid value.
-local FALLBACK_THEME = "calamity"
+local FALLBACK_THEME = "gruvbox"
 
 -- Theme colors with context color
 local colors = {
-  calamity = {
+  gruvbox = {
     normal = {
-      "#ff003c", -- Profaned Flame (Red)
-      "#73f973", -- Sulphurous Green (Green)
-      "#df9d1b", -- Auric Gold (Yellow)
-      "#3ec1d3", -- Abyss Teal (Blue)
-      "#b45ef7", -- Cosmic Purple (Magenta)
-      "#ffa500", -- Yharon Orange (Orange)
-      "#e0e0e0", -- Exo Silver (White)
+      "#fb4934", -- red
+      "#b8bb26", -- green
+      "#fabd2f", -- yellow
+      "#83a598", -- blue
+      "#d3869b", -- purple (magenta)
+      "#fe8019", -- orange
+      "#ebdbb2", -- fg1 (white-ish)
     },
-    context = "#df9d1b", -- Auric Gold (Bright highlight for current scope)
+    context = "#fabd2f", -- yellow (highlight)
   },
 }
 

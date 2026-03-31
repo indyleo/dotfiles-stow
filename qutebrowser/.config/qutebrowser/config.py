@@ -4,20 +4,20 @@ config = config  # noqa: F821 pylint: disable=E0602,C0103
 
 # --- Color Palette ---
 palette = {
-    "bg0": "#0f0f0f",  # Background
-    "bg1": "#1a1a1a",  # Pills
-    "bg2": "#2d2d2d",  # Pill BG
-    "bg3": "#4c1111",  # Separators
-    "fg0": "#f9e5c7",  # Main Text
-    "fg1": "#e0e0e0",  # Silver
-    "teal": "#3ec1d3",  # Teal (Storage/Memory)
-    "red": "#ff4646",  # Red
-    "purple": "#b45ef7",  # Purple (System Core)
-    "gold": "#df9d1b",  # Gold (Power)
-    "alert": "#ff003c",  # Alert Red
-    "green": "#73f973",  # Green (Network)
-    "orange": "#ffa500",  # Orange (Audio)
-    "blue": "#3ec1d3",  # reuse teal as accent
+    "bg0": "#282828",  # Background
+    "bg1": "#3c3836",  # Pills
+    "bg2": "#504945",  # Pill BG
+    "bg3": "#665c54",  # Separators
+    "fg0": "#ebdbb2",  # Main Text
+    "fg1": "#a89984",  # Secondary text
+    "teal": "#83a598",  # Aqua (Storage/Memory)
+    "red": "#cc241d",  # Red
+    "purple": "#b16286",  # Purple (System Core)
+    "gold": "#d79921",  # Yellow (Power)
+    "alert": "#fb4934",  # Bright Red
+    "green": "#98971a",  # Green (Network)
+    "orange": "#d65d0e",  # Orange (Audio)
+    "blue": "#458588",  # Blue accent
 }
 
 # --- Apply Theme ---
