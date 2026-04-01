@@ -60,7 +60,7 @@
         min-height: 100vh;
         text-align: center;
         overflow: hidden;
-        position: relative;
+        /* removed position: relative — was breaking position: fixed on .sys-info */
       }
 
       /* ---- MATRIX CANVAS ---- */
@@ -75,8 +75,8 @@
         opacity: 0.22;
       }
 
-      /* All content sits above canvas */
-      body > *:not(#matrix-canvas) {
+      /* All content sits above canvas — excludes .sys-info so fixed positioning is preserved */
+      body > *:not(#matrix-canvas):not(.sys-info) {
         position: relative;
         z-index: 1;
       }
@@ -231,6 +231,7 @@
       .sys-info {
         position: fixed;
         bottom: 20px;
+        z-index: 2;
         display: flex;
         gap: 20px;
         padding: 8px 18px;
