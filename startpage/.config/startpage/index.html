@@ -51,7 +51,9 @@
       body {
         margin: 0;
         background-color: var(--bg0-h);
-        font-family: "CaskaydiaCove NF", "CaskaydiaCove Nerd Font", "JetBrains Mono", "Fira Mono", "Cascadia Code", monospace;
+        font-family:
+          "CaskaydiaCove NF", "CaskaydiaCove Nerd Font", "JetBrains Mono",
+          "Fira Mono", "Cascadia Code", monospace;
         color: var(--fg);
         display: flex;
         flex-direction: column;
@@ -76,7 +78,7 @@
       }
 
       /* All content sits above canvas — excludes .sys-info so fixed positioning is preserved */
-      body > *:not(#matrix-canvas):not(.sys-info) {
+      body > *:not(#matrix-canvas):not(.sys-info):not(#keybind-overlay) {
         position: relative;
         z-index: 1;
       }
@@ -248,6 +250,88 @@
         display: none !important;
       }
 
+      /* ---- TYPING CURSOR ---- */
+      .typing-cursor {
+        display: inline-block;
+        width: 2px;
+        height: 1em;
+        background: var(--accent);
+        margin-left: 3px;
+        vertical-align: middle;
+        animation: blink 0.75s step-end infinite;
+      }
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0;
+        }
+      }
+      #quote-line {
+        transition: opacity 0.5s ease;
+      }
+
+      /* ---- KEYBIND OVERLAY ---- */
+      #keybind-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(29, 32, 33, 0.6);
+        backdrop-filter: blur(4px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+      }
+      #keybind-overlay.visible {
+        opacity: 1;
+        pointer-events: all;
+      }
+      #keybind-box {
+        padding: 28px 40px;
+        min-width: 340px;
+        color: var(--fg);
+      }
+      #keybind-box h2 {
+        margin: 0 0 18px 0;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--accent);
+        border-bottom: 1px solid var(--glass-border);
+        padding-bottom: 10px;
+      }
+      .kb-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        font-size: 0.82rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        gap: 32px;
+      }
+      .kb-row:last-child {
+        border-bottom: none;
+      }
+      .kb-key {
+        font-family: inherit;
+        font-size: 0.78rem;
+        background: var(--bg2);
+        color: var(--accent);
+        border: 1px solid var(--bg3);
+        border-radius: 4px;
+        padding: 2px 8px;
+        white-space: nowrap;
+      }
+      .kb-desc {
+        color: var(--fg2);
+        text-align: right;
+      }
+
       @media (max-width: 600px) {
         h1 {
           min-width: 90%;
@@ -266,6 +350,24 @@
   <body id="main-body">
     <!-- Matrix rain -->
     <canvas id="matrix-canvas"></canvas>
+
+    <!-- Keybind overlay -->
+    <div id="keybind-overlay">
+      <div id="keybind-box" class="glass-panel">
+        <h2>&#8963; Keybinds</h2>
+        <div class="kb-row">
+          <span class="kb-key">/</span><span class="kb-desc">Focus search</span>
+        </div>
+        <div class="kb-row">
+          <span class="kb-key">?</span
+          ><span class="kb-desc">Toggle this cheatsheet</span>
+        </div>
+        <div class="kb-row">
+          <span class="kb-key">Esc</span
+          ><span class="kb-desc">Close overlay / clear search</span>
+        </div>
+      </div>
+    </div>
 
     <audio id="sun-audio" src="here-comes-the-sun.mp3" loop></audio>
 
@@ -376,6 +478,14 @@
         <span class="sys-label">BROWSER:</span>
         <span id="browser-val">...</span>
       </div>
+      <div class="sys-item" id="weather-container">
+        <span class="sys-label">WEATHER:</span>
+        <span id="weather-val">...</span>
+      </div>
+      <div class="sys-item" id="ping-container">
+        <span class="sys-label">PING:</span>
+        <span id="ping-val">...</span>
+      </div>
     </div>
 
     <script>
@@ -417,8 +527,13 @@
                   // past bottom it's very likely to have reset. Use modulo with
                   // a spread to keep columns out of phase.
                   if (d * fontSize > canvas.height) {
-                    const overTicks = Math.floor((d * fontSize - canvas.height) / fontSize);
-                    if (overTicks > 40 || Math.random() > 0.975 ** Math.min(overTicks, 40)) {
+                    const overTicks = Math.floor(
+                      (d * fontSize - canvas.height) / fontSize,
+                    );
+                    if (
+                      overTicks > 40 ||
+                      Math.random() > 0.975 ** Math.min(overTicks, 40)
+                    ) {
                       d = Math.floor(Math.random() * maxRow);
                     }
                   }
@@ -428,7 +543,9 @@
               });
               return;
             }
-          } catch (_) { /* storage unavailable, fall through */ }
+          } catch (_) {
+            /* storage unavailable, fall through */
+          }
 
           // Fresh start — stagger drops so they don't all begin at row 0
           drops = Array.from({ length: cols }, () => (Math.random() * -50) | 0);
@@ -436,7 +553,10 @@
 
         function saveState() {
           try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({ drops, ts: Date.now() }));
+            localStorage.setItem(
+              STORAGE_KEY,
+              JSON.stringify({ drops, ts: Date.now() }),
+            );
           } catch (_) {}
         }
 
@@ -469,13 +589,18 @@
         (function prewarm() {
           ctx.font = fontSize + "px 'JetBrains Mono', monospace";
           for (let i = 0; i < drops.length; i++) {
-            const char = String.fromCharCode(0x30a0 + Math.floor(Math.random() * 96));
+            const char = String.fromCharCode(
+              0x30a0 + Math.floor(Math.random() * 96),
+            );
             ctx.fillStyle = colors[i % colors.length];
             ctx.fillText(char, i * fontSize, drops[i] * fontSize);
           }
         })();
 
-        window.addEventListener("resize", () => { resize(); initDrops(); });
+        window.addEventListener("resize", () => {
+          resize();
+          initDrops();
+        });
         window.addEventListener("pagehide", saveState);
         window.addEventListener("beforeunload", saveState);
 
@@ -527,11 +652,11 @@
         const y = now.getFullYear();
 
         // Fixed holidays
-        if (m === 1  && d === 1)  return "🎆 Happy New Year!";
-        if (m === 2  && d === 14) return "💘 Happy Valentine's Day";
-        if (m === 3  && d === 17) return "🍀 Happy St. Patrick's Day";
-        if (m === 4  && d === 1)  return "🃏 April Fools! Watch your back.";
-        if (m === 7  && d === 1)  return "🍁 Happy Canada Day, eh!";
+        if (m === 1 && d === 1) return "🎆 Happy New Year!";
+        if (m === 2 && d === 14) return "💘 Happy Valentine's Day";
+        if (m === 3 && d === 17) return "🍀 Happy St. Patrick's Day";
+        if (m === 4 && d === 1) return "🃏 April Fools! Watch your back.";
+        if (m === 7 && d === 1) return "🍁 Happy Canada Day, eh!";
         if (m === 10 && d === 31) return "🎃 Happy Halloween! Boo.";
         if (m === 12 && d === 25) return "🎄 Merry Christmas!";
         if (m === 12 && d === 31) return "🥂 New Year's Eve — almost there!";
@@ -546,6 +671,29 @@
       /* ---- GREETING & CLOCK ---- */
       let currentQuote = "The air is getting warmer around you...";
       let currentRandomPhrase = "Devourer of Gods";
+      let greetingTyped = false;
+
+      // Typing animation — types `text` into `el`, then calls `onDone`
+      function typeText(el, text, speed, onDone) {
+        el.textContent = "";
+        // Inject a blinking cursor sibling
+        const cursor = document.createElement("span");
+        cursor.className = "typing-cursor";
+        el.parentNode.insertBefore(cursor, el.nextSibling);
+
+        let i = 0;
+        function tick() {
+          if (i <= text.length) {
+            el.textContent = text.slice(0, i);
+            i++;
+            setTimeout(tick, speed);
+          } else {
+            cursor.remove();
+            if (onDone) onDone();
+          }
+        }
+        tick();
+      }
 
       async function loadTextFiles() {
         try {
@@ -608,16 +756,83 @@
         const h = now.getHours();
 
         document.getElementById("datetime").textContent =
-          `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()} • ${h % 12 || 12}:${String(now.getMinutes()).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+          `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()} \u2022 ${h % 12 || 12}:${String(now.getMinutes()).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 
         const greet =
           h < 12 ? "Good Morning" : h < 17 ? "Good Afternoon" : "Good Evening";
         const holiday = getHolidayMessage();
         const greetLine = holiday
-          ? `${greet} — ${currentRandomPhrase} · ${holiday}`
-          : `${greet} — ${currentRandomPhrase}`;
-        document.getElementById("greet-line").textContent = greetLine;
-        document.getElementById("quote-line").textContent = `"${currentQuote}"`;
+          ? `${greet} \u2014 ${currentRandomPhrase} \u00b7 ${holiday}`
+          : `${greet} \u2014 ${currentRandomPhrase}`;
+
+        const greetEl = document.getElementById("greet-line");
+        const quoteEl = document.getElementById("quote-line");
+
+        if (!greetingTyped) {
+          greetingTyped = true;
+          // Hide quote until greeting finishes
+          quoteEl.style.opacity = "0";
+          typeText(greetEl, greetLine, 28, () => {
+            // Fade in quote after greeting types out
+            quoteEl.textContent = `"${currentQuote}"`;
+            quoteEl.style.opacity = "1";
+          });
+        } else {
+          // After first load just update silently (clock ticks, no re-type)
+          greetEl.textContent = greetLine;
+          quoteEl.textContent = `"${currentQuote}"`;
+          quoteEl.style.opacity = "1";
+        }
+      }
+
+      /* ---- WEATHER ---- */
+      async function initWeather() {
+        try {
+          // wttr.in returns plain text with ?format=3 → "City: emoji +temp"
+          const res = await fetch("https://wttr.in/?format=%C+%t", {
+            cache: "no-store",
+          });
+          if (!res.ok) throw new Error();
+          const text = (await res.text()).trim();
+          document.getElementById("weather-val").textContent = text;
+        } catch (_) {
+          document.getElementById("weather-container").classList.add("hidden");
+        }
+      }
+
+      /* ---- PING ---- */
+      async function measurePing() {
+        const pingEl = document.getElementById("ping-val");
+        const targets = [
+          "https://www.google.com/generate_204",
+          "https://www.cloudflare.com/cdn-cgi/trace",
+        ];
+        const results = [];
+        for (const url of targets) {
+          try {
+            const t0 = performance.now();
+            await fetch(url, {
+              method: "HEAD",
+              mode: "no-cors",
+              cache: "no-store",
+            });
+            results.push(Math.round(performance.now() - t0));
+          } catch (_) {}
+        }
+        if (results.length) {
+          const avg = Math.round(
+            results.reduce((a, b) => a + b, 0) / results.length,
+          );
+          const color =
+            avg < 50
+              ? "var(--green)"
+              : avg < 120
+                ? "var(--yellow)"
+                : "var(--red)";
+          pingEl.innerHTML = `<span style="color:${color}">${avg} ms</span>`;
+        } else {
+          document.getElementById("ping-container").classList.add("hidden");
+        }
       }
 
       /* ---- SYS INFO ---- */
@@ -640,15 +855,41 @@
             : "Safari";
       }
 
+      /* ---- KEYBIND OVERLAY ---- */
+      const overlay = document.getElementById("keybind-overlay");
+      function toggleOverlay() {
+        overlay.classList.toggle("visible");
+      }
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) overlay.classList.remove("visible");
+      });
+
       /* ---- INIT ---- */
       loadTextFiles();
       initSysInfo();
+      initWeather();
+      measurePing();
+      // Re-measure ping every 30 s
+      setInterval(measurePing, 30000);
       setInterval(updateClock, 1000);
 
       const searchInput = document.getElementById("searchInput");
       window.onload = () => searchInput.focus();
       document.addEventListener("keydown", (e) => {
-        if (e.key === "/" && document.activeElement !== searchInput) {
+        const active = document.activeElement;
+        const inSearch = active === searchInput;
+
+        if (e.key === "Escape") {
+          overlay.classList.remove("visible");
+          searchInput.blur();
+          return;
+        }
+        if (e.key === "?" && !inSearch) {
+          e.preventDefault();
+          toggleOverlay();
+          return;
+        }
+        if (e.key === "/" && !inSearch) {
           e.preventDefault();
           searchInput.focus();
         }
