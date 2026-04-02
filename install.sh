@@ -45,3 +45,8 @@ stowq hypr
 stowq mako
 stowq startpage
 stowq foot
+
+echo "Installing tpm..."
+git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+
+echo "Done! You can restart your shell or reload your config."
