@@ -6,6 +6,7 @@
 ------------------------------------------------------------
 local termstate = { floating = { buf = -1, win = -1 } }
 local gitstate = { floating = { buf = -1, win = -1 } }
+local claudestate = { floating = { buf = -1, win = -1 }, server_job_id = nil }
 local cmdstate = { floating = { buf = -1, win = -1 } }
 local foreverstate = { floating = { buf = -1, win = -1 } }
 
@@ -88,6 +89,46 @@ local function toggle_git()
 end
 
 ------------------------------------------------------------
+-- Terminal: Claude terminal
+------------------------------------------------------------
+local function toggle_claude()
+  -- 1. Check if the server is already running in this Neovim session
+  if not claudestate.server_job_id then
+    -- Start the server silently in the background
+    claudestate.server_job_id = vim.fn.jobstart({ "uv", "run", "free-claude-code", "server:app", "--host", "0.0.0.0", "--port", "8082" }, {
+      -- Clear the job ID if the server crashes/exits so it can be restarted
+      on_exit = function()
+        claudestate.server_job_id = nil
+      end,
+    })
+
+    -- Give the server 1.5 seconds to boot up before we try to hit it with the CLI
+    -- Note: This will pause the Neovim UI very briefly, but only the first time you run it.
+    vim.cmd "sleep 1500m"
+  end -- Fixed: Removed the stray 'end' that was below the autocmd
+
+  -- 2. Your existing window logic
+  if not vim.api.nvim_win_is_valid(claudestate.floating.win) then
+    claudestate.floating = create_floating_window { buf = claudestate.floating.buf }
+
+    if vim.bo[claudestate.floating.buf].buftype ~= "terminal" then
+      vim.fn.termopen { "sh", "-c", 'ANTHROPIC_AUTH_TOKEN="freecc" ANTHROPIC_BASE_URL="http://localhost:8082" claude' }
+    end
+
+    vim.cmd "startinsert"
+
+    vim.defer_fn(function()
+      if vim.api.nvim_win_is_valid(claudestate.floating.win) then
+        vim.api.nvim_set_current_win(claudestate.floating.win)
+        vim.cmd "startinsert"
+      end
+    end, 50)
+  else
+    vim.api.nvim_win_hide(claudestate.floating.win)
+  end
+end
+
+------------------------------------------------------------
 -- Terminal: Run command once
 ------------------------------------------------------------
 local function command_run(cmd)
@@ -140,6 +181,11 @@ mkcmd("ToggleTerminal", toggle_terminal, {
 mkcmd("ToggleGit", toggle_git, {
   nargs = 0,
   desc = "Toggle git fzf terminal",
+})
+
+mkcmd("ToggleClaude", toggle_claude, {
+  nargs = 0,
+  desc = "Toggle Claude terminal",
 })
 
 mkcmd("CommandRun", function(args)
