@@ -261,7 +261,7 @@ ShellRoot {
 
 		PanelWindow {
 			required property var modelData
-			readonly property bool isPrimary: modelData === Quickshell.screens[0]
+			readonly property bool isPrimary: modelData === Quickshell.screens[1]
 
 			readonly property string localActiveWindow: {
 				const monitor = Hyprland.monitorFor(modelData);
