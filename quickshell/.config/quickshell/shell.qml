@@ -509,6 +509,7 @@ ShellRoot {
 				}
 				// 2.5 Screen/Media Status Pill
 				Rectangle {
+					visible: isPrimary
 					Layout.preferredHeight: 26
 					Layout.preferredWidth: sysMediaRow.implicitWidth + 24
 					color: root.cal2
