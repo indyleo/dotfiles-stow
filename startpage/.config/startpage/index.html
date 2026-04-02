@@ -384,27 +384,68 @@
         const canvas = document.getElementById("matrix-canvas");
         const ctx = canvas.getContext("2d");
 
-        // Gruvbox vivid brights — green, aqua, yellow, orange
         const colors = ["#b8bb26", "#8ec07c", "#fe8019", "#fabd2f", "#83a598"];
         const fontSize = 14;
+        const INTERVAL_MS = 45;
+        const STORAGE_KEY = "matrix_state";
+
         let cols, drops;
 
         function resize() {
           canvas.width = window.innerWidth;
           canvas.height = window.innerHeight;
           cols = Math.floor(canvas.width / fontSize);
+        }
+
+        function initDrops() {
+          // Try to restore saved state and fast-forward by elapsed time
+          try {
+            const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            if (saved && Array.isArray(saved.drops) && saved.ts) {
+              const elapsed = Date.now() - saved.ts;
+              const ticksElapsed = Math.floor(elapsed / INTERVAL_MS);
+              const maxRow = Math.ceil(canvas.height / fontSize);
+
+              // Restore drops, scaled to current col count
+              drops = Array.from({ length: cols }, (_, i) => {
+                const savedDrop = saved.drops[i];
+                if (savedDrop !== undefined) {
+                  // Advance by ticks elapsed, wrap naturally like the real loop
+                  let d = savedDrop + ticksElapsed;
+                  // If it would have wrapped, simulate wrap probability:
+                  // wrap chance is ~2.5% per tick past bottom, so after N ticks
+                  // past bottom it's very likely to have reset. Use modulo with
+                  // a spread to keep columns out of phase.
+                  if (d * fontSize > canvas.height) {
+                    const overTicks = Math.floor((d * fontSize - canvas.height) / fontSize);
+                    if (overTicks > 40 || Math.random() > 0.975 ** Math.min(overTicks, 40)) {
+                      d = Math.floor(Math.random() * maxRow);
+                    }
+                  }
+                  return d;
+                }
+                return (Math.random() * -50) | 0;
+              });
+              return;
+            }
+          } catch (_) { /* storage unavailable, fall through */ }
+
+          // Fresh start — stagger drops so they don't all begin at row 0
           drops = Array.from({ length: cols }, () => (Math.random() * -50) | 0);
         }
 
+        function saveState() {
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({ drops, ts: Date.now() }));
+          } catch (_) {}
+        }
+
         function draw() {
-          // Fade trail using bg0-h with alpha
           ctx.fillStyle = "rgba(29, 32, 33, 0.055)";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
-
           ctx.font = fontSize + "px 'JetBrains Mono', monospace";
 
           for (let i = 0; i < drops.length; i++) {
-            // Random katakana / ascii mix
             const char =
               Math.random() > 0.5
                 ? String.fromCharCode(0x30a0 + Math.floor(Math.random() * 96))
@@ -421,8 +462,24 @@
         }
 
         resize();
-        window.addEventListener("resize", resize);
-        setInterval(draw, 45);
+        initDrops();
+
+        // Render one silent pre-frame so the canvas isn't blank on first paint
+        // (skip the fade rect so it doesn't flash dark — just place characters)
+        (function prewarm() {
+          ctx.font = fontSize + "px 'JetBrains Mono', monospace";
+          for (let i = 0; i < drops.length; i++) {
+            const char = String.fromCharCode(0x30a0 + Math.floor(Math.random() * 96));
+            ctx.fillStyle = colors[i % colors.length];
+            ctx.fillText(char, i * fontSize, drops[i] * fontSize);
+          }
+        })();
+
+        window.addEventListener("resize", () => { resize(); initDrops(); });
+        window.addEventListener("pagehide", saveState);
+        window.addEventListener("beforeunload", saveState);
+
+        setInterval(draw, INTERVAL_MS);
       })();
 
       /* ---- AUDIO ---- */
@@ -441,6 +498,49 @@
             document.addEventListener("keydown", start);
           });
         }
+      }
+
+      /* ---- HOLIDAY DETECTION ---- */
+      function getEasterDate(year) {
+        // Anonymous Gregorian algorithm
+        const a = year % 19;
+        const b = Math.floor(year / 100);
+        const c = year % 100;
+        const d = Math.floor(b / 4);
+        const e = b % 4;
+        const f = Math.floor((b + 8) / 25);
+        const g = Math.floor((b - f + 1) / 3);
+        const h = (19 * a + b - d - g + 15) % 30;
+        const i = Math.floor(c / 4);
+        const k = c % 4;
+        const l = (32 + 2 * e + 2 * i - h - k) % 7;
+        const m = Math.floor((a + 11 * h + 22 * l) / 451);
+        const month = Math.floor((h + l - 7 * m + 114) / 31); // 1-based
+        const day = ((h + l - 7 * m + 114) % 31) + 1;
+        return { month, day }; // month is 1-based
+      }
+
+      function getHolidayMessage() {
+        const now = new Date();
+        const m = now.getMonth() + 1; // 1-based
+        const d = now.getDate();
+        const y = now.getFullYear();
+
+        // Fixed holidays
+        if (m === 1  && d === 1)  return "🎆 Happy New Year!";
+        if (m === 2  && d === 14) return "💘 Happy Valentine's Day";
+        if (m === 3  && d === 17) return "🍀 Happy St. Patrick's Day";
+        if (m === 4  && d === 1)  return "🃏 April Fools! Watch your back.";
+        if (m === 7  && d === 1)  return "🍁 Happy Canada Day, eh!";
+        if (m === 10 && d === 31) return "🎃 Happy Halloween! Boo.";
+        if (m === 12 && d === 25) return "🎄 Merry Christmas!";
+        if (m === 12 && d === 31) return "🥂 New Year's Eve — almost there!";
+
+        // Easter (dynamic)
+        const easter = getEasterDate(y);
+        if (m === easter.month && d === easter.day) return "🐣 Happy Easter!";
+
+        return null;
       }
 
       /* ---- GREETING & CLOCK ---- */
@@ -512,8 +612,11 @@
 
         const greet =
           h < 12 ? "Good Morning" : h < 17 ? "Good Afternoon" : "Good Evening";
-        document.getElementById("greet-line").textContent =
-          `${greet} — ${currentRandomPhrase}`;
+        const holiday = getHolidayMessage();
+        const greetLine = holiday
+          ? `${greet} — ${currentRandomPhrase} · ${holiday}`
+          : `${greet} — ${currentRandomPhrase}`;
+        document.getElementById("greet-line").textContent = greetLine;
         document.getElementById("quote-line").textContent = `"${currentQuote}"`;
       }
 
