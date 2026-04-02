@@ -150,7 +150,7 @@ alias fusee="sudo fusee-nano ~/Bin/hekate_ctcaer_*.bin"
 alias ns="sudo java -jar ~/Code/ns-usbloader-*.jar"
 alias clox="tty-clock -tcxBbC 4"
 alias matrix="cmatrix -abC cyan"
-alias oops='oops $(fc -ln -1)'
+alias fclaude='ANTHROPIC_AUTH_TOKEN="freecc" ANTHROPIC_BASE_URL="http://localhost:8082" claude'
 
 # For Vim Users
 # vim:ft=sh
