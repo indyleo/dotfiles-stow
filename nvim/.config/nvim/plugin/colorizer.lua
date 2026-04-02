@@ -92,6 +92,17 @@ local named_colors = {
 local function find_colors(line)
   local results = {}
 
+  -- #RRGGBBAA (must come before #RRGGBB)
+  for s, hex, e in line:gmatch "()#(%x%x%x%x%x%x%x%x)()" do
+    table.insert(results, {
+      col = s - 1,
+      end_col = e - 1,
+      r = tonumber(hex:sub(1, 2), 16),
+      g = tonumber(hex:sub(3, 4), 16),
+      b = tonumber(hex:sub(5, 6), 16),
+    })
+  end
+
   -- #RRGGBB
   for s, hex, e in line:gmatch "()#(%x%x%x%x%x%x)()" do
     table.insert(results, {
@@ -103,7 +114,7 @@ local function find_colors(line)
     })
   end
 
-  -- #RGB (only if NOT followed by more hex digits, so #RRGGBB isn't matched here)
+  -- #RGB (only if not followed by more hex digits)
   for s, hex, e in line:gmatch "()#(%x%x%x)()" do
     local next_char = line:sub(e, e)
     if not next_char:match "%x" then
@@ -116,6 +127,17 @@ local function find_colors(line)
         b = tonumber(b1 .. b1, 16),
       })
     end
+  end
+
+  -- 0xRRGGBB
+  for s, hex, e in line:gmatch "()0x(%x%x%x%x%x%x)()" do
+    table.insert(results, {
+      col = s - 1,
+      end_col = e - 1,
+      r = tonumber(hex:sub(1, 2), 16),
+      g = tonumber(hex:sub(3, 4), 16),
+      b = tonumber(hex:sub(5, 6), 16),
+    })
   end
 
   -- rgb(R, G, B)
@@ -235,15 +257,35 @@ local function attach(bufnr)
 
   colorize(bufnr)
 
+  local timers = {}
+
   vim.api.nvim_buf_attach(bufnr, false, {
     on_lines = function(_, buf, _, firstline, _, new_lastline)
-      vim.schedule(function()
-        if vim.api.nvim_buf_is_valid(buf) then
-          colorize(buf, firstline, new_lastline)
-        end
-      end)
+      if timers[buf] then
+        timers[buf]:stop()
+        timers[buf]:close()
+      end
+      timers[buf] = vim.loop.new_timer()
+      timers[buf]:start(
+        150,
+        0,
+        vim.schedule_wrap(function()
+          if vim.api.nvim_buf_is_valid(buf) then
+            colorize(buf, firstline, new_lastline)
+          end
+          if timers[buf] then
+            timers[buf]:close()
+            timers[buf] = nil
+          end
+        end)
+      )
     end,
     on_detach = function(_, buf)
+      if timers[buf] then
+        timers[buf]:stop()
+        timers[buf]:close()
+        timers[buf] = nil
+      end
       attached[buf] = nil
     end,
   })
