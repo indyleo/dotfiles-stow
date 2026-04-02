@@ -75,6 +75,10 @@ ShellRoot {
 	property string micIcon: ""
 	property string micText: "0%"
 
+	// --- Screen/Media Data Properties ---
+	property string sysMediaIcon: "" // Fallback icon if sysstats doesn't provide one
+	property string sysMediaText: ""
+
 	// --- Media Data Properties ---
 	property string mediaIcon: "󰝚"
 	property string mediaTitle: ""
@@ -203,6 +207,13 @@ ShellRoot {
 		stdout: SplitParser { onRead: data => root.parseSysstats(data, "micIcon", "micText") }
 	}
 
+	// Media Process
+	Process {
+		id: sysMediaProc
+		command: ["sysstats", "media"]
+		stdout: SplitParser { onRead: data => root.parseSysstats(data, "sysMediaIcon", "sysMediaText") }
+	}
+
 	// Mediactl Process
 	Process {
 		id: mediaProc
@@ -252,6 +263,7 @@ ShellRoot {
 			batProc.running = false; batProc.running = true
 			volProc.running = false; volProc.running = true
 			micProc.running = false; micProc.running = true
+			sysMediaProc.running = false; sysMediaProc.running = true
 			mediaProc.running = false; mediaProc.running = true
 		}
 	}
@@ -282,6 +294,7 @@ ShellRoot {
 
 				// 0. The Locked Profile + Dynamic Play/Pause and Title Pill
 				Rectangle {
+					visible: isPrimary
 					Layout.preferredHeight: 26
 					Layout.preferredWidth: profileMediaLayout.implicitWidth + 12
 					color: root.cal2
@@ -492,6 +505,69 @@ ShellRoot {
 						anchors.fill: parent; anchors.leftMargin: 15; anchors.rightMargin: 15; spacing: 10
 						Text { text: localActiveWindow === "Desktop" ? "󰇄" : "󱂬"; color: root.cal10; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily }
 						Text { Layout.fillWidth: true; text: localActiveWindow; color: root.cal6; font.pixelSize: root.fontSize; font.family: root.fontFamily; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter }
+					}
+				}
+				// 2.5 Screen/Media Status Pill
+				Rectangle {
+					Layout.preferredHeight: 26
+					Layout.preferredWidth: sysMediaRow.implicitWidth + 24
+					color: root.cal2
+					radius: 13
+
+					Row {
+						id: sysMediaRow
+						anchors.centerIn: parent
+						spacing: 0
+						property bool pinned: false
+						property bool hovered: false
+						readonly property bool expanded: pinned || hovered
+
+						Text {
+							text: root.sysMediaIcon
+							color: root.cal10 // Uses the yellow system color
+							font.pixelSize: root.fontSize + 2
+							font.family: root.fontFamily
+							anchors.verticalCenter: parent.verticalCenter
+						}
+
+						Item {
+							height: 20
+							width: parent.expanded ? sysMediaTxt.implicitWidth + 8 : 0
+							clip: true
+							anchors.verticalCenter: parent.verticalCenter
+							Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+
+							Text {
+								id: sysMediaTxt
+								anchors.left: parent.left
+								anchors.leftMargin: 6
+								anchors.verticalCenter: parent.verticalCenter
+								text: root.sysMediaText
+								color: root.cal10
+								font.pixelSize: root.fontSize
+								font.family: root.fontFamily
+								opacity: parent.width > 5 ? 1 : 0
+								Behavior on opacity { NumberAnimation { duration: 200 } }
+							}
+						}
+					}
+
+					MouseArea {
+						anchors.fill: parent
+						cursorShape: Qt.PointingHandCursor
+						acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+						hoverEnabled: true
+						onEntered: sysMediaRow.hovered = true
+						onExited: sysMediaRow.hovered = false
+						onClicked: (m) => {
+							if (m.button === Qt.MiddleButton) {
+								sysMediaRow.pinned = !sysMediaRow.pinned
+							} else if (m.button === Qt.LeftButton) {
+								shellCmd.command = ["sh", "-c", "rofi_screen"]
+								shellCmd.running = false
+								shellCmd.running = true
+							}
+						}
 					}
 				}
 
