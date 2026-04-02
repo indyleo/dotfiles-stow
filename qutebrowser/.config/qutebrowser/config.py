@@ -136,7 +136,7 @@ c.content.blocking.adblock.lists = [
 ]
 
 # User Agent
-c.content.headers.user_agent = "Mozilla/5.0 (Windows NT 11.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.166 Safari/537.36"
+c.content.headers.user_agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
 # Startpage
 startpage = "http://127.0.0.1:8080"
