@@ -106,7 +106,7 @@ map("t", "<Esc><Esc>", "<C-\\><C-n>", "Exit terminal to normal mode")
 
 -- Terminal toggles
 map({ "n", "t" }, "<leader>tr", ":ToggleTerm<CR>", "Toggle terminal")
-map({ "n", "t" }, "<leader>tg", ":ToggleGit<CR>", "Toggle fzf_git.py")
+map({ "n", "t" }, "<leader>tg", ":ToggleGit<CR>", "Toggle lazygit")
 
 ---- Plugins ----
 

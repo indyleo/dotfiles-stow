@@ -180,7 +180,7 @@ mkcmd("ToggleTerminal", toggle_terminal, {
 
 mkcmd("ToggleGit", toggle_git, {
   nargs = 0,
-  desc = "Toggle git fzf terminal",
+  desc = "Toggle lazygit terminal",
 })
 
 mkcmd("ToggleClaude", toggle_claude, {
