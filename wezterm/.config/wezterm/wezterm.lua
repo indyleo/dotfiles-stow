@@ -37,14 +37,13 @@ local gruvbox = {
 		"#ebdbb2",
 	},
 }
-
-config.colors = gruvbox-
+config.colors = gruvbox
 
 ------------------------------------------------------------
 -- Terminal identity + shell
 ------------------------------------------------------------
-config.term = "xterm-256color" -- matches Alacritty/st
-config.default_prog = { "zsh" } -- matches tmux/Alacritty/st
+config.term = "xterm-256color"
+config.default_prog = { "zsh" }
 config.enable_wayland = true
 
 ------------------------------------------------------------
@@ -66,8 +65,10 @@ config.visual_bell = {
 config.front_end = "WebGpu"
 config.enable_wayland = false
 
+------------------------------------------------------------
+-- Mouse bindings
+------------------------------------------------------------
 config.mouse_bindings = {
-	-- Right-click paste (Alacritty style)
 	{
 		event = { Down = { streak = 1, button = "Right" } },
 		mods = "NONE",
@@ -83,13 +84,13 @@ config.mouse_bindings = {
 config.automatically_reload_config = true
 
 ------------------------------------------------------------
--- Leader (tmux prefix) and keybindings
+-- Leader and keybinding
 ------------------------------------------------------------
-config.leader = { key = "Space", mods = "CTRL" } -- same as tmux: C-Space
+config.leader = { key = "Space", mods = "CTRL" }
 
 config.keys = {
 	----------------------------------------------------------
-	-- tmux-like pane navigation
+	-- pane navigation
 	----------------------------------------------------------
 	{ key = "h", mods = "LEADER", action = wezterm.action.ActivatePaneDirection("Left") },
 	{ key = "j", mods = "LEADER", action = wezterm.action.ActivatePaneDirection("Down") },
@@ -97,7 +98,7 @@ config.keys = {
 	{ key = "l", mods = "LEADER", action = wezterm.action.ActivatePaneDirection("Right") },
 
 	----------------------------------------------------------
-	-- tmux-like splits
+	-- Splits
 	----------------------------------------------------------
 	{ key = "-", mods = "LEADER", action = wezterm.action.SplitVertical({ domain = "CurrentPaneDomain" }) },
 	{ key = "\\", mods = "LEADER", action = wezterm.action.SplitHorizontal({ domain = "CurrentPaneDomain" }) },
@@ -108,7 +109,7 @@ config.keys = {
 	{ key = "x", mods = "LEADER", action = wezterm.action.CloseCurrentPane({ confirm = true }) },
 
 	----------------------------------------------------------
-	-- New tab, tab switching (Alacritty + tmux similarities)
+	-- New tab, tab switching
 	----------------------------------------------------------
 	{ key = "c", mods = "LEADER", action = wezterm.action.SpawnTab("CurrentPaneDomain") },
 	{ key = "1", mods = "ALT", action = wezterm.action.ActivateTab(0) },
@@ -122,16 +123,16 @@ config.keys = {
 	{ key = "9", mods = "ALT", action = wezterm.action.ActivateTab(8) },
 
 	----------------------------------------------------------
-	-- Clear screen (Ctrl+L behavior from Alacritty)
+	-- Clear screen
 	----------------------------------------------------------
 	{
 		key = "l",
 		mods = "CTRL",
-		action = wezterm.action.SendString("\x0c"), -- ^L
+		action = wezterm.action.SendString("\x0c"),
 	},
 
 	----------------------------------------------------------
-	-- Copy & paste behavior similar to Alacritty
+	-- Copy & paste
 	----------------------------------------------------------
 	{
 		key = "C",
@@ -145,7 +146,7 @@ config.keys = {
 	},
 
 	----------------------------------------------------------
-	-- Search (similar to Alacritty)
+	-- Search
 	----------------------------------------------------------
 	{
 		key = "F",
@@ -154,7 +155,7 @@ config.keys = {
 	},
 
 	----------------------------------------------------------
-	-- Vim-like Normal Mode (Copy Mode)
+	-- Vim-like Normal Mode
 	----------------------------------------------------------
 	-- Enter Normal/Copy Mode with CTRL-Space
 	{ key = "Space", mods = "CTRL|ALT", action = wezterm.action.ActivateCopyMode },
