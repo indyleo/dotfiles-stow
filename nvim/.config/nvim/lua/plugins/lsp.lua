@@ -57,7 +57,6 @@ return {
         "html",
         "htmx",
         "clangd",
-        "cmake",
         "pyright",
         "rust_analyzer",
         "bashls",
@@ -107,10 +106,8 @@ return {
       mason_tool_installer.setup {
         ensure_installed = {
           -- Text
-          "codespell",
           "jsonlint",
           "json-lsp",
-          "ltex-ls",
           "alex",
           "taplo",
           "yamllint",
@@ -133,7 +130,6 @@ return {
           "cpplint",
           "clang-format",
           "clangd",
-          "cmake-language-server",
           "isort",
           "prettier",
           "pylint",
@@ -146,7 +142,6 @@ return {
           "crlfmt",
           "staticcheck",
           "gopls",
-          "arduino-language-server",
           -- Script / Shell
           "bash-language-server",
           "beautysh",
