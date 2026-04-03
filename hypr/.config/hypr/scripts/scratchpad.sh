@@ -19,8 +19,8 @@ else
     # TUI Mode (Default):
     # Prepend identifier to ensure this specific terminal instance is unique
     APP_ID="termsc-$NAME"
-    # Wrap in foot
-    LAUNCH_CMD="foot --app-id=$APP_ID -e $COMMAND"
+    # Wrap in wezterm
+    LAUNCH_CMD="wezterm start --class $APP_ID -- $COMMAND"
 fi
 
 # Check if the window already exists
@@ -28,11 +28,9 @@ if hyprctl clients -j | jq -e ".[] | select(.class == \"$APP_ID\")" > /dev/null;
     hyprctl dispatch togglespecialworkspace "$APP_ID"
 else
     # 1. Launch the app
-    # We run it in the background
     $LAUNCH_CMD &
 
     # 2. Wait for the window to register in Hyprland
-    # Increased timeout slightly for heavier GUI apps (Electron apps like Feishin take time)
     MAX_RETRIES=50
     COUNT=0
     while ! hyprctl clients -j | jq -e ".[] | select(.class == \"$APP_ID\")" > /dev/null; do
@@ -45,7 +43,6 @@ else
     done
 
     # 3. Apply the "Rule" settings dynamically
-    # 'setprop' is great for this because it targets the specific window class
     hyprctl dispatch setprop "class:$APP_ID" float on
     hyprctl dispatch setprop "class:$APP_ID" sizerequest 80% 80%
 
