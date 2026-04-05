@@ -20,7 +20,7 @@ else
     # Prepend identifier to ensure this specific terminal instance is unique
     APP_ID="termsc-$NAME"
     # Wrap in wezterm
-    LAUNCH_CMD="wezterm start --class $APP_ID -- $COMMAND"
+    LAUNCH_CMD="foot --app-id=$APP_ID -e $COMMAND"
 fi
 
 # Check if the window already exists
