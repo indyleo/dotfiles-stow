@@ -165,6 +165,7 @@ end
 local function open_project(window, pane, project_path)
 	local name = safe_name(basename(project_path))
 
+	-- Switch to the workspace if it already exists
 	for _, ws in ipairs(wezterm.mux.get_workspace_names()) do
 		if ws == name then
 			window:perform_action(wezterm.action.SwitchToWorkspace({ name = name }), pane)
@@ -172,25 +173,29 @@ local function open_project(window, pane, project_path)
 		end
 	end
 
+	-- Create a new window in the background assigned to our new workspace
+	-- This returns the newly created tab, pane, and window objects synchronously
+	local nvim_tab, nvim_pane, mux_window = wezterm.mux.spawn_window({
+		workspace = name,
+		cwd = project_path,
+	})
+
+	-- Send the command to launch Neovim in the first pane
+	nvim_pane:send_text("nvim\n")
+
+	-- Spawn the second tab (the plain shell) inside that same new window
+	mux_window:spawn_tab({ cwd = project_path })
+
+	-- Make sure the first tab (Neovim) is the one in focus
+	nvim_tab:activate()
+
+	-- Finally, switch your GUI to the fully constructed workspace
 	window:perform_action(
 		wezterm.action.SwitchToWorkspace({
 			name = name,
-			spawn = { label = name, cwd = project_path },
 		}),
 		pane
 	)
-
-	wezterm.time.call_after(0.05, function()
-		local mux_win = wezterm.mux.get_active_window()
-		if not mux_win then
-			return
-		end
-		local tab = mux_win:active_tab()
-		local nvim_pane = tab:active_pane()
-		nvim_pane:send_text("nvim\n")
-		nvim_pane:split({ direction = "Right", size = 0.40, cwd = project_path })
-		nvim_pane:activate()
-	end)
 end
 
 local function paths_to_choices(paths)
@@ -267,10 +272,7 @@ config.keys = {
 	{ key = "9", mods = "ALT", action = wezterm.action.ActivateTab(8) },
 
 	----------------------------------------------------------
-	-- Workspace / project picker  (replaces fzftmux)
-	--   LEADER p  → all project folders
-	--   LEADER g  → git repos only
-	--   LEADER w  → switch between open workspaces
+	-- Workspace / project picker
 	----------------------------------------------------------
 	{ key = "p", mods = "LEADER", action = pick_action("project") },
 	{ key = "g", mods = "LEADER", action = pick_action("git") },
