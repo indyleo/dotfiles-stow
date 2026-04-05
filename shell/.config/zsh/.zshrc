@@ -94,7 +94,9 @@ eval "$(oh-my-posh --init --shell zsh --config ~/.config/ohmyposh/base.toml)"
 # Bindkeys
 bindkey -s '^x' 'lc\n'
 bindkey -s '^v' 'chtsh\n'
-bindkey -s '^g' 'fzftmux\n'
+if [[ -z "$WEZTERM_PANE" ]]; then
+    bindkey -s '^g' 'fzftmux\n'
+fi
 
 # Search history
 bindkey '^[[A' history-substring-search-up

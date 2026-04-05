@@ -8,12 +8,12 @@ local gruvbox = {
 	background = "#282828",
 	foreground = "#ebdbb2",
 
-	cursor_bg = "#fabd2f", -- Gruvbox yellow
+	cursor_bg = "#fabd2f",
 	cursor_fg = "#282828",
 	cursor_border = "#fabd2f",
 
 	selection_fg = "#282828",
-	selection_bg = "#83a598", -- Gruvbox aqua
+	selection_bg = "#83a598",
 
 	ansi = {
 		"#282828",
@@ -44,7 +44,7 @@ config.colors = gruvbox
 ------------------------------------------------------------
 config.term = "xterm-256color"
 config.default_prog = { "zsh" }
-config.enable_wayland = true
+config.enable_wayland = false
 
 ------------------------------------------------------------
 -- Appearance
@@ -58,12 +58,9 @@ config.enable_tab_bar = true
 config.hide_tab_bar_if_only_one_tab = true
 config.use_fancy_tab_bar = true
 config.audible_bell = "Disabled"
-config.visual_bell = {
-	fade_in_duration_ms = 0,
-	fade_out_duration_ms = 0,
-}
+config.visual_bell = { fade_in_duration_ms = 0, fade_out_duration_ms = 0 }
 config.front_end = "WebGpu"
-config.enable_wayland = false
+config.automatically_reload_config = true
 
 ------------------------------------------------------------
 -- Mouse bindings
@@ -81,16 +78,163 @@ config.mouse_bindings = {
 	},
 }
 
-config.automatically_reload_config = true
+------------------------------------------------------------
+-- Project session
+------------------------------------------------------------
+local home = wezterm.home_dir
+
+local search_dirs = {
+	home .. "/Projects",
+	home .. "/Github",
+}
+
+local excluded_dirs = {
+	bin = 1,
+	lib = 1,
+	include = 1,
+	utils = 1,
+	example = 1,
+	examples = 1,
+	node_modules = 1,
+	vendor = 1,
+	dist = 1,
+	build = 1,
+	["zig-out"] = 1,
+	cmd = 1,
+	demo = 1,
+	scripts = 1,
+	test = 1,
+	tests = 1,
+	schema = 1,
+	pkg = 1,
+	docs = 1,
+	src = 1,
+	res = 1,
+}
+
+local function basename(path)
+	return path:match("([^/]+)$") or path
+end
+
+local function safe_name(name)
+	return name:gsub("[%.%s]", "_")
+end
+
+local function shell_lines(cmd)
+	local handle = io.popen(cmd .. " 2>/dev/null")
+	if not handle then
+		return {}
+	end
+	local lines = {}
+	for line in handle:lines() do
+		lines[#lines + 1] = line
+	end
+	handle:close()
+	return lines
+end
+
+local function find_projects()
+	local results, seen = {}, {}
+	for _, root in ipairs(search_dirs) do
+		for _, dir in ipairs(shell_lines("find " .. root .. " -mindepth 1 -maxdepth 2 -type d -not -path '*/.*'")) do
+			local bname = basename(dir)
+			if not excluded_dirs[bname] and not seen[dir] then
+				seen[dir] = true
+				results[#results + 1] = dir
+			end
+		end
+	end
+	return results
+end
+
+local function find_git_repos()
+	local results, seen = {}, {}
+	for _, root in ipairs(search_dirs) do
+		for _, git_dir in ipairs(shell_lines("find " .. root .. " -mindepth 2 -maxdepth 3 -type d -name .git")) do
+			local repo = git_dir:match("^(.+)/%.git$")
+			if repo and not seen[repo] then
+				seen[repo] = true
+				results[#results + 1] = repo
+			end
+		end
+	end
+	table.sort(results)
+	return results
+end
+
+local function open_project(window, pane, project_path)
+	local name = safe_name(basename(project_path))
+
+	for _, ws in ipairs(wezterm.mux.get_workspace_names()) do
+		if ws == name then
+			window:perform_action(wezterm.action.SwitchToWorkspace({ name = name }), pane)
+			return
+		end
+	end
+
+	window:perform_action(
+		wezterm.action.SwitchToWorkspace({
+			name = name,
+			spawn = { label = name, cwd = project_path },
+		}),
+		pane
+	)
+
+	wezterm.time.call_after(0.05, function()
+		local mux_win = wezterm.mux.get_active_window()
+		if not mux_win then
+			return
+		end
+		local tab = mux_win:active_tab()
+		local nvim_pane = tab:active_pane()
+		nvim_pane:send_text("nvim\n")
+		nvim_pane:split({ direction = "Right", size = 0.40, cwd = project_path })
+		nvim_pane:activate()
+	end)
+end
+
+local function paths_to_choices(paths)
+	local choices = {}
+	for _, p in ipairs(paths) do
+		choices[#choices + 1] = { label = p, id = p }
+	end
+	return choices
+end
+
+local function pick_action(mode)
+	return wezterm.action_callback(function(window, pane)
+		local paths = mode == "git" and find_git_repos() or find_projects()
+
+		if #paths == 0 then
+			window:toast_notification("project-session", "No projects found.", nil, 4000)
+			return
+		end
+
+		window:perform_action(
+			wezterm.action.InputSelector({
+				action = wezterm.action_callback(function(win, pn, id)
+					if id then
+						open_project(win, pn, id)
+					end
+				end),
+				title = mode == "git" and "Git repos" or "Projects",
+				choices = paths_to_choices(paths),
+				fuzzy = true,
+				fuzzy_description = "Search: ",
+			}),
+			pane
+		)
+	end)
+end
 
 ------------------------------------------------------------
--- Leader and keybinding
+-- Leader and keybindings
 ------------------------------------------------------------
 config.leader = { key = "Space", mods = "CTRL" }
 
 config.keys = {
 	----------------------------------------------------------
-	-- pane navigation
+	-- Pane navigation (vim-style)
 	----------------------------------------------------------
 	{ key = "h", mods = "LEADER", action = wezterm.action.ActivatePaneDirection("Left") },
 	{ key = "j", mods = "LEADER", action = wezterm.action.ActivatePaneDirection("Down") },
@@ -104,12 +248,12 @@ config.keys = {
 	{ key = "\\", mods = "LEADER", action = wezterm.action.SplitHorizontal({ domain = "CurrentPaneDomain" }) },
 
 	----------------------------------------------------------
-	-- Close pane
+	-- Pane close
 	----------------------------------------------------------
 	{ key = "x", mods = "LEADER", action = wezterm.action.CloseCurrentPane({ confirm = true }) },
 
 	----------------------------------------------------------
-	-- New tab, tab switching
+	-- Tabs
 	----------------------------------------------------------
 	{ key = "c", mods = "LEADER", action = wezterm.action.SpawnTab("CurrentPaneDomain") },
 	{ key = "1", mods = "ALT", action = wezterm.action.ActivateTab(0) },
@@ -123,50 +267,43 @@ config.keys = {
 	{ key = "9", mods = "ALT", action = wezterm.action.ActivateTab(8) },
 
 	----------------------------------------------------------
+	-- Workspace / project picker  (replaces fzftmux)
+	--   LEADER p  → all project folders
+	--   LEADER g  → git repos only
+	--   LEADER w  → switch between open workspaces
+	----------------------------------------------------------
+	{ key = "p", mods = "LEADER", action = pick_action("project") },
+	{ key = "g", mods = "LEADER", action = pick_action("git") },
+	{
+		key = "w",
+		mods = "LEADER",
+		action = wezterm.action.ShowLauncherArgs({ flags = "WORKSPACES" }),
+	},
+
+	----------------------------------------------------------
 	-- Clear screen
 	----------------------------------------------------------
-	{
-		key = "l",
-		mods = "CTRL",
-		action = wezterm.action.SendString("\x0c"),
-	},
+	{ key = "l", mods = "CTRL", action = wezterm.action.SendString("\x0c") },
 
 	----------------------------------------------------------
 	-- Copy & paste
 	----------------------------------------------------------
-	{
-		key = "C",
-		mods = "CTRL|SHIFT",
-		action = wezterm.action.CopyTo("ClipboardAndPrimarySelection"),
-	},
-	{
-		key = "V",
-		mods = "CTRL|SHIFT",
-		action = wezterm.action.PasteFrom("Clipboard"),
-	},
+	{ key = "C", mods = "CTRL|SHIFT", action = wezterm.action.CopyTo("ClipboardAndPrimarySelection") },
+	{ key = "V", mods = "CTRL|SHIFT", action = wezterm.action.PasteFrom("Clipboard") },
 
 	----------------------------------------------------------
 	-- Search
 	----------------------------------------------------------
-	{
-		key = "F",
-		mods = "CTRL|SHIFT",
-		action = wezterm.action.Search({ CaseSensitiveString = "" }),
-	},
+	{ key = "F", mods = "CTRL|SHIFT", action = wezterm.action.Search({ CaseSensitiveString = "" }) },
 
 	----------------------------------------------------------
-	-- Vim-like Normal Mode
+	-- Copy mode (vim normal mode)
 	----------------------------------------------------------
-	-- Enter Normal/Copy Mode with CTRL-Space
 	{ key = "Space", mods = "CTRL|ALT", action = wezterm.action.ActivateCopyMode },
-
-	-- Leave Copy Mode with Escape
 	{
 		key = "Escape",
 		mods = "CTRL",
-		action = wezterm.action.Multiple({
-			wezterm.action.CopyMode("Close"),
-		}),
+		action = wezterm.action.Multiple({ wezterm.action.CopyMode("Close") }),
 	},
 }
 
