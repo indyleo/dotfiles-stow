@@ -178,10 +178,8 @@ local function open_project(window, pane, project_path)
 	local nvim_tab, nvim_pane, mux_window = wezterm.mux.spawn_window({
 		workspace = name,
 		cwd = project_path,
+		args = { "nvim", "-c", ":Lf" },
 	})
-
-	-- Send the command to launch Neovim in the first pane
-	nvim_pane:send_text("nvim\n")
 
 	-- Spawn the second tab (the plain shell) inside that same new window
 	mux_window:spawn_tab({ cwd = project_path })
