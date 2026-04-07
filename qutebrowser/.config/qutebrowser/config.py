@@ -189,7 +189,8 @@ config.bind("cs", "config-source ;; message-info 'Config reloaded!'")
 config.bind("ct", "config-cycle colors.webpage.darkmode.enabled true false")
 
 config.bind("Pp", "spawn --userscript private.sh")
-config.bind("Pm", "spawn --userscript mediampv.sh")
+config.bind("Pm", "spawn --userscript mediampv.sh -n")
+config.bind("PM", "spawn --userscript mediampv.sh -p")
 config.bind("z", "spawn --userscript password.sh")
 
 config.bind("pg", "open")
