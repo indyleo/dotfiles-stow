@@ -148,7 +148,7 @@ ShellRoot {
 		stdout: SplitParser {
 			onRead: data => {
 				// Catches "" (empty) and "No acpi" from your bash script
-				if (!data || data.trim() === "" || data.includes("N/A") || data.includes("No") || data.includes("Not") || data.includes("0%")) {
+				if (!data || data.trim() === "" || data.includes("N/A") || data.includes("No") || data.includes("Not") || data.includes(" 0%")) {
 					root.showBat = false;
 					return
 				}
