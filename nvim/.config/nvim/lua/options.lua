@@ -4,10 +4,28 @@ local cmd = vim.cmd
 -- ========================
 -- Vim Commands
 -- ========================
-cmd [[ let g:netrw_liststyle = 1 ]]
+cmd [[
+let g:netrw_liststyle = 1
+let g:netrw_banner = 0
+let g:netrw_preview = 1
+]]
 
 -- ========================
 -- Options grouped in tables
+-- ========================
+
+-- Disable providers
+local providers = {
+  "node",
+  "perl",
+  "ruby",
+}
+for _, provider in ipairs(providers) do
+  vim.g["loaded_" .. provider .. "_provider"] = 0
+end
+
+-- ========================
+-- Options
 -- ========================
 
 -- Boolean options
