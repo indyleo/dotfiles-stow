@@ -86,6 +86,10 @@ map("n", "<leader>zr", ":FoldsRefresh<CR>", "Refresh all folds")
 -- Lf file manager
 map("n", "<leader>ee", ":Lf<CR>", "Open file manager")
 
+-- Undotree
+vim.cmd "packadd nvim.undotree"
+map("n", "<leader>u", ":Undotree<CR>", "Toggle undotree")
+
 -- Insert Mode --
 map("i", "jk", "<Esc>", "Exit insert mode")
 
@@ -109,7 +113,7 @@ map({ "n", "t" }, "<leader>tr", ":ToggleTerm<CR>", "Toggle terminal")
 map({ "n", "t" }, "<leader>tg", ":ToggleGit<CR>", "Toggle lazygit")
 map({ "n", "t" }, "<leader>tc", ":ToggleClaude<CR>", "Toggle claude")
 
----- Plugins ----
+--- Plugins ----
 
 -- Noice
 map("n", "<leader>nh", ":NoiceDismiss<CR>", "Dismiss noice notifications")
@@ -173,11 +177,6 @@ vim.api.nvim_create_autocmd("LspAttach", {
     vim.notify("LSP attached to: " .. vim.fn.expand "%:t", vim.log.levels.INFO)
   end,
 })
-
--- Undotree
-map("n", "<leader>u", function()
-  require("undotree").toggle()
-end, "Toggle undotree")
 
 -- Slides
 map("n", "<leader>sp", ":Slide<CR>", "Open slides")
