@@ -118,19 +118,6 @@ map({ "n", "t" }, "<leader>tc", ":ToggleClaude<CR>", "Toggle claude")
 -- Noice
 map("n", "<leader>nh", ":NoiceDismiss<CR>", "Dismiss noice notifications")
 
--- Harpoon
-map("n", "<leader>a", function()
-  require("harpoon"):list():add()
-end, "Mark a file")
-map("n", "<leader>ha", function()
-  require("harpoon").ui:toggle_quick_menu(require("harpoon"):list())
-end, "Harpoon menu")
-for i = 1, 5 do
-  map("n", "<leader>" .. i, function()
-    require("harpoon"):list():select(i)
-  end, "Open file " .. i)
-end
-
 -- Fzf Lua
 local fzf = { ff = "files", fr = "oldfiles", fs = "grep", fc = "grep_cword", fg = "git_files", fh = "helptags", fk = "keymaps" }
 for k, v in pairs(fzf) do
