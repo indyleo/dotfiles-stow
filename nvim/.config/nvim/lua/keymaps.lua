@@ -16,7 +16,7 @@ map("", "<Space>", "<Nop>", "Disable space")
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
----- Non-Plugin ----
+--- Non-Plugin ----
 
 -- Normal Mode --
 
@@ -89,6 +89,14 @@ map("n", "<leader>ee", ":Lf<CR>", "Open file manager")
 -- Undotree
 vim.cmd "packadd nvim.undotree"
 map("n", "<leader>u", ":Undotree<CR>", "Toggle undotree")
+
+-- Marks
+map("n", "<leader>mm", ":MarksAdd<CR>", "Add file to mark")
+map("n", "<leader>mr", ":MarksDelete<CR>", "Remove file from mark")
+map("n", "<leader>mt", ":MarksToggle<CR>", "Toggle Ui marks")
+
+-- Jump
+map("n", "<leader>s", ":Jump<CR>", "Jumps")
 
 -- Insert Mode --
 map("i", "jk", "<Esc>", "Exit insert mode")

@@ -1,25 +1,33 @@
--- marks.lua  (~/.config/nvim/plugin/marks.lua)
+-- marks.lua (~/.config/nvim/plugin/marks.lua)
 -- Lightweight harpoon-style file-list plugin
--- Only implements the two operations you actually use:
---   add current file to the list
---   open/close the quick-menu to reorder / remove files
---
--- Keymaps (remap freely at the bottom of this file):
---   <leader>a  → add current file
---   <leader>e  → toggle quick-menu
 
-local M = {}
-
--- ── persistence ───────────────────────────────────────────────────────────────
+-- ── path & persistence ────────────────────────────────────────────────────────
 local data_dir = vim.fn.stdpath "data" .. "/marks_plugin"
-local data_file = data_dir .. "/list.json"
 
-local function ensure_dir()
-  vim.fn.mkdir(data_dir, "p")
+local function normalize(path)
+  return vim.fn.fnamemodify(path, ":p")
 end
 
-local function load_list()
-  local ok, raw = pcall(vim.fn.readfile, data_file)
+-- Determines whether to use a project-specific file or the global one
+local function get_data_file()
+  local buf_path = vim.api.nvim_buf_get_name(0)
+  -- Start searching from the buffer's directory, fallback to CWD if empty
+  local search_path = buf_path ~= "" and vim.fn.fnamemodify(buf_path, ":p:h") or vim.fn.getcwd()
+
+  -- Find nearest .git root upwards
+  local git_root = vim.fs.root(search_path, ".git")
+
+  if git_root then
+    -- Sanitize path to use as a valid filename (replaces slashes/colons with underscores)
+    local safe_name = git_root:gsub("[\\/:]", "_")
+    return data_dir .. "/list_" .. safe_name .. ".json"
+  else
+    return data_dir .. "/list_global.json"
+  end
+end
+
+local function load_list(file_path)
+  local ok, raw = pcall(vim.fn.readfile, file_path)
   if not ok or #raw == 0 then
     return {}
   end
@@ -27,20 +35,12 @@ local function load_list()
   return type(decoded) == "table" and decoded or {}
 end
 
-local function save_list(list)
-  ensure_dir()
-  vim.fn.writefile({ vim.fn.json_encode(list) }, data_file)
+local function save_list(list, file_path)
+  vim.fn.mkdir(data_dir, "p")
+  vim.fn.writefile({ vim.fn.json_encode(list) }, file_path)
 end
 
--- ── state ─────────────────────────────────────────────────────────────────────
-local list = load_list() -- list of absolute file paths (strings)
-
--- ── helpers ───────────────────────────────────────────────────────────────────
-local function normalize(path)
-  return vim.fn.fnamemodify(path, ":p")
-end
-
-local function index_of(path)
+local function index_of(list, path)
   local p = normalize(path)
   for i, v in ipairs(list) do
     if v == p then
@@ -50,26 +50,51 @@ local function index_of(path)
   return nil
 end
 
--- ── add ───────────────────────────────────────────────────────────────────────
-function M.add()
+-- ── core actions ──────────────────────────────────────────────────────────────
+local function marks_add()
   local path = normalize(vim.api.nvim_buf_get_name(0))
   if path == "" then
     vim.notify("marks: buffer has no file name", vim.log.levels.WARN)
     return
   end
-  if index_of(path) then
-    vim.notify("marks: already in list — " .. vim.fn.fnamemodify(path, ":~:."), vim.log.levels.INFO)
+
+  local df = get_data_file()
+  local list = load_list(df)
+
+  if index_of(list, path) then
+    vim.notify("marks: already in list — " .. vim.fn.fnamemodify(path, ":~"), vim.log.levels.INFO)
     return
   end
+
   table.insert(list, path)
-  save_list(list)
-  vim.notify(string.format("marks: added [%d] %s", #list, vim.fn.fnamemodify(path, ":~:.")), vim.log.levels.INFO)
+  save_list(list, df)
+  vim.notify(string.format("marks: added [%d] %s", #list, vim.fn.fnamemodify(path, ":~")), vim.log.levels.INFO)
+end
+
+local function marks_delete()
+  local path = normalize(vim.api.nvim_buf_get_name(0))
+  if path == "" then
+    return
+  end
+
+  local df = get_data_file()
+  local list = load_list(df)
+  local idx = index_of(list, path)
+
+  if idx then
+    table.remove(list, idx)
+    save_list(list, df)
+    vim.notify("marks: removed " .. vim.fn.fnamemodify(path, ":~"), vim.log.levels.INFO)
+  else
+    vim.notify("marks: not in list", vim.log.levels.WARN)
+  end
 end
 
 -- ── quick-menu ────────────────────────────────────────────────────────────────
 local menu_buf = nil
 local menu_win = nil
 local menu_open = false
+local active_data_file = nil
 
 local function close_menu()
   if menu_win and vim.api.nvim_win_is_valid(menu_win) then
@@ -81,11 +106,11 @@ local function close_menu()
   menu_buf = nil
   menu_win = nil
   menu_open = false
+  active_data_file = nil
 end
 
--- Commit whatever is in the menu buffer back to `list` and save.
 local function commit_menu()
-  if not (menu_buf and vim.api.nvim_buf_is_valid(menu_buf)) then
+  if not (menu_buf and vim.api.nvim_buf_is_valid(menu_buf)) or not active_data_file then
     return
   end
   local lines = vim.api.nvim_buf_get_lines(menu_buf, 0, -1, false)
@@ -93,23 +118,21 @@ local function commit_menu()
   for _, line in ipairs(lines) do
     local trimmed = line:match "^%s*(.-)%s*$"
     if trimmed ~= "" then
-      -- expand ~ back to absolute path
-      local abs = vim.fn.expand(trimmed)
-      table.insert(new_list, abs)
+      table.insert(new_list, vim.fn.expand(trimmed))
     end
   end
-  list = new_list
-  save_list(list)
+  save_list(new_list, active_data_file)
 end
 
 local function open_menu()
-  -- Build display lines (show paths relative to cwd with ~ abbreviation)
+  active_data_file = get_data_file()
+  local list = load_list(active_data_file)
   local lines = {}
+
   for _, path in ipairs(list) do
-    table.insert(lines, vim.fn.fnamemodify(path, ":~:."))
+    table.insert(lines, vim.fn.fnamemodify(path, ":~"))
   end
 
-  -- Create scratch buffer
   menu_buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_lines(menu_buf, 0, -1, false, lines)
   vim.bo[menu_buf].buftype = "acwrite"
@@ -117,11 +140,12 @@ local function open_menu()
   vim.bo[menu_buf].filetype = "marks_menu"
   vim.bo[menu_buf].swapfile = false
 
-  -- Floating window dimensions
   local width = math.max(40, math.floor(vim.o.columns * 0.45))
   local height = math.max(4, math.min(#lines + 2, math.floor(vim.o.lines * 0.4)))
   local row = math.floor((vim.o.lines - height) / 2)
   local col = math.floor((vim.o.columns - width) / 2)
+
+  local title = active_data_file:match "list_global" and " marks (global) " or " marks (project) "
 
   menu_win = vim.api.nvim_open_win(menu_buf, true, {
     relative = "editor",
@@ -131,20 +155,18 @@ local function open_menu()
     height = height,
     style = "minimal",
     border = "rounded",
-    title = " marks ",
+    title = title,
     title_pos = "center",
   })
 
   vim.wo[menu_win].cursorline = true
   menu_open = true
 
-  -- ── menu keymaps ────────────────────────────────────────────────────────────
-
+  -- menu keymaps
   local function map(lhs, fn, desc)
     vim.keymap.set("n", lhs, fn, { buffer = menu_buf, nowait = true, desc = desc })
   end
 
-  -- <CR> – open file under cursor and close menu
   map("<CR>", function()
     local idx = vim.api.nvim_win_get_cursor(menu_win)[1]
     local line = vim.api.nvim_buf_get_lines(menu_buf, idx - 1, idx, false)[1] or ""
@@ -156,8 +178,6 @@ local function open_menu()
     end
   end, "marks: open file")
 
-  -- dd  – delete line (built-in), changes are committed on close
-  -- <leader>e or q or <Esc> – close and save
   local function save_and_close()
     commit_menu()
     close_menu()
@@ -165,9 +185,7 @@ local function open_menu()
 
   map("q", save_and_close, "marks: close menu")
   map("<Esc>", save_and_close, "marks: close menu")
-  map("<leader>e", save_and_close, "marks: close menu")
 
-  -- BufWriteCmd so that :w inside the float also commits
   vim.api.nvim_create_autocmd("BufWriteCmd", {
     buffer = menu_buf,
     callback = function()
@@ -177,7 +195,6 @@ local function open_menu()
     end,
   })
 
-  -- Auto-commit if the window is closed by any other means (e.g. :q)
   vim.api.nvim_create_autocmd({ "WinClosed", "BufWipeout" }, {
     buffer = menu_buf,
     once = true,
@@ -186,12 +203,13 @@ local function open_menu()
       menu_buf = nil
       menu_win = nil
       menu_open = false
+      active_data_file = nil
     end,
   })
 end
 
 -- ── toggle ────────────────────────────────────────────────────────────────────
-function M.toggle_quick_menu()
+local function marks_toggle()
   if menu_open then
     commit_menu()
     close_menu()
@@ -200,8 +218,7 @@ function M.toggle_quick_menu()
   end
 end
 
--- ── keymaps ───────────────────────────────────────────────────────────────────
-vim.keymap.set("n", "<leader>a", M.add, { desc = "marks: add file", silent = true })
-vim.keymap.set("n", "<leader>ha", M.toggle_quick_menu, { desc = "marks: toggle quick-menu", silent = true })
-
-return M
+-- ── Commands ──────────────────────────────────────────────────────────────────
+vim.api.nvim_create_user_command("MarksAdd", marks_add, { desc = "Add current file to marks" })
+vim.api.nvim_create_user_command("MarksDelete", marks_delete, { desc = "Remove current file from marks" })
+vim.api.nvim_create_user_command("MarksToggle", marks_toggle, { desc = "Toggle marks quick-menu" })
