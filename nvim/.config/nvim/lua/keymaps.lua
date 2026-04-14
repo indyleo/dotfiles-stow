@@ -96,7 +96,7 @@ map("n", "<leader>mr", ":MarksDelete<CR>", "Remove file from mark")
 map("n", "<leader>mt", ":MarksToggle<CR>", "Toggle Ui marks")
 
 -- Jump
-map("n", "<leader>s", ":Jump<CR>", "Jumps")
+map("n", "<leader>js", ":Jump<CR>", "Jumps")
 
 -- Insert Mode --
 map("i", "jk", "<Esc>", "Exit insert mode")
