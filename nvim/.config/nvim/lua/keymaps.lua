@@ -95,6 +95,10 @@ map("n", "<leader>mm", ":MarksAdd<CR>", "Add file to mark")
 map("n", "<leader>mr", ":MarksDelete<CR>", "Remove file from mark")
 map("n", "<leader>mt", ":MarksToggle<CR>", "Toggle Ui marks")
 
+-- Jump
+map("n", "<leader>jj", ":Jump<CR>", "Jump to search mark")
+map("n", "<leader>jw", ":JumpWord<CR>", "Jump to search mark (word prefix)")
+
 -- Insert Mode --
 map("i", "jk", "<Esc>", "Exit insert mode")
 
