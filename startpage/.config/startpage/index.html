@@ -788,13 +788,22 @@
       /* ---- WEATHER ---- */
       async function initWeather() {
         try {
-          // wttr.in returns plain text with ?format=3 → "City: emoji +temp"
           const res = await fetch("https://wttr.in/?format=%C+%t", {
             cache: "no-store",
           });
           if (!res.ok) throw new Error();
           const text = (await res.text()).trim();
-          document.getElementById("weather-val").textContent = text;
+
+          // If wttr.in returns HTML instead of plain text, extract from .term-container
+          let weather = text;
+          if (text.startsWith("<!DOCTYPE") || text.startsWith("<")) {
+            const doc = new DOMParser().parseFromString(text, "text/html");
+            weather =
+              doc.querySelector(".term-container")?.textContent?.trim() ?? "";
+            if (!weather) throw new Error();
+          }
+
+          document.getElementById("weather-val").textContent = weather;
         } catch (_) {
           document.getElementById("weather-container").classList.add("hidden");
         }
