@@ -1,4 +1,4 @@
-### BASIC SETTINGS ###
+
 set previewer ~/.config/lf/preview
 set preview true
 set hidden true
@@ -22,7 +22,6 @@ map "'"
 
 ### CORE NAVIGATION ###
 map <enter> open
-map r rename
 map p paste
 map x cut
 map y copy
@@ -77,6 +76,7 @@ map mm mk
 ### DELETE / TRASH ###
 cmd trash %{{
     for f in $fx; do
+				echo "trash|$f" >> /tmp/lf_undo_$USER
         trash-put -vr "$f"
     done
 }}
@@ -102,9 +102,12 @@ map te trash-empty
 
 ### TOGGLE EXECUTABLE / PERMISSIONS ###
 cmd chmod %{{
-	printf " Chmod bits (e.g. +x or 644): "
+  oldperms=$(stat -c "%a" "$f")
+  printf "Chmod bits: "
   read -r bits
-  [ -n "$bits" ] && chmod "$bits" "$f"
+  [ -z "$bits" ] && exit
+  chmod "$bits" "$f"
+  echo "chmod|$oldperms|$f" >> /tmp/lf_undo_$USER
   lf -remote 'send reload'
 }}
 map et chmod
@@ -128,17 +131,21 @@ cmd archive %{{
 map er archive
 
 ### FZF JUMP ###
-cmd fzf_jump_dir ${{
-  res=$(fdfind --type d . | fzf --reverse --preview 'eza -a --tree --group-directories-first --color=always --icons {} || tree -C {} | head -n 20')
-  [ -n "$res" ] && lf -remote "send $id cd '$res'"
+cmd fzf_jump ${{
+  res=$(fd --hidden --exclude .git . 2>/dev/null | \
+    fzf --reverse \
+        --preview '[ -d {} ] && eza -a --tree --level=2 --group-directories-first --color=always --icons {} 2>/dev/null || batcat --color=always --style=numbers --line-range=:100 {} 2>/dev/null || cat {}' \
+        </dev/tty)
+  [ -z "$res" ] && exit
+  if [ -d "$res" ]; then
+    lf -remote "send $id cd '$res'"
+  else
+    lf -remote "send $id cd '$(dirname "$res")'"
+    lf -remote "send $id select '$res'"
+    lf -remote "send $id open"
+  fi
 }}
-map fj fzf_jump_dir
-
-cmd fzf_jump_file ${{
-  res=$(fdfind --type f . | fzf --reverse --preview 'batcat --color=always --style=numbers {} || cat {}')
-  [ -n "$res" ] && lf -remote "send $id cd '$(dirname "$res")'" && ${EDITOR:-nvim} "$res"
-}}
-map fk fzf_jump_file
+map fj fzf_jump
 
 ### FOLLOW SYMLINK ###
 cmd follow-link ${{
@@ -152,6 +159,20 @@ cmd follow-link ${{
   fi
 }}
 map gf follow-link
+
+### RENAME ###
+cmd rename ${{
+  old="$f"
+  oldname=$(basename "$old")
+  printf "New name: "
+  read -r newname
+  [ -z "$newname" ] && exit
+  newpath="$(dirname "$old")/$newname"
+  mv -- "$old" "$newpath"
+  echo "rename|$old|$newpath" >> /tmp/lf_undo_$USER
+  lf -remote 'send reload'
+}}
+map r rename
 
 ### OPEN FILE ###
 cmd open ${{
@@ -218,3 +239,47 @@ cmd scp ${{
   fi
 }}
 map cs scp
+
+cmd undo ${{
+  [ ! -f /tmp/lf_undo_$USER ] && echo "Nothing to undo." && exit
+  last=$(tail -1 /tmp/lf_undo_$USER)
+  action=$(echo "$last" | cut -d'|' -f1)
+  data=$(echo "$last" | cut -d'|' -f2-)
+
+  case "$action" in
+    paste)
+      rm -rf "$data"
+      sed -i '$d' /tmp/lf_undo_$USER
+      lf -remote 'send reload'
+      ;;
+    rename)
+      old=$(echo "$data" | cut -d'|' -f1)
+      new=$(echo "$data" | cut -d'|' -f2)
+      mv -- "$new" "$old"
+      sed -i '$d' /tmp/lf_undo_$USER
+      lf -remote 'send reload'
+      ;;
+    chmod)
+      perms=$(echo "$data" | cut -d'|' -f1)
+      fp=$(echo "$data" | cut -d'|' -f2)
+      chmod "$perms" "$fp"
+      sed -i '$d' /tmp/lf_undo_$USER
+      lf -remote 'send reload'
+      ;;
+		trash)
+			path=$(echo "$data" | cut -d'|' -f2)
+			filename=$(basename "$path")
+			trashinfo=~/.local/share/Trash/info/${filename}.trashinfo
+			trashed=~/.local/share/Trash/files/${filename}
+			if [ -e "$trashed" ] && [ -f "$trashinfo" ]; then
+				mv "$trashed" "$path"
+				rm "$trashinfo"
+				sed -i '$d' /tmp/lf_undo_$USER
+			else
+				echo "Can't find $filename in trash"
+			fi
+			lf -remote 'send reload'
+			;;
+  esac
+}}
+map u undo
