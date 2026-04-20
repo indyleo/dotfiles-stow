@@ -225,7 +225,7 @@ ShellRoot {
 					return;
 				}
 				root.showMedia = true;
-				let parts = data.trim().split("|");
+				let parts = data.trim().split("\t");
 				if (parts.length >= 7) {
 					root.mediaIsPlaying = (parts[2] === "Playing");
 					root.mediaIcon = root.mediaIsPlaying ? "" : "";
@@ -396,25 +396,23 @@ ShellRoot {
 								font.pixelSize: root.fontSize + 2
 								font.family: root.fontFamily
 							}
-
 							// 📜 Song Name (Scrolling Marquee)
 							Item {
-								Layout.maximumWidth: 180
 								Layout.preferredWidth: Math.min(180, songTxt.implicitWidth)
 								Layout.preferredHeight: songTxt.implicitHeight
 								clip: true
 
 								Text {
 									id: songTxt
+									x: 0
 									text: root.mediaTitle !== "" ? root.mediaTitle : "Unknown Title"
 									color: root.cal6
 									font.pixelSize: root.fontSize
 									font.family: root.fontFamily
-
-									// Reset and restart scroll whenever the song title changes
 									onTextChanged: {
 										songScrollAnim.stop()
 										songTxt.x = 0
+										if (songTxt.implicitWidth > 180)
 										songScrollAnim.restart()
 									}
 
