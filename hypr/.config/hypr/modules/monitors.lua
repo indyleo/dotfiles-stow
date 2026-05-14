@@ -1,0 +1,26 @@
+-- --- Second Monitor ---
+hl.monitor({
+    output = "HDMI-A-1",
+    mode = "1920x1080@74.97300",
+    position = "0x-1080",
+    scale = 1,
+    transform = 0,
+})
+
+-- --- Primary Monitor (UltraWide) ---
+hl.monitor({
+    output = "DP-1",
+    mode = "2560x1080@120.00",
+    position = "0x0",
+    scale = 1,
+    transform = 0,
+})
+
+-- --- Third Monitor ---
+hl.monitor({
+    output = "HDMI-A-4",
+    mode = "1024x600@59.82100",
+    position = "0x1080",
+    scale = 1,
+    transform = 2,
+})

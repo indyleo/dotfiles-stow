@@ -1,0 +1,8 @@
+terminal    = "foot"
+fileManager = "thunar"
+menu        = "rofi -show drun"
+browser     = "qutebrowser"
+scrPath     = os.getenv("HOME") .. "/.config/hypr/scripts"
+barLaunch   = scrPath .. "/bar-launch.sh"
+scratchpad  = scrPath .. "/scratchpad.sh"
+portal      = scrPath .. "/portal-hypr.sh"
