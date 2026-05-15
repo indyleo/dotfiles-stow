@@ -1,25 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <actions>
 <action>
-	<icon>nvim</icon>
-	<name>Neovide Open</name>
-	<submenu></submenu>
-	<unique-id>1746148422893146-1</unique-id>
-	<command>neovide %f</command>
-	<description>Open neovide for files</description>
-	<range>*</range>
-	<patterns>*</patterns>
-	<directories/>
-	<other-files/>
-	<text-files/>
-</action>
-<action>
-	<icon>cool-retro-term</icon>
-	<name>Foot Open</name>
+	<icon>org.wezfurlong.wezterm</icon>
+	<name>Wezterm Open</name>
 	<submenu></submenu>
 	<unique-id>1761402120701248-1</unique-id>
-	<command>foot -e zsh -c &quot;cd %f; exec zsh&quot;</command>
-	<description>Open the cwd in foot</description>
+	<command>wezterm start --cwd &quot;%f&quot; zsh</command>
+	<description>Open the cwd in wezterm</description>
 	<range>*</range>
 	<patterns>*</patterns>
 	<directories/>
@@ -29,7 +16,7 @@
 	<name>Neovim Open</name>
 	<submenu></submenu>
 	<unique-id>1774128345347711-1</unique-id>
-	<command>foot -e nvim %f</command>
+	<command>wezterm start -- nvim %f</command>
 	<description>Open files in neovim</description>
 	<range>*</range>
 	<patterns>*</patterns>
