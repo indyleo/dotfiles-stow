@@ -58,9 +58,20 @@ config.enable_tab_bar = true
 config.hide_tab_bar_if_only_one_tab = true
 config.use_fancy_tab_bar = true
 config.audible_bell = "Disabled"
-config.visual_bell = { fade_in_duration_ms = 0, fade_out_duration_ms = 0 }
-config.front_end = "WebGpu"
 config.automatically_reload_config = true
+
+------------------------------------------------------------
+-- Performance
+------------------------------------------------------------
+
+config.front_end = "WebGpu"
+config.webgpu_power_preference = "HighPerformance"
+config.max_fps = 60
+config.scrollback_lines = 10000
+config.mux_output_parser_buffer_size = 1048576
+config.mux_output_parser_coalesce_delay_ms = 1
+config.prefer_egl = false
+config.window_close_confirmation = "NeverPrompt"
 
 ------------------------------------------------------------
 -- Mouse bindings
@@ -133,39 +144,49 @@ local function shell_lines(cmd)
 	return lines
 end
 
-local function find_projects()
-	local results, seen = {}, {}
+-- Cache: populated on first picker open, persists for the session.
+-- To force a rescan mid-session, bind a key to: wezterm.action_callback(function() _cache = {} end)
+local _cache = {}
+
+local function scan_dirs()
+	if _cache.scanned then
+		return
+	end
+	local projects, git_repos = {}, {}
+	local seen_p, seen_g = {}, {}
 	for _, root in ipairs(search_dirs) do
-		for _, dir in ipairs(shell_lines("find " .. root .. " -mindepth 1 -maxdepth 2 -type d -not -path '*/.*'")) do
-			local bname = basename(dir)
-			if not excluded_dirs[bname] and not seen[dir] then
-				seen[dir] = true
-				results[#results + 1] = dir
+		for _, p in ipairs(shell_lines("find " .. root .. " -mindepth 1 -maxdepth 3 -type d -not -name '.*'")) do
+			local bname = basename(p)
+			if bname == ".git" then
+				local repo = p:match("^(.+)/%.git$")
+				if repo and not seen_g[repo] then
+					seen_g[repo] = true
+					git_repos[#git_repos + 1] = repo
+				end
+			elseif not excluded_dirs[bname] and not seen_p[p] then
+				seen_p[p] = true
+				projects[#projects + 1] = p
 			end
 		end
 	end
-	return results
+	table.sort(git_repos)
+	_cache.projects = projects
+	_cache.git_repos = git_repos
+	_cache.scanned = true
 end
 
+local function find_projects()
+	scan_dirs()
+	return _cache.projects
+end
 local function find_git_repos()
-	local results, seen = {}, {}
-	for _, root in ipairs(search_dirs) do
-		for _, git_dir in ipairs(shell_lines("find " .. root .. " -mindepth 2 -maxdepth 3 -type d -name .git")) do
-			local repo = git_dir:match("^(.+)/%.git$")
-			if repo and not seen[repo] then
-				seen[repo] = true
-				results[#results + 1] = repo
-			end
-		end
-	end
-	table.sort(results)
-	return results
+	scan_dirs()
+	return _cache.git_repos
 end
 
 local function open_project(window, pane, project_path)
 	local name = safe_name(basename(project_path))
 
-	-- Switch to the workspace if it already exists
 	for _, ws in ipairs(wezterm.mux.get_workspace_names()) do
 		if ws == name then
 			window:perform_action(wezterm.action.SwitchToWorkspace({ name = name }), pane)
@@ -173,27 +194,16 @@ local function open_project(window, pane, project_path)
 		end
 	end
 
-	-- Create a new window in the background assigned to our new workspace
-	-- This returns the newly created tab, pane, and window objects synchronously
-	local nvim_tab, nvim_pane, mux_window = wezterm.mux.spawn_window({
+	local nvim_tab, _, mux_window = wezterm.mux.spawn_window({
 		workspace = name,
 		cwd = project_path,
 		args = { "nvim", "-c", ":Lf" },
 	})
 
-	-- Spawn the second tab (the plain shell) inside that same new window
 	mux_window:spawn_tab({ cwd = project_path })
-
-	-- Make sure the first tab (Neovim) is the one in focus
 	nvim_tab:activate()
 
-	-- Finally, switch your GUI to the fully constructed workspace
-	window:perform_action(
-		wezterm.action.SwitchToWorkspace({
-			name = name,
-		}),
-		pane
-	)
+	window:perform_action(wezterm.action.SwitchToWorkspace({ name = name }), pane)
 end
 
 local function paths_to_choices(paths)
