@@ -12,7 +12,7 @@ if [[ "$*" == *"--gui"* ]]; then
     LAUNCH_CMD="$COMMAND"
 else
     APP_ID="termsc-$NAME"
-    LAUNCH_CMD="foot --app-id=$APP_ID -e $COMMAND"
+    LAUNCH_CMD="wezterm start --class $APP_ID -- $COMMAND"
 fi
 
 # hyprctl dispatch in 0.55+ parses args as Lua — use hl.dsp.* syntax
