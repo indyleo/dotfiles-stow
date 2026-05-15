@@ -63,7 +63,6 @@ config.automatically_reload_config = true
 ------------------------------------------------------------
 -- Performance
 ------------------------------------------------------------
-
 config.front_end = "WebGpu"
 config.webgpu_power_preference = "HighPerformance"
 config.max_fps = 60
@@ -99,30 +98,6 @@ local search_dirs = {
 	home .. "/Github",
 }
 
-local excluded_dirs = {
-	bin = 1,
-	lib = 1,
-	include = 1,
-	utils = 1,
-	example = 1,
-	examples = 1,
-	node_modules = 1,
-	vendor = 1,
-	dist = 1,
-	build = 1,
-	["zig-out"] = 1,
-	cmd = 1,
-	demo = 1,
-	scripts = 1,
-	test = 1,
-	tests = 1,
-	schema = 1,
-	pkg = 1,
-	docs = 1,
-	src = 1,
-	res = 1,
-}
-
 local function basename(path)
 	return path:match("([^/]+)$") or path
 end
@@ -145,49 +120,28 @@ local function shell_lines(cmd)
 end
 
 -- Cache: populated on first picker open, persists for the session.
--- To force a rescan mid-session, bind a key to: wezterm.action_callback(function() _cache = {} end)
 local _cache = {}
 
 local function scan_dirs()
 	if _cache.scanned then
 		return
 	end
-	local projects, git_repos = {}, {}
-	local seen_p, seen_g = {}, {}
+	local git_repos = {}
+	local seen = {}
 
 	for _, root in ipairs(search_dirs) do
-		-- Git repos: explicitly search for .git dirs (allow hidden)
 		for _, p in ipairs(shell_lines("find " .. root .. " -mindepth 2 -maxdepth 4 -type d -name '.git'")) do
 			local repo = p:match("^(.+)/%.git$")
-			if repo and not seen_g[repo] then
-				seen_g[repo] = true
+			if repo and not seen[repo] then
+				seen[repo] = true
 				git_repos[#git_repos + 1] = repo
-			end
-		end
-
-		-- Projects: only top-level dirs (maxdepth 1), not hidden
-		for _, p in ipairs(shell_lines("find " .. root .. " -mindepth 1 -maxdepth 1 -type d -not -name '.*'")) do
-			local bname = basename(p)
-			if not excluded_dirs[bname] and not seen_p[p] then
-				seen_p[p] = true
-				projects[#projects + 1] = p
 			end
 		end
 	end
 
 	table.sort(git_repos)
-	_cache.projects = projects
 	_cache.git_repos = git_repos
 	_cache.scanned = true
-end
-
-local function find_projects()
-	scan_dirs()
-	return _cache.projects
-end
-local function find_git_repos()
-	scan_dirs()
-	return _cache.git_repos
 end
 
 local function open_project(window, pane, project_path)
@@ -212,38 +166,34 @@ local function open_project(window, pane, project_path)
 	window:perform_action(wezterm.action.SwitchToWorkspace({ name = name }), pane)
 end
 
-local function paths_to_choices(paths)
+local function pick_projects(window, pane)
+	scan_dirs()
+	local paths = _cache.git_repos
+
+	if #paths == 0 then
+		window:toast_notification("project-session", "No projects found.", nil, 4000)
+		return
+	end
+
 	local choices = {}
 	for _, p in ipairs(paths) do
 		choices[#choices + 1] = { label = p, id = p }
 	end
-	return choices
-end
 
-local function pick_action(mode)
-	return wezterm.action_callback(function(window, pane)
-		local paths = mode == "git" and find_git_repos() or find_projects()
-
-		if #paths == 0 then
-			window:toast_notification("project-session", "No projects found.", nil, 4000)
-			return
-		end
-
-		window:perform_action(
-			wezterm.action.InputSelector({
-				action = wezterm.action_callback(function(win, pn, id)
-					if id then
-						open_project(win, pn, id)
-					end
-				end),
-				title = mode == "git" and "Git repos" or "Projects",
-				choices = paths_to_choices(paths),
-				fuzzy = true,
-				fuzzy_description = "Search: ",
-			}),
-			pane
-		)
-	end)
+	window:perform_action(
+		wezterm.action.InputSelector({
+			action = wezterm.action_callback(function(win, pn, id)
+				if id then
+					open_project(win, pn, id)
+				end
+			end),
+			title = "Projects",
+			choices = choices,
+			fuzzy = true,
+			fuzzy_description = "Search: ",
+		}),
+		pane
+	)
 end
 
 ------------------------------------------------------------
@@ -288,7 +238,7 @@ config.keys = {
 	----------------------------------------------------------
 	-- Workspace / project picker
 	----------------------------------------------------------
-	{ key = "p", mods = "LEADER", action = pick_action("project") },
+	{ key = "p", mods = "LEADER", action = wezterm.action_callback(pick_projects) },
 	{
 		key = "w",
 		mods = "LEADER",
