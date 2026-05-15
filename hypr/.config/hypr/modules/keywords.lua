@@ -1,4 +1,4 @@
-terminal = "wezterm"
+terminal = "wezterm start --always-new-process"
 fileManager = "thunar"
 menu = "rofi -show drun"
 browser = "qutebrowser"
