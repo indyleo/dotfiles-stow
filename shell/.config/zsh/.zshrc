@@ -40,9 +40,6 @@ eval "$(rustup completions zsh)"
 eval "$(rbw gen-completions zsh)"
 fpath+=$PLUGINDIR/zsh-completions/src
 
-# Startup
-fastfetch
-
 # vi mode
 bindkey -v
 export KEYTIMEOUT=1
@@ -123,6 +120,17 @@ source $PLUGINDIR/zsh-autopair/autopair.zsh 2>/dev/null
 source $PLUGINDIR/zsh-history-substring-search/zsh-history-substring-search.zsh 2>/dev/null
 source $PLUGINDIR/zsh-you-should-use/you-should-use.plugin.zsh 2>/dev/null
 source $PLUGINDIR/zsh-vi-mode/zsh-vi-mode.plugin.zsh 2>/dev/null
+
+# Fastfetch after full init (fixes column width in WezTerm splits)
+_fastfetch_once() {
+    if [[ -n "$WEZTERM_PANE" ]]; then
+        # Give WezTerm time to send SIGWINCH with the real split dimensions
+        sleep 0.15
+    fi
+    fastfetch
+    precmd_functions=("${(@)precmd_functions:#_fastfetch_once}")
+}
+precmd_functions+=(_fastfetch_once)
 
 # Add to bottom:
 # zprof > ~/.zprof
