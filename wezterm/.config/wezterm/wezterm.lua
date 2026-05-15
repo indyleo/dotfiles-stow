@@ -154,21 +154,27 @@ local function scan_dirs()
 	end
 	local projects, git_repos = {}, {}
 	local seen_p, seen_g = {}, {}
+
 	for _, root in ipairs(search_dirs) do
-		for _, p in ipairs(shell_lines("find " .. root .. " -mindepth 1 -maxdepth 3 -type d -not -name '.*'")) do
+		-- Git repos: explicitly search for .git dirs (allow hidden)
+		for _, p in ipairs(shell_lines("find " .. root .. " -mindepth 2 -maxdepth 4 -type d -name '.git'")) do
+			local repo = p:match("^(.+)/%.git$")
+			if repo and not seen_g[repo] then
+				seen_g[repo] = true
+				git_repos[#git_repos + 1] = repo
+			end
+		end
+
+		-- Projects: only top-level dirs (maxdepth 1), not hidden
+		for _, p in ipairs(shell_lines("find " .. root .. " -mindepth 1 -maxdepth 1 -type d -not -name '.*'")) do
 			local bname = basename(p)
-			if bname == ".git" then
-				local repo = p:match("^(.+)/%.git$")
-				if repo and not seen_g[repo] then
-					seen_g[repo] = true
-					git_repos[#git_repos + 1] = repo
-				end
-			elseif not excluded_dirs[bname] and not seen_p[p] then
+			if not excluded_dirs[bname] and not seen_p[p] then
 				seen_p[p] = true
 				projects[#projects + 1] = p
 			end
 		end
 	end
+
 	table.sort(git_repos)
 	_cache.projects = projects
 	_cache.git_repos = git_repos
@@ -283,7 +289,6 @@ config.keys = {
 	-- Workspace / project picker
 	----------------------------------------------------------
 	{ key = "p", mods = "LEADER", action = pick_action("project") },
-	{ key = "g", mods = "LEADER", action = pick_action("git") },
 	{
 		key = "w",
 		mods = "LEADER",
