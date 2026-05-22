@@ -94,8 +94,7 @@ vim.pack.add {
   { src = gh "windwp/nvim-autopairs", name = "nvim-autopairs" },
   { src = gh "kylechui/nvim-surround", name = "nvim-surround" },
 
-  -- ── Navigation ────────────────────────────────────────────────────────
-  { src = gh "ThePrimeagen/harpoon", name = "harpoon", version = "harpoon2" },
+  -- ── Dependencies ──────────────────────────────────────────────────────
   { src = gh "nvim-lua/plenary.nvim", name = "plenary.nvim" },
 
   -- ── Motion ────────────────────────────────────────────────────────────
