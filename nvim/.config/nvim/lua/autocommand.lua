@@ -9,7 +9,9 @@ local function proc_check(program)
     pid = pid:match "^%s*(%d+)%s*$"
     if pid then
       local cmd = vim.fn.systemlist({ "sh", "-c", "ps -p " .. pid .. " -o args=" })[1] or ""
-      if cmd:match(program) then return true end
+      if cmd:match(program) then
+        return true
+      end
     end
   end
   return false
@@ -22,7 +24,9 @@ local allowed_dirs = {
 
 local function is_in_allowed_dir(filepath)
   for _, dir in ipairs(allowed_dirs) do
-    if filepath:sub(1, #dir) == dir then return true end
+    if filepath:sub(1, #dir) == dir then
+      return true
+    end
   end
   return false
 end
@@ -34,7 +38,7 @@ local autocmd = vim.api.nvim_create_autocmd
 
 -- Automatically add the header on new file creation
 autocmd("BufNewFile", {
-  group   = augroup "FileHeader",
+  group = augroup "FileHeader",
   pattern = "*",
   callback = function()
     vim.defer_fn(function()
@@ -46,20 +50,22 @@ autocmd("BufNewFile", {
 
 -- Highlight on yank
 autocmd("TextYankPost", {
-  group    = augroup "Highlight-Yank",
-  callback = function() vim.hl.on_yank() end,
+  group = augroup "Highlight-Yank",
+  callback = function()
+    vim.hl.on_yank()
+  end,
 })
 
 -- Trim trailing whitespace
 autocmd({ "BufWritePre" }, {
-  group   = augroup "TrimTrailingWhitespace",
+  group = augroup "TrimTrailingWhitespace",
   pattern = "*",
   command = [[%s/\s\+$//e]],
 })
 
 -- Hide "[Process exited 0]" when closing a terminal
 autocmd("TermClose", {
-  group    = augroup "SilentKill",
+  group = augroup "SilentKill",
   callback = function()
     vim.cmd "silent! bd!"
     vim.schedule(function()
@@ -77,18 +83,18 @@ autocmd("TermClose", {
 })
 
 autocmd("TermOpen", {
-  group   = augroup "TermSettings",
+  group = augroup "TermSettings",
   pattern = "*",
   callback = function()
-    vim.opt_local.number         = false
+    vim.opt_local.number = false
     vim.opt_local.relativenumber = false
-    vim.opt_local.signcolumn     = "no"
+    vim.opt_local.signcolumn = "no"
   end,
 })
 
 -- Track modified state before write
 autocmd("BufWritePre", {
-  group   = augroup "TrackModified",
+  group = augroup "TrackModified",
   pattern = { "config.def.h", "keymaps.lua", "options.lua", "guioptions.lua", "autocommand.lua", "init.lua" },
   callback = function(args)
     was_modified[args.buf] = vim.bo.modified
@@ -97,7 +103,7 @@ autocmd("BufWritePre", {
 
 -- Auto-compile config.def.h
 autocmd("BufWritePost", {
-  group   = augroup "AutoCompileConfig",
+  group = augroup "AutoCompileConfig",
   pattern = "config.def.h",
   callback = function(args)
     if not proc_check "autocompile" then
@@ -114,7 +120,7 @@ autocmd("BufWritePost", {
 
 -- Auto-reload Lua config files on save
 autocmd("BufWritePost", {
-  group   = augroup "AutoReload",
+  group = augroup "AutoReload",
   pattern = { "keymaps.lua", "options.lua", "guioptions.lua", "autocommand.lua", "init.lua" },
   callback = function(args)
     local filepath = vim.fn.expand "%:p"
