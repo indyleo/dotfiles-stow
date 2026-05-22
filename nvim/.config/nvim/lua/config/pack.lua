@@ -477,11 +477,6 @@ load("gitsigns.nvim", function()
   }
 end)
 
--- ── harpoon ─────────────────────────────────────────────────────────────
-load("harpoon", function()
-  require("harpoon"):setup()
-end)
-
 -- ── nvim-autopairs ──────────────────────────────────────────────────────
 load("nvim-autopairs", function()
   require("nvim-autopairs").setup {
