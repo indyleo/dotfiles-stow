@@ -166,8 +166,12 @@ vim.api.nvim_create_autocmd("LspAttach", {
       ["<leader>rn"] = vim.lsp.buf.rename,
       ["<leader>D"] = ":FzfLua diagnostics_document<CR>",
       ["<leader>d"] = vim.diagnostic.open_float,
-      ["[d"] = vim.diagnostic.jump { count = -1 },
-      ["]d"] = vim.diagnostic.jump { count = 1 },
+      ["[d"] = function()
+        vim.diagnostic.jump { count = -1 }
+      end,
+      ["]d"] = function()
+        vim.diagnostic.jump { count = 1 }
+      end,
       ["gK"] = vim.lsp.buf.hover,
       ["<leader>rs"] = ":LspRestart<CR>",
     }
