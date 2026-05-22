@@ -493,12 +493,12 @@ end)
 -- ── neoscroll + smear-cursor ────────────────────────────────────────────
 load("neoscroll.nvim", function()
   require("neoscroll").setup {}
-  if vim.g.neovide then
-    require("smear_cursor").enabled = false
-  end
 end)
 
 load("smear-cursor.nvim", function()
+  if vim.g.neovide then
+    require("smear_cursor").enabled = false
+  end
   require("smear_cursor").setup {
     stiffness = 0.5,
     trailing_stiffness = 0.5,
