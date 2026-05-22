@@ -11,12 +11,17 @@
 -- │  :PackDel <name>      – remove a plugin by name right now                │
 -- │  :PackReinstall <name>– del + add in one shot (e.g. to switch branch)    │
 -- │  :PackList            – print all plugin names to the command line        │
--- │  :PackLog             – tail the nvim-pack.log file                      │
 -- │  :PackEdit            – open this file for editing                       │
 -- └──────────────────────────────────────────────────────────────────────────┘
 
 local gh = function(x)
   return "https://github.com/" .. x
+end
+local _gl = function(x)
+  return "https://gitlab.com/" .. x
+end
+local _cb = function(x)
+  return "https://codeberg.org/" .. x
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -772,19 +777,6 @@ cmd("PackList", function()
     {}
   )
 end, { desc = "List all managed plugins ([+] active, [-] inactive)" })
-
--- :PackLog — tail the nvim-pack.log in a split
-cmd("PackLog", function()
-  local log = vim.fn.stdpath "log" .. "/nvim-pack.log"
-  if vim.fn.filereadable(log) == 0 then
-    vim.notify("No pack log found at: " .. log, vim.log.levels.WARN)
-    return
-  end
-  vim.cmd("botright 16split " .. vim.fn.fnameescape(log))
-  vim.cmd "normal! G" -- jump to end
-  vim.api.nvim_set_option_value("modifiable", false, { buf = 0 })
-  vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = 0 })
-end, { desc = "Open the nvim-pack update log" })
 
 -- :PackEdit — open this file for editing
 cmd("PackEdit", function()
