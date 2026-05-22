@@ -30,11 +30,16 @@ local bool_opts = {
   number = true,
   relativenumber = true,
   wrap = false,
+  smartindent = true,
   showmode = false,
   title = true,
   foldenable = true,
   termguicolors = true,
   linebreak = true,
+  splitbelow = true,
+  splitright = true,
+  ignorecase = true,
+  smartcase = true,
 }
 for k, v in pairs(bool_opts) do
   opt[k] = v
@@ -70,6 +75,7 @@ local str_opts = {
   signcolumn = "yes",
   shell = "zsh",
   mouse = "",
+  inccommand = "split",
   titlestring = "Neovim - %t (%{expand('%:p:h')})",
   winborder = "rounded",
   foldmethod = "expr",
