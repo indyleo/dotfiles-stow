@@ -2,11 +2,11 @@
 <actions>
 <action>
 	<icon>org.wezfurlong.wezterm</icon>
-	<name>Wezterm Open</name>
+	<name>Foot Open</name>
 	<submenu></submenu>
 	<unique-id>1761402120701248-1</unique-id>
-	<command>wezterm start --cwd &quot;%f&quot; zsh</command>
-	<description>Open the cwd in wezterm</description>
+	<command>foot --working-directory=&quot;%f&quot; zsh</command>
+	<description>Open the cwd in foot</description>
 	<range>*</range>
 	<patterns>*</patterns>
 	<directories/>
@@ -16,7 +16,7 @@
 	<name>Neovim Open</name>
 	<submenu></submenu>
 	<unique-id>1774128345347711-1</unique-id>
-	<command>wezterm start -- nvim %f</command>
+	<command>foot nvim %f</command>
 	<description>Open files in neovim</description>
 	<range>*</range>
 	<patterns>*</patterns>
