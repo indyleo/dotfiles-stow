@@ -1,4 +1,4 @@
-terminal = "wezterm"
+terminal = "footclient"
 fileManager = "thunar"
 menu = "rofi -show drun"
 browser = "qutebrowser"
