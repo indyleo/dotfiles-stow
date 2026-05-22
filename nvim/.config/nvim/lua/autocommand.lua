@@ -1,32 +1,28 @@
--- Vars/Functions
+-- autocommand.lua
+-- NOTE: vim.loop is deprecated in Neovim 0.10+; use vim.uv instead.
+
 local was_modified = {}
+
 local function proc_check(program)
   local pids = vim.fn.systemlist { "sh", "-c", "pgrep -f " .. program }
-
   for _, pid in ipairs(pids) do
-    -- Trim PID and verify it's a number
     pid = pid:match "^%s*(%d+)%s*$"
     if pid then
-      -- Get the actual command used to start the process
       local cmd = vim.fn.systemlist({ "sh", "-c", "ps -p " .. pid .. " -o args=" })[1] or ""
-      if cmd:match(program) then
-        return true
-      end
+      if cmd:match(program) then return true end
     end
   end
-
   return false
 end
--- Allowed directories
+
 local allowed_dirs = {
   vim.fn.expand "~/.config/nvim/lua/",
   vim.fn.expand "~/Github/dotfiles-stow/nvim/.config/nvim/lua/",
 }
+
 local function is_in_allowed_dir(filepath)
   for _, dir in ipairs(allowed_dirs) do
-    if filepath:sub(1, #dir) == dir then
-      return true
-    end
+    if filepath:sub(1, #dir) == dir then return true end
   end
   return false
 end
@@ -38,45 +34,38 @@ local autocmd = vim.api.nvim_create_autocmd
 
 -- Automatically add the header on new file creation
 autocmd("BufNewFile", {
-  group = augroup("FileHeader", { clear = true }),
+  group   = augroup "FileHeader",
   pattern = "*",
   callback = function()
-    -- Delay execution to ensure filetype is set
     vim.defer_fn(function()
       vim.cmd.FileHeader()
       vim.cmd.startinsert()
-    end, 5) -- Delay of 5ms
+    end, 5)
   end,
 })
 
 -- Highlight on yank
 autocmd("TextYankPost", {
-  group = augroup "Highlight-Yank",
-  callback = function()
-    vim.hl.on_yank()
-  end,
+  group    = augroup "Highlight-Yank",
+  callback = function() vim.hl.on_yank() end,
 })
 
 -- Trim trailing whitespace
 autocmd({ "BufWritePre" }, {
-  group = augroup "TrimTrailingWhitespace",
+  group   = augroup "TrimTrailingWhitespace",
   pattern = "*",
   command = [[%s/\s\+$//e]],
 })
 
--- Hides the "[Process exited 0]" call whenever you close a terminal
+-- Hide "[Process exited 0]" when closing a terminal
 autocmd("TermClose", {
-  group = augroup "SilentKill",
+  group    = augroup "SilentKill",
   callback = function()
-    vim.cmd "silent! bd!" -- Close the buffer silently
-
-    -- Restore statusline after buffer deletion
+    vim.cmd "silent! bd!"
     vim.schedule(function()
-      -- Reapply statusline to all windows
       for _, win in ipairs(vim.api.nvim_list_wins()) do
         if vim.api.nvim_win_is_valid(win) then
           local bufnr = vim.api.nvim_win_get_buf(win)
-          -- Skip if it's a terminal buffer
           if vim.api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].buftype ~= "terminal" then
             vim.wo[win].statusline = "%!v:lua.status_line()"
           end
@@ -88,27 +77,27 @@ autocmd("TermClose", {
 })
 
 autocmd("TermOpen", {
-  group = augroup "TermSettings",
+  group   = augroup "TermSettings",
   pattern = "*",
   callback = function()
-    vim.opt_local.number = false
+    vim.opt_local.number         = false
     vim.opt_local.relativenumber = false
-    vim.opt_local.signcolumn = "no"
+    vim.opt_local.signcolumn     = "no"
   end,
 })
 
--- Save the modified state *before* write
+-- Track modified state before write
 autocmd("BufWritePre", {
-  group = augroup "TrackModified",
+  group   = augroup "TrackModified",
   pattern = { "config.def.h", "keymaps.lua", "options.lua", "guioptions.lua", "autocommand.lua", "init.lua" },
   callback = function(args)
     was_modified[args.buf] = vim.bo.modified
   end,
 })
 
--- Auto command for config.def.h (only run if modified)
+-- Auto-compile config.def.h
 autocmd("BufWritePost", {
-  group = augroup "AutoCompileConfig",
+  group   = augroup "AutoCompileConfig",
   pattern = "config.def.h",
   callback = function(args)
     if not proc_check "autocompile" then
@@ -119,20 +108,20 @@ autocmd("BufWritePost", {
     else
       vim.notify("AutoCompilation already running", vim.log.levels.WARN)
     end
-    was_modified[args.buf] = nil -- clear flag
+    was_modified[args.buf] = nil
   end,
 })
 
--- Auto reload only if modified and in allowed directories
+-- Auto-reload Lua config files on save
 autocmd("BufWritePost", {
-  group = augroup "AutoReload",
+  group   = augroup "AutoReload",
   pattern = { "keymaps.lua", "options.lua", "guioptions.lua", "autocommand.lua", "init.lua" },
   callback = function(args)
-    local filepath = vim.fn.expand "%:p" -- full path
+    local filepath = vim.fn.expand "%:p"
     if was_modified[args.buf] and is_in_allowed_dir(filepath) then
       vim.cmd.luafile(filepath)
       vim.notify("Reloaded " .. vim.fn.expand "%:t", vim.log.levels.INFO)
     end
-    was_modified[args.buf] = nil -- clear flag
+    was_modified[args.buf] = nil
   end,
 })

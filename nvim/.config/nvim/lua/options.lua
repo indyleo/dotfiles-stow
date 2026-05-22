@@ -11,84 +11,73 @@ let g:netrw_preview = 1
 ]]
 
 -- ========================
--- Options grouped in tables
--- ========================
-
 -- Disable providers
-local providers = {
-  "node",
-  "perl",
-  "ruby",
-}
+-- ========================
+local providers = { "node", "perl", "ruby" }
 for _, provider in ipairs(providers) do
   vim.g["loaded_" .. provider .. "_provider"] = 0
 end
 
 -- ========================
--- Options
--- ========================
-
 -- Boolean options
+-- ========================
 local bool_opts = {
-  backup = false,
-  writebackup = false,
-  swapfile = false,
-  undofile = true,
-  cursorline = true,
-  number = true,
+  backup        = false,
+  writebackup   = false,
+  swapfile      = false,
+  undofile      = true,
+  cursorline    = true,
+  number        = true,
   relativenumber = true,
-  wrap = false,
-  showmode = false,
-  title = true,
-  foldenable = true,
+  wrap          = false,
+  showmode      = false,
+  title         = true,
+  foldenable    = true,
   termguicolors = true,
-  linebreak = true,
+  linebreak     = true,
 }
+for k, v in pairs(bool_opts) do opt[k] = v end
 
-for k, v in pairs(bool_opts) do
-  opt[k] = v
-end
-
+-- ========================
 -- Number options
+-- ========================
 local num_opts = {
-  timeoutlen = 300,
-  updatetime = 300,
-  scrolloff = 8,
-  sidescrolloff = 8,
-  shiftwidth = 2,
-  tabstop = 2,
-  numberwidth = 4,
-  cmdheight = 1,
-  pumheight = 10,
-  foldlevel = 99,
+  timeoutlen     = 300,
+  updatetime     = 300,
+  scrolloff      = 8,
+  sidescrolloff  = 8,
+  shiftwidth     = 2,
+  tabstop        = 2,
+  numberwidth    = 4,
+  cmdheight      = 1,
+  pumheight      = 10,
+  foldlevel      = 99,
   foldlevelstart = 99,
-  laststatus = 3,
+  laststatus     = 3,
 }
+for k, v in pairs(num_opts) do opt[k] = v end
 
-for k, v in pairs(num_opts) do
-  opt[k] = v
-end
-
+-- ========================
 -- String options
+-- ========================
 local str_opts = {
-  clipboard = "unnamedplus",
-  fileencoding = "utf-8",
-  signcolumn = "yes",
-  shell = "zsh",
-  mouse = "",
-  titlestring = "Neovim - %t (%{expand('%:p:h')})",
-  winborder = "rounded",
-  foldmethod = "expr",
-  foldexpr = "nvim_treesitter#foldexpr()",
-  foldcolumn = "1",
-  completeopt = "menuone,noselect",
+  clipboard      = "unnamedplus",
+  fileencoding   = "utf-8",
+  signcolumn     = "yes",
+  shell          = "zsh",
+  mouse          = "",
+  titlestring    = "Neovim - %t (%{expand('%:p:h')})",
+  winborder      = "rounded",
+  foldmethod     = "expr",
+  foldexpr       = "nvim_treesitter#foldexpr()",
+  foldcolumn     = "1",
+  completeopt    = "menuone,noselect",
 }
+for k, v in pairs(str_opts) do opt[k] = v end
 
-for k, v in pairs(str_opts) do
-  opt[k] = v
-end
-
+-- ========================
 -- Append / remove options
+-- ========================
 opt.shortmess:append "c"
 opt.whichwrap:append "<,>,[,],h,l"
 opt.iskeyword:append "-"

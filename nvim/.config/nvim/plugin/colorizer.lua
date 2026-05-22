@@ -234,7 +234,7 @@ local allow = {
 local attached = {}
 
 local function attach(bufnr)
-  local ok, stats = pcall(vim.loop.fs_stat, vim.api.nvim_buf_get_name(bufnr))
+  local ok, stats = pcall((vim.uv or vim.loop).fs_stat, vim.api.nvim_buf_get_name(bufnr))
   if ok and stats and stats.size > 100 * 1024 then
     return
   end
@@ -265,7 +265,7 @@ local function attach(bufnr)
         timers[buf]:stop()
         timers[buf]:close()
       end
-      timers[buf] = vim.loop.new_timer()
+      timers[buf] = (vim.uv or vim.loop).new_timer()
       timers[buf]:start(
         150,
         0,
