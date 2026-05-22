@@ -1,5 +1,4 @@
 -- autocommand.lua
--- NOTE: vim.loop is deprecated in Neovim 0.10+; use vim.uv instead.
 
 local was_modified = {}
 
