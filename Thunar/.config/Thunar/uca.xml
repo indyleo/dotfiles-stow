@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <actions>
 <action>
-	<icon>org.wezfurlong.wezterm</icon>
+	<icon>utilities-terminal</icon>
 	<name>Foot Open</name>
 	<submenu></submenu>
 	<unique-id>1761402120701248-1</unique-id>
-	<command>foot --working-directory=&quot;%f&quot; zsh</command>
+	<command>foot sh -c &apos;cd &quot;%f&quot;; exec zsh&apos;</command>
 	<description>Open the cwd in foot</description>
 	<range>*</range>
 	<patterns>*</patterns>
