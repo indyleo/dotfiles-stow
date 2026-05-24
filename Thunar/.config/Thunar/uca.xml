@@ -5,7 +5,7 @@
 	<name>Foot Open</name>
 	<submenu></submenu>
 	<unique-id>1761402120701248-1</unique-id>
-	<command>foot sh -c &apos;cd &quot;%f&quot;; exec zsh&apos;</command>
+	<command>foot sh -c &quot;cd %f; exec zsh&quot;</command>
 	<description>Open the cwd in foot</description>
 	<range>*</range>
 	<patterns>*</patterns>
