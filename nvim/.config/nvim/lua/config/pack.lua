@@ -104,7 +104,6 @@ vim.pack.add {
   -- ── Markdown / Docs ───────────────────────────────────────────────────
   { src = gh "MeanderingProgrammer/render-markdown.nvim", name = "render-markdown.nvim" },
   { src = gh "3rd/image.nvim", name = "image.nvim" },
-  { src = gh "aspeddro/slides.nvim", name = "slides.nvim" },
 
   -- ── Which-key ─────────────────────────────────────────────────────────
   { src = gh "folke/which-key.nvim", name = "which-key.nvim" },
@@ -528,11 +527,6 @@ load("image.nvim", function()
     max_height_window_percentage = 50,
     kitty_method = "normal",
   }
-end)
-
--- ── slides.nvim ─────────────────────────────────────────────────────────
-load("slides.nvim", function()
-  require("slides").setup {}
 end)
 
 -- ── which-key ───────────────────────────────────────────────────────────

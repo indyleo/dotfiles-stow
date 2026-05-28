@@ -183,6 +183,3 @@ vim.api.nvim_create_autocmd("LspAttach", {
     vim.notify("LSP attached to: " .. vim.fn.expand "%:t", vim.log.levels.INFO)
   end,
 })
-
--- Slides
-map("n", "<leader>sp", ":Slide<CR>", "Open slides")
