@@ -13,10 +13,8 @@ PROCS=(
 DAEMON_PROCS=(
     "clipmgr.py daemon"
     "organizer.py --daemon"
-)
-ONESHOT_CMDS=(
     "desktopctl time ~/Pictures/Wallpapers/gruvbox 900"
-    "xss-lock slock"
+    "python3 -m http.server 8080 --bind 127.0.0.1 --directory ~/.config/startpage"
 )
 
 # Functions
@@ -51,12 +49,6 @@ start_daemons() {
     done
 }
 
-run_oneshot() {
-    for cmd in "${ONESHOT_CMDS[@]}"; do
-        $cmd &
-    done
-}
-
 # Main execution
 xset s off -dpms
 xset s noblank
@@ -69,16 +61,20 @@ if command_exists nvidia-settings; then
 fi
 
 # Display configuration
-if echo "$XRANDR_OUTPUT" | grep -q "HDMI-0 connected"; then
+if echo "$XRANDR_OUTPUT" | grep -q "DP-1 connected" \
+    && echo "$XRANDR_OUTPUT" | grep -q "HDMI-A-1 connected" \
+    && echo "$XRANDR_OUTPUT" | grep -q "HDMI-A-4 connected"; then
+
     xrandr \
-        --output HDMI-0 --mode 1920x1080 --rate 75.00 --primary \
-        --output eDP-1-1 --mode 1920x1080 --rate 120.00 --right-of HDMI-0
-elif echo "$XRANDR_OUTPUT" | grep -q "HDMI-1 connected" && echo "$XRANDR_OUTPUT" | grep -q "eDP-1 connected"; then
+        --output DP-1 --mode 2560x1080 --rate 120.00 --primary \
+        --output HDMI-A-1 --mode 1920x1080 --rate 74.97 --above DP-1 \
+        --output HDMI-A-4 --mode 1024x600 --rate 59.82 --below DP-1 --rotate inverted
+
+elif echo "$XRANDR_OUTPUT" | grep -q "DP-1 connected"; then
+
     xrandr \
-        --output eDP-1 --mode 1366x768 --rate 60.00 --primary \
-        --output HDMI-1 --mode 1024x600 --rate 60.00 --right-of eDP-1
-elif echo "$XRANDR_OUTPUT" | grep -q "eDP-1 connected"; then
-    xrandr --output eDP-1 --mode 1366x768 --rate 60.00 --primary
+        --output DP-1 --mode 2560x1080 --rate 120.00 --primary
+
 fi
 
 # Start compositor
@@ -93,6 +89,5 @@ systemctl --user import-environment DISPLAY
 # Start all processes
 start_processes
 start_daemons
-run_oneshot
 
 exec dwm
