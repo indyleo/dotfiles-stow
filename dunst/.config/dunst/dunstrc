@@ -236,10 +236,10 @@
 
 
 [urgency_low]
- 		msg_urgency = low
-  	background = "#28282890"
-  	foreground = "#a89984"
-  	timeout = 4
+    msg_urgency = low
+    background = "#28282890"
+    foreground = "#92837490"
+    timeout = 4
 
 [urgency_normal]
     msg_urgency = normal
@@ -250,8 +250,8 @@
 [urgency_critical]
     msg_urgency = critical
     background = "#28282899"
-    foreground = "#fb4934"
-    timeout = 0timeout = 0
+    foreground = "#d79921"
+    timeout = 0
 
 
 # Every section that isn't one of the above is interpreted as a rules to
