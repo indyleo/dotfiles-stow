@@ -1,5 +1,5 @@
 # ============================================================================
-# SXHKD Configuration - Converted from DWM
+# SXHKD Configuration
 # ============================================================================
 
 # Reload the config
@@ -7,44 +7,40 @@ super + shift + Escape
 	pkill -USR1 -x sxhkd && notify-send "Reloading the keybinds..."
 
 # ----------------------------------------------------------------------------
-# Launchers & Rofi
+# Launchers
 # ----------------------------------------------------------------------------
 
 # Run launcher
 super + r
     rofi -show run
 
-# Alt-Tab switcher
-alt + Tab
-    rofi_alttab
+# Wiki browser
+super + w
+    wikibook
 
-# Flatpak launcher
-super + p
-    rofi_flatpak
+# Notebook
+super + n
+    notebook
 
 # Clipboard manager
 super + shift + {c,v}
-    clipmgr.py {select,pin}
+    clip {select,pin}
 
 # Emoji picker
 super + shift + e
-    rofi_emoji.py
+    emoji
 
 # Nerd font picker
 super + alt + e
-    rofi_nerdfont.py
+    nerdfont
 
 # Power menu
 super + shift + p
-    rofi_power
+    power
 
-# Notebook launcher
-super + n
-    rofi_notebook
-
-# Screen layout
+# Screen recorder
 super + alt + r
-    rofi_screen
+    recorder
 
 # ----------------------------------------------------------------------------
 # System Controls
@@ -139,32 +135,28 @@ super + shift + a
     pavucontrol
 
 # ----------------------------------------------------------------------------
-# Recording & Screenshots
+# Screenshots
 # ----------------------------------------------------------------------------
-
-# Toggle recording
-super + alt + r
-    record-toggle
 
 # Screenshot selection
 Print
-    sstool --select
+    screenshot --select
 
 # Screenshot current screen
 super + Print
-    sstool --screen
+    screenshot --screen
 
 # Screenshot fullscreen
 super + shift + Print
-    sstool --fullscreen
+    screenshot --full
 
 # Screenshot window
 super + ctrl + Print
-    sstool --window
+    screenshot --window
 
 # Color picker
 super + alt + Print
-    sstool --colorpicker
+    screenshot --colorpicker
 
 # ----------------------------------------------------------------------------
 # Wallpaper

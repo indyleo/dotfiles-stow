@@ -16,13 +16,15 @@ hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(browser))
 hl.bind(mainMod .. " + SHIFT + D", hl.dsp.exec_cmd("vesktop"))
 hl.bind(mainMod .. " + SHIFT + G", hl.dsp.exec_cmd("signal-desktop"))
 
--- --- Launchers & Rofi ---
+-- --- Launchers ---
 hl.bind(mainMod .. " + R", hl.dsp.exec_cmd(menu))
-hl.bind(mainMod .. " + SHIFT + C", hl.dsp.exec_cmd("wayclip.py select"))
-hl.bind(mainMod .. " + SHIFT + E", hl.dsp.exec_cmd("rofi_emoji.py"))
-hl.bind(mainMod .. " + ALT + E", hl.dsp.exec_cmd("rofi_nerdfont.py"))
-hl.bind(mainMod .. " + SHIFT + P", hl.dsp.exec_cmd("rofi_power"))
-hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("rofi_notebook"))
+hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("wikibook"))
+hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("notebook"))
+hl.bind(mainMod .. " + SHIFT + C", hl.dsp.exec_cmd("clip select"))
+hl.bind(mainMod .. " + SHIFT + E", hl.dsp.exec_cmd("emoji"))
+hl.bind(mainMod .. " + ALT + E", hl.dsp.exec_cmd("nerdfont"))
+hl.bind(mainMod .. " + SHIFT + P", hl.dsp.exec_cmd("power"))
+hl.bind(mainMod .. " + ALT + R", hl.dsp.exec_cmd("recorder"))
 
 -- --- Window Management ---
 hl.bind(mainMod .. " + Q", hl.dsp.window.close())
@@ -81,18 +83,15 @@ hl.bind("ALT + XF86AudioPrev", hl.dsp.exec_cmd("mediactl --source browser previo
 hl.bind("ALT + XF86AudioPlay", hl.dsp.exec_cmd("mediactl --source browser play-pause"), { locked = true })
 
 -- --- Screenshots & Recording ---
-hl.bind("Print", hl.dsp.exec_cmd("sstool --select"))
-hl.bind(mainMod .. " + Print", hl.dsp.exec_cmd("sstool --screen"))
-hl.bind(mainMod .. " + SHIFT + Print", hl.dsp.exec_cmd("sstool --fullscreen"))
-hl.bind(mainMod .. " + CTRL + Print", hl.dsp.exec_cmd("sstool --window"))
-hl.bind(mainMod .. " + ALT + Print", hl.dsp.exec_cmd("sstool --colorpicker"))
-hl.bind(mainMod .. " + ALT + R", hl.dsp.exec_cmd("rofi_screen"))
+hl.bind("Print", hl.dsp.exec_cmd("screenshot --select"))
+hl.bind(mainMod .. " + Print", hl.dsp.exec_cmd("screenshot --screen"))
+hl.bind(mainMod .. " + SHIFT + Print", hl.dsp.exec_cmd("screenshot --full"))
+hl.bind(mainMod .. " + CTRL + Print", hl.dsp.exec_cmd("screenshot --window"))
+hl.bind(mainMod .. " + ALT + Print", hl.dsp.exec_cmd("screenshot --colorpicker"))
+hl.bind(mainMod .. " + ALT + R", hl.dsp.exec_cmd("recorder"))
 
 -- --- Wallpapers ---
 hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("desktopctl random ~/Pictures/Wallpapers/gruvbox"))
-
--- --- Wikis ---
-hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("wikibook"))
 
 -- --- Workspaces (hyprsplit) ---
 for i = 1, 9 do
