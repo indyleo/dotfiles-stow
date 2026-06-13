@@ -95,7 +95,7 @@ local function toggle_claude()
   -- 1. Check if the server is already running in this Neovim session
   if not claudestate.server_job_id then
     -- Start the server silently in the background
-    claudestate.server_job_id = vim.fn.jobstart({ "uv", "run", "free-claude-code", "server:app", "--host", "0.0.0.0", "--port", "8082" }, {
+    claudestate.server_job_id = vim.fn.jobstart({ "fcc-server" }, {
       -- Clear the job ID if the server crashes/exits so it can be restarted
       on_exit = function()
         claudestate.server_job_id = nil
