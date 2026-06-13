@@ -584,6 +584,56 @@ def _dm_mode_confirm_clear(history, hfile):
         _dm_notify("History cleared.")
 
 
+def _dm_fetch_and_pick(
+    query: str, engine: str, browser: str, hfile: str, history
+) -> None:
+    """Fetch completions for query, show second dmenu to pick or confirm, then open."""
+    import threading
+
+    suggestions = []
+    done = threading.Event()
+
+    def _fetch():
+        try:
+            import json as _json
+            import urllib.request
+
+            q = urllib.parse.quote_plus(query)
+            url = f"https://duckduckgo.com/ac/?q={q}&type=list"
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=3.0) as resp:
+                data = _json.loads(resp.read().decode())
+                if isinstance(data, list) and len(data) > 1:
+                    suggestions.extend(s for s in data[1] if s != query)
+        except Exception:
+            pass
+        finally:
+            done.set()
+
+    t = threading.Thread(target=_fetch, daemon=True)
+    t.start()
+    done.wait(timeout=3.5)
+
+    # Build second menu: query itself at top, then suggestions
+    items = [query] + suggestions[:8]
+    choice = _dmenu(items, f"Confirm / pick ({engine}):")
+    if choice is None:
+        return
+
+    save_history(hfile, choice, history)
+
+    bang, rest = parse_bang(choice)
+    if bang:
+        open_url(_dm_bang_url(bang, rest), browser)
+        return
+    if looks_like_url(choice):
+        open_url(normalise_url(choice), browser)
+        return
+
+    url = SEARCH_ENGINES[engine].format(urllib.parse.quote_plus(choice))
+    open_url(url, browser)
+
+
 def launch_dmenu(args: argparse.Namespace) -> None:
     history = load_history(args.history_file)
     hist_entries = [e for e, _ in history]
@@ -614,9 +664,8 @@ def launch_dmenu(args: argparse.Namespace) -> None:
         open_url(normalise_url(choice), args.browser)
         return
 
-    save_history(args.history_file, choice, history)
-    url = SEARCH_ENGINES[args.engine].format(urllib.parse.quote_plus(choice))
-    open_url(url, args.browser)
+    # Not a bang or URL — fetch suggestions and show second dmenu
+    _dm_fetch_and_pick(choice, args.engine, args.browser, args.history_file, history)
 
 
 def main() -> None:
@@ -644,4 +693,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main()  #!/usr/bin/env python3
