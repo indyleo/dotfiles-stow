@@ -1,12 +1,6 @@
 #!/usr/bin/env python3
 """
-Bookmarks — Browse HTML bookmark files via rofi.
-
-Usage:
-    python3 bookmarks.py [--browser BROWSER]
-
-The bookmark file is read from DEFAULT_PATHS.
-BROWSER defaults to xdg-open if not specified.
+Bookmarks — Browse HTML bookmark files via rofi (Wayland) or dmenu (X11).
 """
 
 import argparse
@@ -17,10 +11,32 @@ import sys
 from html.parser import HTMLParser
 
 # ── Config ────────────────────────────────────────────────────────────────────
-# Default search paths (edit to taste)
 DEFAULT_PATHS = [
     os.path.expanduser("~/.local/share/bookmarks/bookmarks.html"),
 ]
+
+# ── Display server detection ──────────────────────────────────────────────────
+IS_WAYLAND = bool(os.environ.get("WAYLAND_DISPLAY"))
+
+
+def menu(items, prompt="Bookmarks"):
+    """Show a menu via rofi (Wayland) or dmenu (X11). Returns selection or None."""
+    if IS_WAYLAND:
+        cmd = ["rofi", "-dmenu", "-i", "-p", prompt]
+    else:
+        cmd = ["dmenu", "-p", prompt]
+    result = subprocess.run(
+        cmd, input="\n".join(items), capture_output=True, text=True
+    )
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def error(msg):
+    """Show an error message via rofi -e (Wayland) or notify-send (X11)."""
+    if IS_WAYLAND:
+        subprocess.run(["rofi", "-e", msg], check=False)
+    else:
+        subprocess.run(["notify-send", "Bookmarks", msg], check=False)
 
 
 # ── Parser ────────────────────────────────────────────────────────────────────
@@ -77,18 +93,8 @@ class BookmarkParser(HTMLParser):
             self._next_title += data
 
 
-# ── Rofi helpers ──────────────────────────────────────────────────────────────
-def rofi_select(items, prompt="Bookmarks"):
-    """Show items in rofi, return selected string or None."""
-    result = subprocess.run(
-        ["rofi", "-dmenu", "-i", "-p", prompt],
-        input="\n".join(items),
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        return None
-    return result.stdout.strip()
+# ── Navigation ────────────────────────────────────────────────────────────────
+BACK = "<- Back"
 
 
 def open_url(url, browser):
@@ -97,37 +103,29 @@ def open_url(url, browser):
     )
 
 
-# ── Navigation ────────────────────────────────────────────────────────────────
-BACK = "← Back"
-
-
 def browse(folder, browser, breadcrumb=None):
-    """Recursively browse folders, open links."""
     breadcrumb = breadcrumb or []
     path_str = " / ".join(["ROOT"] + breadcrumb) if breadcrumb else "ROOT"
 
     while True:
         children = folder.get("children", [])
-
         entries = []
         if breadcrumb:
             entries.append(BACK)
-
         for child in children:
             if child["type"] == "folder":
-                entries.append(f"  {child['title']}")
+                entries.append(f"[dir] {child['title']}")
             else:
-                entries.append(f"  {child['title']}")
+                entries.append(f"      {child['title']}")
 
-        choice = rofi_select(entries, prompt=path_str)
+        choice = menu(entries, prompt=path_str)
         if choice is None:
-            return  # ESC / closed
-
+            return
         if choice == BACK:
-            return  # go up a level
+            return
 
-        # strip icon prefix (3 chars: icon + 2 spaces)
-        label = choice[3:].strip()
+        # Strip prefix
+        label = choice.lstrip("[dir]").strip()
 
         matched = None
         for child in children:
@@ -154,23 +152,17 @@ def find_bookmark_file():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Browse HTML bookmarks via rofi.")
-    parser.add_argument(
-        "--browser",
-        default="xdg-open",
-        help="Browser command to open URLs (default: xdg-open)",
-    )
+    parser = argparse.ArgumentParser(description="Browse HTML bookmarks.")
+    parser.add_argument("--browser", default="xdg-open")
     args = parser.parse_args()
 
     path = find_bookmark_file()
     if not path:
-        subprocess.run(
-            ["rofi", "-e", "No bookmark file found. Check DEFAULT_PATHS in the script."]
-        )
+        error("No bookmark file found. Check DEFAULT_PATHS in the script.")
         sys.exit(1)
 
     if not os.path.isfile(path):
-        subprocess.run(["rofi", "-e", f"File not found: {path}"])
+        error(f"File not found: {path}")
         sys.exit(1)
 
     with open(path, "r", encoding="utf-8", errors="replace") as f:
@@ -180,9 +172,9 @@ def main():
     bp.feed(html)
 
     root = bp.root
-    # flatten single-child roots for convenience
     while (
-        len(root.get("children", [])) == 1 and root["children"][0]["type"] == "folder"
+        len(root.get("children", [])) == 1
+        and root["children"][0]["type"] == "folder"
     ):
         root = root["children"][0]
 

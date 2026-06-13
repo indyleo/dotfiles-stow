@@ -22,7 +22,10 @@ Modes:
 
 import argparse
 import json
+
+# ── Display server detection ─────────────────────────────────────────────────
 import os
+import os as _os
 import re
 import subprocess
 import sys
@@ -30,6 +33,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime
+
+IS_WAYLAND = bool(_os.environ.get("WAYLAND_DISPLAY"))
 
 # ── Config ────────────────────────────────────────────────────────────────────
 DEFAULT_HISTORY_FILE = os.path.expanduser("~/.local/share/rofi-websearch/history.txt")
@@ -333,6 +338,16 @@ def mode_search(query: str, history: list[tuple[str, str]], engine: str) -> None
                     print_option(full)
         return
 
+    # ── Bang hint mode: user typed "!", "!!" or "!<partial>" with no match ──
+    if query.startswith("!"):
+        set_prompt(" Bangs:")
+        set_message("Type !bang to search a specific site  •  select to open site root")
+        filter_str = "" if query in ("!", "!!") else query.lower()
+        for display, bang_token in bang_hint_entries():
+            if not filter_str or bang_token.startswith(filter_str):
+                print_option(display)
+        return
+
     # ── Normal search / URL ───────────────────────────────────────────────────
     set_prompt(f" Search / URL ({engine}):")
     if query:
@@ -443,6 +458,17 @@ def script_mode(args: argparse.Namespace) -> None:
 
     # ── Shift+Enter (retv=2): open bang URL or fetch live suggestions ─────────
     if query and retv == 2:
+        # !! or partial bang — print hints directly so rofi shows them
+        if query.startswith("!") and not parse_bang(query)[0]:
+            set_prompt(" Bangs:")
+            set_message(
+                "Type !bang to search a specific site  •  select to open site root"
+            )
+            filter_str = "" if query in ("!", "!!") else query.lower()
+            for display, bang_token in bang_hint_entries():
+                if not filter_str or bang_token.startswith(filter_str):
+                    print_option(display)
+            return
         bang, rest = parse_bang(query)
         if bang:
             # Bang + Shift+Enter: open the bang URL (same as regular Enter)
@@ -457,6 +483,18 @@ def script_mode(args: argparse.Namespace) -> None:
 
     # ── Enter (retv=1): open selected / typed item ────────────────────────────
     if query and retv == 1:
+        # !! or unrecognised partial bang — print hints directly so rofi shows them
+        if query.startswith("!") and not parse_bang(query)[0] and "—" not in query:
+            set_prompt(" Bangs:")
+            set_message(
+                "Type !bang to search a specific site  •  select to open site root"
+            )
+            filter_str = "" if query in ("!", "!!") else query.lower()
+            for display, bang_token in bang_hint_entries():
+                if not filter_str or bang_token.startswith(filter_str):
+                    print_option(display)
+            return
+
         # If the user selected a bang cheatsheet hint line ("!yt  —  YouTube"),
         # open the site root (no query given).
         hint_match = re.match(r"^(![\w]+)\s+—\s+", query)
@@ -487,6 +525,100 @@ def script_mode(args: argparse.Namespace) -> None:
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
+# ── dmenu helpers ────────────────────────────────────────────────────────────
+
+
+def _dmenu(items: list[str], prompt: str) -> "str | None":
+    result = subprocess.run(
+        ["dmenu", "-l", "15", "-p", prompt],
+        input="\n".join(items),
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def _dm_notify(msg: str) -> None:
+    subprocess.run(["notify-send", "Search", msg], check=False)
+
+
+def _dm_bang_url(bang: str, query: str) -> str:
+    _, template = BANGS[bang]
+    if query:
+        return template.format(urllib.parse.quote_plus(query))
+    return re.sub(r"(https?://[^/]+).*", r"\1", template)
+
+
+def _dm_mode_bangs(history, engine, browser, hfile):
+    bang_items = [f"{b}  —  {label}" for b, (label, _) in sorted(BANGS.items())]
+    choice = _dmenu(bang_items, "Select bang:")
+    if choice is None:
+        return
+    bang_token = choice.split()[0].lower()
+    if bang_token not in BANGS:
+        return
+    label, _ = BANGS[bang_token]
+    query = _dmenu([], f"{label} query:")
+    if query is None:
+        return
+    full = f"{bang_token} {query}".strip()
+    save_history(hfile, full, history)
+    open_url(_dm_bang_url(bang_token, query), browser)
+
+
+def _dm_mode_history(history, hfile):
+    if not history:
+        _dm_notify("History is empty.")
+        return
+    choice = _dmenu([e for e, _ in history], "Delete entry:")
+    if choice is None:
+        return
+    delete_entry(hfile, choice, history)
+    _dm_notify(f"Deleted: {choice}")
+
+
+def _dm_mode_confirm_clear(history, hfile):
+    choice = _dmenu(["No — cancel", "Yes — delete everything"], "Clear all history?")
+    if choice and "Yes" in choice:
+        clear_all_history(hfile)
+        _dm_notify("History cleared.")
+
+
+def launch_dmenu(args: argparse.Namespace) -> None:
+    history = load_history(args.history_file)
+    hist_entries = [e for e, _ in history]
+    items = ["!! (show all bangs)", ":history", ":clear"] + hist_entries
+
+    choice = _dmenu(items, f"Search ({args.engine}):")
+    if choice is None:
+        return
+
+    if choice == ":history":
+        _dm_mode_history(history, args.history_file)
+        return
+    if choice == ":clear":
+        _dm_mode_confirm_clear(history, args.history_file)
+        return
+    if choice == "!! (show all bangs)":
+        _dm_mode_bangs(history, args.engine, args.browser, args.history_file)
+        return
+
+    bang, rest = parse_bang(choice)
+    if bang:
+        save_history(args.history_file, choice, history)
+        open_url(_dm_bang_url(bang, rest), args.browser)
+        return
+
+    if looks_like_url(choice):
+        save_history(args.history_file, choice, history)
+        open_url(normalise_url(choice), args.browser)
+        return
+
+    save_history(args.history_file, choice, history)
+    url = SEARCH_ENGINES[args.engine].format(urllib.parse.quote_plus(choice))
+    open_url(url, args.browser)
+
+
 def main() -> None:
     if len(sys.argv) == 4 and sys.argv[1] == "--_bg-fetch":
         _bg_fetch(query=sys.argv[2], engine=sys.argv[3])
@@ -500,10 +632,15 @@ def main() -> None:
     parser.add_argument("--history-file", default=DEFAULT_HISTORY_FILE)
     args, _ = parser.parse_known_args()
 
-    if "WEBSEARCH_ACTIVE" in os.environ:
-        script_mode(args)
+    if IS_WAYLAND:
+        # Rofi script-mode path
+        if "WEBSEARCH_ACTIVE" in os.environ:
+            script_mode(args)
+        else:
+            launch_rofi(args)
     else:
-        launch_rofi(args)
+        # dmenu path — script-mode doesn't apply
+        launch_dmenu(args)
 
 
 if __name__ == "__main__":
