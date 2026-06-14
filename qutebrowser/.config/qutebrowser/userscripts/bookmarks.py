@@ -25,9 +25,7 @@ def menu(items, prompt="Bookmarks"):
         cmd = ["rofi", "-dmenu", "-i", "-p", prompt]
     else:
         cmd = ["dmenu", "-p", prompt]
-    result = subprocess.run(
-        cmd, input="\n".join(items), capture_output=True, text=True
-    )
+    result = subprocess.run(cmd, input="\n".join(items), capture_output=True, text=True)
     return result.stdout.strip() if result.returncode == 0 else None
 
 
@@ -114,9 +112,9 @@ def browse(folder, browser, breadcrumb=None):
             entries.append(BACK)
         for child in children:
             if child["type"] == "folder":
-                entries.append(f"[dir] {child['title']}")
+                entries.append(f" {child['title']}")
             else:
-                entries.append(f"      {child['title']}")
+                entries.append(f" {child['title']}")
 
         choice = menu(entries, prompt=path_str)
         if choice is None:
@@ -125,7 +123,7 @@ def browse(folder, browser, breadcrumb=None):
             return
 
         # Strip prefix
-        label = choice.lstrip("[dir]").strip()
+        label = choice.lstrip("").strip()
 
         matched = None
         for child in children:
@@ -173,8 +171,7 @@ def main():
 
     root = bp.root
     while (
-        len(root.get("children", [])) == 1
-        and root["children"][0]["type"] == "folder"
+        len(root.get("children", [])) == 1 and root["children"][0]["type"] == "folder"
     ):
         root = root["children"][0]
 
