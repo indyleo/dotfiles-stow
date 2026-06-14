@@ -55,7 +55,7 @@ ENTRY=$(rbw ls | sort -u | MENU "󰟵 Search:")
 REMAINING=$(( 30 - $(date +%s) % 30 ))
 
 # 4. Action sub-menu
-ACTION=$(printf "󰟵 Copy Password\n Copy Username\n󰦝 Copy TOTP (%ss left)\n󰈙 Show Details & Notes" "$REMAINING" | MENU "$ENTRY:")
+ACTION=$(printf "󰟵 Copy Password\n Copy Username\n󰦝 Copy TOTP (%ss left)\n󰈙 Show Details & Notes" "$REMAINING" | MENU "$ENTRY:")
 [ -z "$ACTION" ] && exit 0
 
 # 5. Handle action
