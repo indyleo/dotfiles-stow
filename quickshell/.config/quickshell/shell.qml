@@ -459,7 +459,7 @@ ShellRoot {
 								} else if (m.button === Qt.RightButton) {
 									shellCmd.command = ["rofi", "-show", "drun"]
 								} else if (m.button === Qt.MiddleButton) {
-									shellCmd.command = ["sh", "-c", "rofi_power"]
+									shellCmd.command = ["sh", "-c", "power"]
 								}
 								shellCmd.running = false
 								shellCmd.running = true
@@ -468,7 +468,7 @@ ShellRoot {
 								mediaProc.running = true
 							} else {
 								if (m.button === Qt.LeftButton) shellCmd.command = ["rofi", "-show", "drun"]
-								else shellCmd.command = ["sh", "-c", "rofi_power"]
+								else shellCmd.command = ["sh", "-c", "power"]
 								shellCmd.running = false
 								shellCmd.running = true
 							}
@@ -562,7 +562,7 @@ ShellRoot {
 							if (m.button === Qt.MiddleButton) {
 								sysMediaRow.pinned = !sysMediaRow.pinned
 							} else if (m.button === Qt.LeftButton) {
-								shellCmd.command = ["sh", "-c", "rofi_screen"]
+								shellCmd.command = ["sh", "-c", "record"]
 								shellCmd.running = false
 								shellCmd.running = true
 							}
@@ -692,7 +692,7 @@ ShellRoot {
 								Item { height: 20; width: parent.expanded ? wifiTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
 								Text { id: wifiTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.wifiText; color: root.cal13; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
 							}
-							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: wifiRow.hovered = true; onExited: wifiRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) wifiRow.pinned = !wifiRow.pinned; else if (m.button === Qt.LeftButton) { shellCmd.command = ["sh", "-c", "rofi_wifi"]; shellCmd.running = false; shellCmd.running = true } else if (m.button === Qt.RightButton) { shellCmd.command = ["nm-connection-editor"]; shellCmd.running = false; shellCmd.running = true } } }
+							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: wifiRow.hovered = true; onExited: wifiRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) wifiRow.pinned = !wifiRow.pinned; else if (m.button === Qt.LeftButton) { shellCmd.command = ["sh", "-c", "wifi"]; shellCmd.running = false; shellCmd.running = true } else if (m.button === Qt.RightButton) { shellCmd.command = ["nm-connection-editor"]; shellCmd.running = false; shellCmd.running = true } } }
 						}
 
 						// Tailscale
