@@ -18,6 +18,13 @@ elif echo "$XRANDR_OUTPUT" | grep -q "DP-1 connected"; then
     xrandr \
         --output DP-1 --mode 2560x1080 --rate 120.00 --primary
 
+else
+
+    echo "No valid display configuration found"
+    echo "Defaulting to a eDP-1 configuration"
+    xrandr \
+        --output eDP-1 --mode 1920x1080 --rate 60.00 --primary
+
 fi
 
 exec dwm 2> ~/.dwm.log
