@@ -97,7 +97,12 @@ export QT_QPA_PLATFORMTHEME="qt6ct"
 [[ -f "$HOME/Documents/pass/navipass" ]] && export ND_PASS="$(cat "$HOME/Documents/pass/navipass")"
 [[ -f "$HOME/Documents/pass/naviurl" ]] && export ND_SERVER="$(cat "$HOME/Documents/pass/naviurl")"
 
-# Start WM
+# Start Hyprland
 if [[ "$(tty)" = /dev/tty1 ]];then
     pgrep hyprland || start-hyprland
 fi
+
+# Start Dwm
+# if [[ "$(tty)" = /dev/tty1 ]];then
+# pgrep dwm || startx
+# fi
