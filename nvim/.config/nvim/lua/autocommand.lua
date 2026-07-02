@@ -106,7 +106,7 @@ autocmd("BufWritePost", {
   pattern = "config.def.h",
   callback = function(args)
     if not proc_check "autocompile" then
-      local shellcmd = { "sudo cp config.def.h config.h && sudo make clean install" }
+      local shellcmd = { "cp -v config.def.h config.h && sudo make clean install" }
       if was_modified[args.buf] and vim.bo.filetype ~= "" and vim.fn.expand "%" ~= "" then
         vim.cmd.CommandRun(shellcmd)
       end
