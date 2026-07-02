@@ -75,7 +75,7 @@ local comment_map = {
 }
 
 local block_map = {
-  lua = { prefix = "--[[", suffix = "]]--" },
+  lua = { prefix = "--[[", suffix = "]]" },
   javascript = { prefix = "/*", suffix = "*/" },
   typescript = { prefix = "/*", suffix = "*/" },
   c = { prefix = "/*", suffix = "*/" },
@@ -260,7 +260,7 @@ local function find_enclosing_block(start_line, end_line, block_prefix, block_su
 end
 
 -- Unwrap block from open_idx .. close_idx inclusive; remove padding lines if present
-local function unwrap_enclosing_block(open_idx, close_idx)
+local function unwrap_enclosing_block(open_idx, close_idx, block_prefix, block_suffix)
   if not open_idx or not close_idx then
     return false
   end
@@ -270,10 +270,42 @@ local function unwrap_enclosing_block(open_idx, close_idx)
     chunk[i] = (chunk[i] or ""):gsub("\r$", "")
   end
 
-  -- interior is chunk[2 .. #chunk-1] normally; be defensive:
   local interior = {}
-  for i = 2, #chunk - 1 do
-    table.insert(interior, chunk[i])
+
+  if #chunk == 1 then
+    -- Single-line block, e.g. "/* comment */": strip both markers from the one line
+    local line = chunk[1]
+    if block_prefix and block_prefix ~= "" then
+      line = line:gsub("^%s*" .. get_escaped_pattern(block_prefix) .. "%s?", "", 1)
+    end
+    if block_suffix and block_suffix ~= "" then
+      line = line:gsub("%s?" .. get_escaped_pattern(block_suffix) .. "%s*$", "", 1)
+    end
+    if vim.trim(line) ~= "" then
+      table.insert(interior, line)
+    end
+  else
+    -- Preserve any real content that shares a line with the opening marker,
+    -- e.g. "/* start of explanation" -> keep "start of explanation"
+    if block_prefix and block_prefix ~= "" then
+      local rest = chunk[1]:gsub("^%s*" .. get_escaped_pattern(block_prefix) .. "%s?", "", 1)
+      if vim.trim(rest) ~= "" then
+        table.insert(interior, rest)
+      end
+    end
+
+    for i = 2, #chunk - 1 do
+      table.insert(interior, chunk[i])
+    end
+
+    -- Preserve any real content that shares a line with the closing marker,
+    -- e.g. "more text */" -> keep "more text"
+    if block_suffix and block_suffix ~= "" then
+      local rest = chunk[#chunk]:gsub("%s?" .. get_escaped_pattern(block_suffix) .. "%s*$", "", 1)
+      if vim.trim(rest) ~= "" then
+        table.insert(interior, rest)
+      end
+    end
   end
 
   -- remove BLOCK_PADDING blank lines if set
@@ -397,17 +429,22 @@ local function toggle_comment_range(start_line, end_line, mode)
 
   local indent_str = compute_min_indent(body)
 
-  if use_block and block_variant then
-    -- First, try to find an enclosing block (search up/down within some reasonable limit)
+  if block_variant then
+    -- Always try to find an enclosing block first, regardless of BLOCK_THRESHOLD.
+    -- This matters because the *interior* selection of an existing block comment
+    -- (e.g. just 1-2 lines) is often smaller than BLOCK_THRESHOLD, even though the
+    -- comment itself is a block comment that should be unwrapped, not line-commented.
     local open_idx, close_idx = find_enclosing_block(start_line, end_line, block_variant.prefix, block_variant.suffix, 1000)
 
     if open_idx and close_idx then
-      if unwrap_enclosing_block(open_idx, close_idx) then
+      if unwrap_enclosing_block(open_idx, close_idx, block_variant.prefix, block_variant.suffix) then
         debug "unwrapped enclosing block (found via search)"
         return
       end
     end
+  end
 
+  if use_block and block_variant then
     -- If there are exact markers inside selection, strip them to avoid nesting
     if body_contains_exact_markers(body, block_variant.prefix, block_variant.suffix) then
       local stripped, removed = strip_internal_block_markers(body, block_variant.prefix, block_variant.suffix)
@@ -419,34 +456,48 @@ local function toggle_comment_range(start_line, end_line, mode)
         debug "stripped internal markers"
         return
       end
+
+      -- Markers were detected (e.g. a line like "/* note */" or something
+      -- ending in "*/") but couldn't be cleanly removed as whole-line
+      -- markers. Wrapping this selection in a fresh block comment would
+      -- produce an invalid nested comment (most languages, including C/C++,
+      -- don't support nested block comments -- the comment would silently
+      -- end early at the first "*/", leaving code uncommented). Bail out to
+      -- linewise commenting instead, which is always safe.
+      debug "internal markers found but not removable; falling back to linewise"
+      use_block = false
     end
 
-    -- No enclosing markers found -> create new block
-    local new_lines = {}
-    local first_line = indent_str .. block_variant.prefix
-    local last_line = indent_str .. block_variant.suffix
+    if use_block then
+      -- No enclosing markers found -> create new block
+      local new_lines = {}
+      local first_line = indent_str .. block_variant.prefix
+      local last_line = indent_str .. block_variant.suffix
 
-    if BLOCK_PADDING then
-      table.insert(new_lines, first_line)
-      table.insert(new_lines, "")
-      for _, l in ipairs(body) do
-        table.insert(new_lines, l)
+      if BLOCK_PADDING then
+        table.insert(new_lines, first_line)
+        table.insert(new_lines, "")
+        for _, l in ipairs(body) do
+          table.insert(new_lines, l)
+        end
+        table.insert(new_lines, "")
+        table.insert(new_lines, last_line)
+      else
+        table.insert(new_lines, first_line)
+        for _, l in ipairs(body) do
+          table.insert(new_lines, l)
+        end
+        table.insert(new_lines, last_line)
       end
-      table.insert(new_lines, "")
-      table.insert(new_lines, last_line)
-    else
-      table.insert(new_lines, first_line)
-      for _, l in ipairs(body) do
-        table.insert(new_lines, l)
-      end
-      table.insert(new_lines, last_line)
+
+      local cur = vim.api.nvim_win_get_cursor(0)
+      vim.api.nvim_buf_set_lines(0, start_line, end_line + 1, false, new_lines)
+      vim.api.nvim_win_set_cursor(0, cur)
+      debug "added block comment (fresh)"
+      return
     end
-
-    local cur = vim.api.nvim_win_get_cursor(0)
-    vim.api.nvim_buf_set_lines(0, start_line, end_line + 1, false, new_lines)
-    vim.api.nvim_win_set_cursor(0, cur)
-    debug "added block comment (fresh)"
-    return
+    -- use_block was false (markers detected but not cleanly removable):
+    -- fall through to LINEWISE mode below.
   end
 
   -- LINEWISE mode
