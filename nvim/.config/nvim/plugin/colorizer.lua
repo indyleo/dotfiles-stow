@@ -246,10 +246,6 @@ local function attach(bufnr)
   if not allow[ft] then
     return
   end
-  local ft = vim.bo[bufnr].filetype
-  if not allow[ft] then
-    return
-  end
   if attached[bufnr] then
     return
   end

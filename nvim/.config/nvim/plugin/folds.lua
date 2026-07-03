@@ -259,8 +259,8 @@ local function get_fold_info(line)
   return {
     line = line,
     is_closed = fold_start ~= -1,
-    is_foldable = fold_end ~= -1,
-    start_line = fold_start ~= -1 and fold_start or fn.foldclosed(line),
+    is_foldable = fn.foldlevel(line) > 0,
+    start_line = fold_start,
     end_line = fold_end,
   }
 end

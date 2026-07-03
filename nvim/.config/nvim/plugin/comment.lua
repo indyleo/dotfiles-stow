@@ -692,10 +692,7 @@ M.setup_keymaps = function(opts)
   vim.keymap.set("v", visual_key, toggle_comment_visual, { desc = "Toggle comment (visual)" })
 
   if operator_key then
-    vim.keymap.set("n", operator_key, function()
-      vim.o.operatorfunc = 'v:lua.require("comment").operator_callback'
-      return "g@"
-    end, { expr = true, desc = "Comment operator" })
+    vim.keymap.set("n", operator_key, set_operatorfunc, { expr = true, desc = "Comment operator" })
   end
 end
 

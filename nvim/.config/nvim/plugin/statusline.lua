@@ -263,8 +263,6 @@ end
 -- ========================
 -- Apply and Auto-refresh
 -- ========================
-vim.o.laststatus = 3 -- Global statusline
-vim.o.statusline = "%!v:lua.status_line()"
 
 api.nvim_create_autocmd({ "ColorScheme", "WinEnter", "BufEnter" }, {
   callback = function()

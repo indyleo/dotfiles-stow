@@ -91,23 +91,7 @@ end
 ------------------------------------------------------------
 -- Terminal: Claude terminal
 ------------------------------------------------------------
-local function toggle_claude()
-  -- 1. Check if the server is already running in this Neovim session
-  if not claudestate.server_job_id then
-    -- Start the server silently in the background
-    claudestate.server_job_id = vim.fn.jobstart({ "fcc-server" }, {
-      -- Clear the job ID if the server crashes/exits so it can be restarted
-      on_exit = function()
-        claudestate.server_job_id = nil
-      end,
-    })
-
-    -- Give the server 1.5 seconds to boot up before we try to hit it with the CLI
-    -- Note: This will pause the Neovim UI very briefly, but only the first time you run it.
-    vim.cmd "sleep 1500m"
-  end -- Fixed: Removed the stray 'end' that was below the autocmd
-
-  -- 2. Your existing window logic
+local function open_claude_window()
   if not vim.api.nvim_win_is_valid(claudestate.floating.win) then
     claudestate.floating = create_floating_window { buf = claudestate.floating.buf }
 
@@ -126,6 +110,43 @@ local function toggle_claude()
   else
     vim.api.nvim_win_hide(claudestate.floating.win)
   end
+end
+
+local function toggle_claude()
+  -- 1. If the server is already running in this Neovim session, just open
+  -- the window immediately -- no need to wait for anything.
+  if claudestate.server_job_id then
+    open_claude_window()
+    return
+  end
+
+  -- 2. Start the server silently in the background.
+  claudestate.server_job_id = vim.fn.jobstart({ "fcc-server" }, {
+    -- Clear the job ID if the server crashes/exits so it can be restarted
+    on_exit = function()
+      claudestate.server_job_id = nil
+    end,
+  })
+
+  -- 3. Poll for the server to come up instead of blocking the entire
+  -- Neovim UI with `sleep`. Checks every 150ms for up to ~1.5s, then opens
+  -- the window regardless -- if the server genuinely never came up, the
+  -- CLI itself will surface a connection error inside the terminal.
+  local attempts, max_attempts = 0, 10
+  local function wait_for_server()
+    attempts = attempts + 1
+    vim.system({ "curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "http://localhost:8082" }, {}, function(res)
+      local ready = res.code == 0
+      vim.schedule(function()
+        if ready or attempts >= max_attempts then
+          open_claude_window()
+        else
+          vim.defer_fn(wait_for_server, 150)
+        end
+      end)
+    end)
+  end
+  wait_for_server()
 end
 
 ------------------------------------------------------------

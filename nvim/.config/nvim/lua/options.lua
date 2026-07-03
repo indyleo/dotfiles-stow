@@ -82,6 +82,7 @@ local str_opts = {
   foldexpr = "nvim_treesitter#foldexpr()",
   foldcolumn = "1",
   completeopt = "menuone,noselect",
+  statusline = "%!v:lua.status_line()",
 }
 for k, v in pairs(str_opts) do
   opt[k] = v

@@ -53,7 +53,7 @@ end
 
 -- Check for unsaved changes
 local function has_unsaved_changes(buf)
-  return vim.bo[buf].modified and not vim.bo[buf].buftype or vim.bo[buf].buftype == ""
+  return vim.bo[buf].modified and vim.bo[buf].buftype == ""
 end
 
 -- Delete buffer safely
