@@ -42,7 +42,6 @@ autocmd("BufNewFile", {
   callback = function()
     vim.defer_fn(function()
       vim.cmd.FileHeader()
-      vim.cmd.startinsert()
     end, 5)
   end,
 })

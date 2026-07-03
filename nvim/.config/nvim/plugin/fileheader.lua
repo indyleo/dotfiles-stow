@@ -82,9 +82,6 @@ local function insert_file_header()
   end
 
   vim.api.nvim_buf_set_lines(0, 0, 0, false, { header })
-
-  -- Go back to normal mode
-  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", false)
 end
 
 ------------------------------------------------------------
