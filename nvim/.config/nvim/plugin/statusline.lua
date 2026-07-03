@@ -9,7 +9,7 @@ local api, fn, uv = vim.api, vim.fn, vim.loop or vim.uv
 local preferd_theme = "gruvbox"
 
 -- ========================
--- Theme color definitions (Calamity)
+-- Theme color definitions (Gruvbox)
 -- ========================
 local themes = {
   gruvbox = {
