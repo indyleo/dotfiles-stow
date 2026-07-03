@@ -46,7 +46,7 @@ alias mpv="command mpv --fs"
 alias getxinfo="xprop | grep -E 'WM_CLASS|_NET_WM_WINDOW_TYPE|WM_NAME'"
 
 # Suckless
-alias cpc="cp -v config.def.h config.h"
+alias cpc="command cp -v config.def.h config.h"
 alias clin="sudo make clean install"
 
 # find dirs and files
