@@ -94,12 +94,10 @@ hl.bind(mainMod .. " + ALT + R", hl.dsp.exec_cmd("recorder"))
 hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("desktopctl random ~/Pictures/Wallpapers/gruvbox"))
 
 -- --- Workspaces (hyprsplit) ---
-for i = 1, 9 do
+for i = 1, 5 do
 	hl.bind(mainMod .. " + " .. i, hs.dsp.focus({ workspace = i }))
 	hl.bind(mainMod .. " + SHIFT + " .. i, hs.dsp.window.move({ workspace = i, follow = false }))
 end
-hl.bind(mainMod .. " + 0", hs.dsp.focus({ workspace = 10 }))
-hl.bind(mainMod .. " + SHIFT + 0", hs.dsp.window.move({ workspace = 10, follow = false }))
 
 hl.bind(mainMod .. " + CTRL + D", hs.dsp.workspace.swap_monitors({ monitor1 = "current", monitor2 = "+1" }))
 hl.bind(mainMod .. " + CTRL + G", hs.dsp.grab_rogue_windows())
