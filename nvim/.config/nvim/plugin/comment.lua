@@ -233,22 +233,41 @@ local function find_enclosing_block(start_line, end_line, block_prefix, block_su
   local open_idx, close_idx
   search_limit = search_limit or 1000 -- limit search distance to avoid scanning huge files; configurable if needed
 
-  -- search up
+  local prefix_pat = get_escaped_pattern(block_prefix)
+  local suffix_pat = get_escaped_pattern(block_suffix)
+
+  -- search up for an *unterminated* opening marker. If we hit a closing
+  -- marker first, any block above it is already closed and can't be
+  -- enclosing us, so stop. A self-contained one-liner (matches both
+  -- prefix and suffix, e.g. "/* note */") is neither -- skip over it and
+  -- keep looking, since it doesn't tell us anything about our own status.
   local up_stop = math.max(top, start_line - search_limit)
   for i = start_line - 1, up_stop, -1 do
     local l = vim.api.nvim_buf_get_lines(0, i, i + 1, false)[1] or ""
-    if vim.trim(l):match("^" .. get_escaped_pattern(block_prefix)) then
+    local trimmed = vim.trim(l)
+    local has_prefix = trimmed:match("^" .. prefix_pat)
+    local has_suffix = trimmed:match(suffix_pat .. "%s*$")
+    if has_prefix and not has_suffix then
       open_idx = i
+      break
+    elseif has_suffix and not has_prefix then
       break
     end
   end
 
-  -- search down
+  -- search down for the matching closing marker, mirroring the logic above:
+  -- if we hit a fresh opening marker before any closing one, a new block
+  -- starts before this one would close, so we're not enclosed.
   local down_stop = math.min(bottom, end_line + search_limit)
   for j = end_line + 1, down_stop do
     local l = vim.api.nvim_buf_get_lines(0, j, j + 1, false)[1] or ""
-    if vim.trim(l):match(get_escaped_pattern(block_suffix) .. "%s*$") then
+    local trimmed = vim.trim(l)
+    local has_prefix = trimmed:match("^" .. prefix_pat)
+    local has_suffix = trimmed:match(suffix_pat .. "%s*$")
+    if has_suffix and not has_prefix then
       close_idx = j
+      break
+    elseif has_prefix and not has_suffix then
       break
     end
   end
@@ -711,3 +730,4 @@ M.toggle_comment_visual = toggle_comment_visual
 M.toggle_comment_operator = toggle_comment_operator
 
 return M
+
