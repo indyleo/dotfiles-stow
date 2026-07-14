@@ -1,0 +1,78 @@
+" ~/.config/tridactyl/tridactylrc
+
+" -------
+" Unbinds
+" -------
+unbind --mode=normal P
+unbind --mode=normal t
+
+" ---------------------------------------------------------------------------
+" Search engine  (c.url.searchengines DEFAULT)
+" ---------------------------------------------------------------------------
+set searchurls.brave https://search.brave.com/search?q=%s
+set searchengine brave
+
+" ---------------------------------------------------------------------------
+" Start page / home  (startpage, c.url.start_pages, c.url.default_page)
+" ---------------------------------------------------------------------------
+set newtab http://127.0.0.1:8080
+set homepages ["http://127.0.0.1:8080"]
+
+" ---------------------------------------------------------------------------
+" Editor  (c.editor.command)
+" ---------------------------------------------------------------------------
+" set editorcmd st -e zsh -c nvim
+set editorcmd footclient nvim
+
+" ---------------------------------------------------------------------------
+" Config reload  (cs -> config-source ;; message-info)
+" ---------------------------------------------------------------------------
+bind cs composite source | fillcmdline Config reloaded!
+
+" ---------------------------------------------------------------------------
+" Navigation  (< / > back/forward — H/L already do this by default too)
+" ---------------------------------------------------------------------------
+bind < back
+bind > forward
+
+" ---------------------------------------------------------------------------
+" Hinting / history  (T -> hint links, th -> history)
+" NB: T is "duplicate tab" by default in Tridactyl (current_url tabopen).
+" This overrides that — remove the next line if you want to keep both.
+" ---------------------------------------------------------------------------
+bind T hint
+
+" ---------------------------------------------------------------------------
+" Clipboard opens  (tP/tp/tc — primary selection / clipboard)
+" Tridactyl already ships "P" = clipboard tabopen, reused/extended here.
+" ---------------------------------------------------------------------------
+bind tp clipboard open
+bind tc clipboard tabopen
+" Primary (X11) selection instead of clipboard, needs xsel/xclip + native:
+bind tP jsb tri.native.run("xsel -p 2>/dev/null || xclip -o -selection primary").then(r => tri.excmds.open(r.content.trim()))
+
+" ---------------------------------------------------------------------------
+" Private browsing
+" ---------------------------------------------------------------------------
+bind Pp winopen -private
+
+" ---------------------------------------------------------------------------
+" mpv integration
+" ---------------------------------------------------------------------------
+command mpv_normal jsb tri.excmds.shellescape(document.location.href).then(url => tri.native.run(`nohup mpv ${url} >/dev/null 2>&1 &`))
+command mpv_pip    jsb tri.excmds.shellescape(document.location.href).then(url => tri.native.run(`nohup mpv --title="Picture-in-Picture" ${url} >/dev/null 2>&1 &`))
+bind Pm mpv_normal
+bind PM mpv_pip
+
+" ---------------------------------------------------------------------------
+" External userscripts (rofi/dmenu launchers) via the native messenger.
+" ---------------------------------------------------------------------------
+alias searchmenu exclaim_quiet ~/.config/tridactyl/userscripts/search.py --browser librewolf
+alias bookmarksmenu exclaim_quiet ~/.config/tridactyl/userscripts/bookmarks.py --browser librewolf
+alias quickmarksmenu exclaim_quiet ~/.config/tridactyl/userscripts/quickmarks.py --browser librewolf
+alias passwordmenu exclaim_quiet ~/.config/tridactyl/userscripts/password.sh
+
+bind o searchmenu
+bind b bookmarksmenu
+bind q quickmarksmenu
+bind z passwordmenu

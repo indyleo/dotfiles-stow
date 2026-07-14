@@ -45,6 +45,7 @@ stowq hypr
 stowq mako
 stowq startpage
 stowq foot
+stowq tridactyl
 
 echo "Installing tpm..."
 git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
