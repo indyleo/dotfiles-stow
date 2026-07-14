@@ -1,7 +1,7 @@
 terminal = "footclient"
 fileManager = "thunar"
 menu = "rofi -show drun"
-browser = "qutebrowser"
+browser = "librewolf"
 scrPath = os.getenv("HOME") .. "/.config/hypr/scripts"
 barLaunch = scrPath .. "/bar-launch.sh"
 scratchpad = scrPath .. "/scratchpad.sh"
