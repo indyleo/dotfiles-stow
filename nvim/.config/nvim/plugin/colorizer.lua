@@ -94,30 +94,36 @@ local function find_colors(line)
 
   -- #RRGGBBAA (must come before #RRGGBB)
   for s, hex, e in line:gmatch "()#(%x%x%x%x%x%x%x%x)()" do
-    table.insert(results, {
-      col = s - 1,
-      end_col = e - 1,
-      r = tonumber(hex:sub(1, 2), 16),
-      g = tonumber(hex:sub(3, 4), 16),
-      b = tonumber(hex:sub(5, 6), 16),
-    })
+    local next_char = line:sub(e, e)
+    if not next_char:match "[%w_]" then
+      table.insert(results, {
+        col = s - 1,
+        end_col = e - 1,
+        r = tonumber(hex:sub(1, 2), 16),
+        g = tonumber(hex:sub(3, 4), 16),
+        b = tonumber(hex:sub(5, 6), 16),
+      })
+    end
   end
 
   -- #RRGGBB
   for s, hex, e in line:gmatch "()#(%x%x%x%x%x%x)()" do
-    table.insert(results, {
-      col = s - 1,
-      end_col = e - 1,
-      r = tonumber(hex:sub(1, 2), 16),
-      g = tonumber(hex:sub(3, 4), 16),
-      b = tonumber(hex:sub(5, 6), 16),
-    })
+    local next_char = line:sub(e, e)
+    if not next_char:match "[%w_]" then
+      table.insert(results, {
+        col = s - 1,
+        end_col = e - 1,
+        r = tonumber(hex:sub(1, 2), 16),
+        g = tonumber(hex:sub(3, 4), 16),
+        b = tonumber(hex:sub(5, 6), 16),
+      })
+    end
   end
 
   -- #RGB (only if not followed by more hex digits)
   for s, hex, e in line:gmatch "()#(%x%x%x)()" do
     local next_char = line:sub(e, e)
-    if not next_char:match "%x" then
+    if not next_char:match "[%w_]" then
       local r1, g1, b1 = hex:sub(1, 1), hex:sub(2, 2), hex:sub(3, 3)
       table.insert(results, {
         col = s - 1,
