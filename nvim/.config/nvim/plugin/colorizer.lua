@@ -229,6 +229,10 @@ local allow = {
   jsx = true,
   scss = true,
   sass = true,
+  c = true,
+  cpp = true,
+  rust = true,
+  python = true,
 }
 
 local attached = {}
@@ -287,7 +291,7 @@ local function attach(bufnr)
   })
 end
 
-vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile", "BufEnter" }, {
+vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile", "BufEnter", "FileType" }, {
   callback = function(ev)
     attach(ev.buf)
   end,
