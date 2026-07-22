@@ -46,6 +46,12 @@ stowq mako
 stowq startpage
 stowq foot
 stowq tridactyl
+stowq systemd
+
+echo "Enabling startpage service..."
+systemctl --user daemon-reload
+systemctl --user enable startpage.service
+loginctl enable-linger "$USER"
 
 echo "Installing tpm..."
 git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
