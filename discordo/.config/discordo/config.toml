@@ -6,7 +6,7 @@ mouse = false
 autocomplete_limit = 0
 
 # =========================
-# Notifications (silent, visual only)
+# Notifications
 # =========================
 [notifications]
 enabled = true
@@ -23,87 +23,105 @@ send = true
 receive = true
 
 # =========================
-# Global keybinds (Vim-consistent)
+# Global keybinds
 # =========================
 [keybinds]
 focus_guilds_tree = "Ctrl+g"
-focus_messages_list = "Ctrl+t"
+focus_messages_list = "Ctrl+m"
 focus_message_input = "Ctrl+i"
+
 focus_previous = "Ctrl+h"
 focus_next = "Ctrl+l"
-quit = "Ctrl+c"
+
+quit = "Ctrl+q"
 logout = "Ctrl+d"
 
 # =========================
-# Picker navigation (Vim)
+# Picker
 # =========================
 [keybinds.picker]
 up = "k"
 down = "j"
-top = "g"
+top = "gg"
 bottom = "G"
 select = "Enter"
 cancel = "Esc"
 
 # =========================
-# Guild tree (Vim motions)
+# Guild Tree
 # =========================
 [keybinds.guilds_tree]
 up = "k"
 down = "j"
-top = "g"
+
+top = "gg"
 bottom = "G"
+
 select_current = "l"
-collapse_parent_node = "h"
+
+collapse_parent_node = "H"
 move_to_parent_node = "h"
+
 yank_id = "y"
 
 # =========================
-# Messages list (Vim model)
+# Messages
 # =========================
 [keybinds.messages_list]
 select_up = "k"
 select_down = "j"
-select_top = "g"
+
+select_top = "gg"
 select_bottom = "G"
+
 scroll_up = "Ctrl+u"
 scroll_down = "Ctrl+d"
+
 scroll_top = "gg"
 scroll_bottom = "G"
-select_reply = "s"
+
 reply = "r"
 reply_mention = "R"
+select_reply = "s"
+
 edit = "e"
-delete = "D"
+
+delete = "x"
 delete_confirm = "d"
+
 open = "o"
+
 yank_content = "y"
 yank_url = "u"
 yank_id = "i"
+
 cancel = "Esc"
 
 # =========================
-# Message input (insert-like)
+# Message Input
 # =========================
 [keybinds.message_input]
 send = "Enter"
 cancel = "Esc"
+
 tab_complete = "Tab"
+
 paste = "Ctrl+v"
+
 open_editor = "Ctrl+e"
 open_file_picker = "Ctrl+\\"
 
 # =========================
-# Mentions list (Vim)
+# Mentions
 # =========================
 [keybinds.mentions_list]
 up = "k"
 down = "j"
-top = "g"
+top = "gg"
 bottom = "G"
 
 # =========================
-# Theme — terminal-native
+# Theme
 # =========================
 [theme.title]
 normal_style = { attributes = "dim" }
@@ -137,6 +155,3 @@ url_style = { attributes = "underline" }
 [theme.mentions_list]
 min_width = 0
 max_height = 0
-
-[theme.dialog]
-background_style = { attributes = "dim" }
