@@ -1,157 +1,273 @@
-# =========================
-# Core behavior
-# =========================
+# Whether to focus the composer automatically when a channel is selected.
+# Set to false to preview channels without moving focus.
 auto_focus = false
-mouse = false
-autocomplete_limit = 0
 
-# =========================
-# Notifications
-# =========================
+# Whether to enable mouse or not.
+mouse = false
+# The program to open when the `composer.open_editor` keybind is pressed. Set the value to `"default"` to use `$EDITOR`.
+editor = "default"
+
+# "default" (unknown), "online", "dnd", "idle", "invisible", "offline"
+status = "invisible"
+
+hide_blocked_users = true
+show_attachment_links = true
+
+# Max members to be in the mention autocomplete suggestions list
+# Note: Use autocomplete_limit = 0 to disable.
+autocomplete_limit = 20
+
+# The number of messages to fetch when a text-based channel is selected from guilds tree. The minimum and maximum value is 1 and 100, respectively.
+messages_limit = 50
+
+[composer]
+# Maximum height (in newline-separated rows) the composer grows to before it starts scrolling internally.
+# Set to 1 for a fixed single-line input.
+max_height = 10
+
+[markdown]
+# Whether to parse and render markdown in messages or not.
+enabled = true
+# Theme for fenced code blocks. Available themes: https://xyproto.github.io/splash/docs
+theme = "gruvbox"
+
+[help]
+# Show compact key modifiers in help, e.g. "^x" instead of "ctrl+x".
+compact_modifiers = true
+# [left, right]
+padding = [1, 1]
+separator = " • "
+
+[picker]
+width = 80
+height = 25
+
+[timestamps]
+enabled = true
+# https://pkg.go.dev/time#Layout
+format = "3:04PM"
+
+[date_separator]
+enabled = true
+# https://pkg.go.dev/time#Layout
+format = "January 2, 2006"
+# The fill character used on both sides of the date label.
+character = "─"
+
 [notifications]
 enabled = true
+# The duration of the sound. Set the value to `0` to use default duration. This is only supported on Unix and Windows.
 duration = 0
-
 [notifications.sound]
-enabled = false
+enabled = true
+only_on_ping = true
 
-# =========================
-# Typing indicator
-# =========================
 [typing_indicator]
+# Whether to send typing status or not.
 send = true
+# Whether to receive typing status or not.
 receive = true
 
-# =========================
-# Global keybinds
-# =========================
+[sidebar]
+# Percentage (%) of the available width used by the guilds tree sidebar.
+# Valid values are 1-99. Invalid values fall back to 20.
+width_percent = 20
+
+[sidebar.markers]
+expanded = "▾ "
+collapsed = "▸ "
+leaf = ""
+
+# Indentation for different item types.
+[sidebar.indents]
+dm = 2
+group_dm = 1
+guild = 2
+category = 1
+channel = 2
+forum = 2
+
+[icons]
+guild_category = ""
+guild_text = "#"
+guild_voice = "♪ "
+guild_stage_voice = "♪ "
+guild_announcement_thread = "a-"
+guild_public_thread = "› "
+guild_private_thread = "› "
+guild_announcement = "a-"
+guild_forum = "≡ "
+guild_store = "s-"
+
+# Global shortcuts
+# Esc: Reset message selection or close the channel selection popup.
 [keybinds]
-focus_guilds_tree = "Ctrl+g"
-focus_messages_list = "Ctrl+m"
-focus_message_input = "Ctrl+i"
+# Hide/show the guilds tree.
+toggle_guilds_tree = "ctrl+b"
+toggle_channels_picker = "ctrl+k"
+toggle_help = "ctrl+."
+focus_guilds_tree = "ctrl+g"
+focus_messages_list = "ctrl+t"
+focus_composer = "ctrl+i"
+# Cycle focus between the widgets.
+focus_previous = "ctrl+h"
+focus_next = "ctrl+l"
+# Log out and remove the authentication token from keyring.
+# Requires re-login upon restart.
+logout = "ctrl+d"
+suspend = "ctrl+z"
+quit = "ctrl+c"
 
-focus_previous = "Ctrl+h"
-focus_next = "Ctrl+l"
-
-quit = "Ctrl+q"
-logout = "Ctrl+d"
-
-# =========================
-# Picker
-# =========================
 [keybinds.picker]
-up = "k"
-down = "j"
-top = "gg"
-bottom = "G"
-select = "Enter"
-cancel = "Esc"
+cancel = "esc"
+select_up = "ctrl+p"
+select_down = "ctrl+n"
+select_top = "home"
+select_bottom = "end"
+select = "enter"
 
-# =========================
-# Guild Tree
-# =========================
+# Only while focusing on the guilds tree
 [keybinds.guilds_tree]
-up = "k"
-down = "j"
-
-top = "gg"
-bottom = "G"
-
+select_up = "k"
+select_down = "j"
+select_top = "g"
+select_bottom = "G"
+# Select the currently highlighted text-based channel or expand a guild or channel.
 select_current = "l"
-
-collapse_parent_node = "H"
+yank_id = "ctrl+y"
+collapse_all = "ctrl+a"
+collapse_parent_node = "ctrl+p"
 move_to_parent_node = "h"
 
-yank_id = "y"
-
-# =========================
-# Messages
-# =========================
+# Only while focusing on sent messages
 [keybinds.messages_list]
 select_up = "k"
 select_down = "j"
-
-select_top = "gg"
+select_top = "g"
 select_bottom = "G"
+# Scroll the messages list without changing the selection.
+scroll_up = "K"
+scroll_down = "J"
+scroll_top = "home"
+scroll_bottom = "end"
+# Select the message reference (reply) of the selected channel.
+select_reply = "ctrl+s"
+# Reply to the selected message.
+reply = "ctrl+r"
+# Reply (with mention) to the selected message.
+reply_mention = "ctrl+shift+r"
+cancel = "esc"
+edit = "ctrl+e"
+delete = "ctrl+x"
+delete_confirm = "ctrl+shift+x"
+# Open the selected message's attachments or hyperlinks in the message
+# using the default browser application.
+open = "ctrl+o"
+# Yank (copy) the selected message's content/url/id.
+yank_content = "ctrl+y"
+yank_url = "ctrl+u"
+yank_id = "ctrl+n"
 
-scroll_up = "Ctrl+u"
-scroll_down = "Ctrl+d"
+# Only while typing a message
+[keybinds.composer]
+# Paste from clipboard (supports both text and images)
+paste = "ctrl+v"
+send = "enter"
+# Insert a new line at the cursor.
+newline = "shift+enter"
+# Remove existing text or cancel reply.
+cancel = "esc"
+# Complete usernames when mentioning
+tab_complete = "tab"
+undo = "ctrl+u"
 
-scroll_top = "gg"
-scroll_bottom = "G"
+open_editor = "ctrl+e"
+open_file_picker = "ctrl+\\"
 
-reply = "r"
-reply_mention = "R"
-select_reply = "s"
-
-edit = "e"
-
-delete = "x"
-delete_confirm = "d"
-
-open = "o"
-
-yank_content = "y"
-yank_url = "u"
-yank_id = "i"
-
-cancel = "Esc"
-
-# =========================
-# Message Input
-# =========================
-[keybinds.message_input]
-send = "Enter"
-cancel = "Esc"
-
-tab_complete = "Tab"
-
-paste = "Ctrl+v"
-
-open_editor = "Ctrl+e"
-open_file_picker = "Ctrl+\\"
-
-# =========================
-# Mentions
-# =========================
 [keybinds.mentions_list]
-up = "k"
-down = "j"
-top = "gg"
-bottom = "G"
+select_up = "ctrl+p"
+select_down = "ctrl+n"
+select_top = "home"
+select_bottom = "end"
 
-# =========================
-# Theme
-# =========================
+# style = { foreground = "", background = "", attributes = "" or ["",""],  underline = "", underline_color = "" }
 [theme.title]
+alignment = "left"                                           # `"left"`, `"center"`, or `"right"`.
 normal_style = { attributes = "dim" }
-active_style = { attributes = "bold" }
+active_style = { foreground = "green", attributes = "bold" }
 
 [theme.footer]
+alignment = "left"
 normal_style = { attributes = "dim" }
-active_style = { attributes = "bold" }
+active_style = { foreground = "green", attributes = "bold" }
 
 [theme.border]
 enabled = true
-padding = [0, 0, 0, 0]
+padding = [0, 0, 1, 1] # [top, bottom, left, right]
+
 normal_style = { attributes = "dim" }
-active_style = { attributes = "bold" }
-normal_set = "plain"
-active_set = "plain"
+active_style = { foreground = "green", attributes = "bold" }
+
+# `"hidden"`, `"plain"`, `"round"`, `"thick"`, or `"double"`.
+normal_set = "round"
+active_set = "round"
 
 [theme.guilds_tree]
 auto_expand_folders = true
+# Give tree-like shape
 graphics = true
 graphics_color = "default"
+
+# Direct-message recipient presence styles.
+online_style = { foreground = "green" }
+idle_style = { foreground = "yellow" }
+dnd_style = { foreground = "red" }
+offline_style = { foreground = "gray" }
+
+[theme.scroll_bar]
+visibility = "auto"
+# "minimal", "box_drawing", or "unicode"
+glyph_set = "unicode"
+track_style = { attributes = "dim" }
+thumb_style = {}
 
 [theme.messages_list]
 reply_indicator = ">"
 forwarded_indicator = "<"
+
+mention_style = { foreground = "blue", attributes = "bold" }
+emoji_style = { foreground = "green" }
+url_style = { foreground = "blue" }
+attachment_style = { foreground = "yellow" }
 message_style = {}
 selected_message_style = { attributes = "reverse" }
-mention_style = { attributes = "bold" }
-url_style = { attributes = "underline" }
+
+[theme.messages_list.embeds]
+provider_style = { attributes = ["dim", "italic"] }
+author_style = { attributes = "italic" }
+title_style = { foreground = "blue", attributes = "bold" }
+description_style = { attributes = "dim" }
+field_name_style = { attributes = ["bold", "underline"] }
+field_value_style = {}
+footer_style = { attributes = ["dim", "italic"] }
+url_style = { foreground = "blue", underline = "solid" }
 
 [theme.mentions_list]
-min_width = 0
+# Note: width and height are capped to the avaliable space
+# Minimum width
+# 0 = make the list as wide as possible
+min_width = 20
+# Maximum height
+# 0 = make the list as tall as needed
 max_height = 0
+
+[theme.dialog]
+style = {}
+# Background style: everything else behind the dialog
+background_style = { attributes = "dim" }
+
+[theme.help]
+short_key_style = { attributes = "dim" }
+short_desc_style = {}
+full_key_style = { attributes = "dim" }
+full_desc_style = {}
