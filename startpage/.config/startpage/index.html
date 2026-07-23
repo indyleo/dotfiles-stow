@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="starticon.png" type="image/png" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; connect-src 'self' https://wttr.in https://www.google.com https://www.cloudflare.com https://searxng.linuxlab.work; form-action https://searxng.linuxlab.work;"
+    />
     <title>Start Page (Gruvbox)</title>
     <style>
       :root {
@@ -402,66 +406,70 @@
         <div class="category">
           <h3>Work</h3>
           <a href="https://github.com"
-            ><img src="favicons/github.ico" width="16" height="16" />GitHub</a
+            ><img src="favicons/github.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />GitHub</a
           >
           <a href="https://gitlab.com"
-            ><img src="favicons/gitlab.ico" width="16" height="16" />GitLab</a
+            ><img src="favicons/gitlab.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />GitLab</a
           >
           <a href="https://stackoverflow.com"
             ><img
               src="favicons/stackoverflow.ico"
               width="16"
               height="16"
+              alt=""
+              onerror="this.style.display='none'"
             />Stack Overflow</a
           >
           <a href="https://mail.google.com/mail/u/0/#inbox"
-            ><img src="favicons/gmail.ico" width="16" height="16" />Gmail</a
+            ><img src="favicons/gmail.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />Gmail</a
           >
         </div>
         <div class="category">
           <h3>Media</h3>
           <a href="https://youtube.com"
-            ><img src="favicons/youtube.ico" width="16" height="16" />YouTube</a
+            ><img src="favicons/youtube.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />YouTube</a
           >
           <a href="https://twitch.tv"
-            ><img src="favicons/twitch.ico" width="16" height="16" />Twitch</a
+            ><img src="favicons/twitch.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />Twitch</a
           >
           <a href="https://www.reddit.com/"
-            ><img src="favicons/reddit.ico" width="16" height="16" />Reddit</a
+            ><img src="favicons/reddit.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />Reddit</a
           >
           <a href="https://discord.com/channels/@me"
-            ><img src="favicons/discord.ico" width="16" height="16" />Discord</a
+            ><img src="favicons/discord.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />Discord</a
           >
         </div>
         <div class="category">
           <h3>Tools</h3>
           <a href="https://gemini.google.com/u/1"
-            ><img src="favicons/gemini.svg" width="16" height="16" />Gemini</a
+            ><img src="favicons/gemini.svg" width="16" height="16" alt="" onerror="this.style.display='none'" />Gemini</a
           >
           <a href="https://claude.ai/new"
-            ><img src="favicons/claude.svg" width="16" height="16" />Claude</a
+            ><img src="favicons/claude.svg" width="16" height="16" alt="" onerror="this.style.display='none'" />Claude</a
           >
           <a href="https://chat.openai.com"
-            ><img src="favicons/chatgpt.ico" width="16" height="16" />ChatGPT</a
+            ><img src="favicons/chatgpt.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />ChatGPT</a
           >
           <a href="https://terminal.sexy"
             ><img
               src="favicons/hackertype.ico"
               width="16"
               height="16"
+              alt=""
+              onerror="this.style.display='none'"
             />Terminal Sexy</a
           >
         </div>
         <div class="category">
           <h3>Projects</h3>
           <a href="https://github.com/indyleo/Catalyst"
-            ><img src="favicons/github.ico" width="16" height="16" />Catalyst</a
+            ><img src="favicons/github.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />Catalyst</a
           >
           <a href="https://github.com/indyleo/dotfiles-stow"
-            ><img src="favicons/github.ico" width="16" height="16" />Dotfiles</a
+            ><img src="favicons/github.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />Dotfiles</a
           >
           <a href="https://github.com/indyleo/suckless"
-            ><img src="favicons/github.ico" width="16" height="16" />Suckless</a
+            ><img src="favicons/github.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />Suckless</a
           >
         </div>
       </div>
@@ -604,7 +612,17 @@
         window.addEventListener("pagehide", saveState);
         window.addEventListener("beforeunload", saveState);
 
-        setInterval(draw, INTERVAL_MS);
+        // Pause the draw loop while the tab is hidden (background tab/workspace) —
+        // no point burning CPU/battery animating something nobody can see.
+        let drawTimer = setInterval(draw, INTERVAL_MS);
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) {
+            clearInterval(drawTimer);
+            saveState();
+          } else {
+            drawTimer = setInterval(draw, INTERVAL_MS);
+          }
+        });
       })();
 
       /* ---- AUDIO ---- */
@@ -669,8 +687,43 @@
       }
 
       /* ---- GREETING & CLOCK ---- */
-      let currentQuote = "The air is getting warmer around you...";
-      let currentRandomPhrase = "Devourer of Gods";
+      // Only ever shown if quotes.txt / randomphrases.txt fail to load —
+      // so these read as errors, not flavor text.
+      const FALLBACK_QUOTES = [
+        "ERR_ENOENT: quotes.txt not found",
+        "Local wisdom cache corrupted — running on stub data",
+        "Signal lost mid-transmission...",
+        "// TODO: recover lost quote archive",
+        "Failed to mount /wisdom — fallback engaged",
+        "404: philosophy not found",
+        "Quote daemon crashed. Nobody noticed.",
+        "Reading from /dev/null instead",
+      ];
+      const FALLBACK_PHRASES = [
+        "System Fault",
+        "Cache Miss",
+        "Buffer Underrun",
+        "Signal Lost",
+        "Fallback Engaged",
+        "Data Corrupted",
+        "Read Error",
+        "Segfault Averted",
+        "Kernel Panic (Contained)",
+        "Connection Timed Out",
+      ];
+      function pickFallbackQuote() {
+        return FALLBACK_QUOTES[
+          Math.floor(Math.random() * FALLBACK_QUOTES.length)
+        ];
+      }
+      function pickFallbackPhrase() {
+        return FALLBACK_PHRASES[
+          Math.floor(Math.random() * FALLBACK_PHRASES.length)
+        ];
+      }
+
+      let currentQuote = pickFallbackQuote();
+      let currentRandomPhrase = pickFallbackPhrase();
       let greetingTyped = false;
 
       // Typing animation — types `text` into `el`, then calls `onDone`
@@ -696,36 +749,55 @@
       }
 
       async function loadTextFiles() {
-        try {
-          const [quoteRes, phraseRes] = await Promise.all([
-            fetch("quotes.txt"),
-            fetch("randomphrases.txt"),
-          ]);
-          if (quoteRes.ok) {
-            const quotes = (await quoteRes.text())
+        const [quoteOutcome, phraseOutcome] = await Promise.allSettled([
+          fetch("quotes.txt"),
+          fetch("randomphrases.txt"),
+        ]);
+
+        if (quoteOutcome.status === "fulfilled" && quoteOutcome.value.ok) {
+          try {
+            const quotes = (await quoteOutcome.value.text())
               .split("\n")
               .filter((l) => l.trim());
-            currentQuote =
-              quotes[Math.floor(Math.random() * quotes.length)].trim();
-            if (
-              currentQuote
-                .toLowerCase()
-                .includes("here comes the sun do do dodo")
-            ) {
-              playSunAudio();
+            if (quotes.length) {
+              currentQuote =
+                quotes[Math.floor(Math.random() * quotes.length)].trim();
+              if (
+                currentQuote
+                  .toLowerCase()
+                  .includes("here comes the sun do do dodo")
+              ) {
+                playSunAudio();
+              }
+            } else {
+              currentQuote = "quotes.txt is empty — " + pickFallbackQuote();
             }
+          } catch (_) {
+            currentQuote = pickFallbackQuote();
           }
-          if (phraseRes.ok) {
-            const phrases = (await phraseRes.text())
+        } else {
+          currentQuote = pickFallbackQuote();
+        }
+
+        if (phraseOutcome.status === "fulfilled" && phraseOutcome.value.ok) {
+          try {
+            const phrases = (await phraseOutcome.value.text())
               .split("\n")
               .filter((l) => l.trim());
-            currentRandomPhrase =
-              phrases[Math.floor(Math.random() * phrases.length)];
+            if (phrases.length) {
+              currentRandomPhrase =
+                phrases[Math.floor(Math.random() * phrases.length)];
+            } else {
+              currentRandomPhrase = pickFallbackPhrase();
+            }
+          } catch (_) {
+            currentRandomPhrase = pickFallbackPhrase();
           }
-          updateClock();
-        } catch (e) {
-          updateClock();
+        } else {
+          currentRandomPhrase = pickFallbackPhrase();
         }
+
+        updateClock();
       }
 
       function updateClock() {
@@ -786,7 +858,37 @@
       }
 
       /* ---- WEATHER ---- */
+      const WEATHER_CACHE_KEY = "weather_cache";
+      const WEATHER_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+      function getCachedWeather() {
+        try {
+          const cached = JSON.parse(localStorage.getItem(WEATHER_CACHE_KEY));
+          if (cached && typeof cached.value === "string" && cached.ts) {
+            return cached;
+          }
+        } catch (_) {}
+        return null;
+      }
+
+      function setCachedWeather(value) {
+        try {
+          localStorage.setItem(
+            WEATHER_CACHE_KEY,
+            JSON.stringify({ value, ts: Date.now() }),
+          );
+        } catch (_) {}
+      }
+
       async function initWeather() {
+        const cached = getCachedWeather();
+        const cacheIsFresh = cached && Date.now() - cached.ts < WEATHER_TTL_MS;
+
+        if (cacheIsFresh) {
+          document.getElementById("weather-val").textContent = cached.value;
+          return;
+        }
+
         try {
           const res = await fetch("https://wttr.in/?format=%C+%t", {
             cache: "no-store",
@@ -804,8 +906,17 @@
           }
 
           document.getElementById("weather-val").textContent = weather;
+          setCachedWeather(weather);
         } catch (_) {
-          document.getElementById("weather-container").classList.add("hidden");
+          // Fetch failed (or bad response) — fall back to a stale cache if we
+          // have one rather than hiding the field outright.
+          if (cached) {
+            document.getElementById("weather-val").textContent = cached.value;
+          } else {
+            document
+              .getElementById("weather-container")
+              .classList.add("hidden");
+          }
         }
       }
 
@@ -878,8 +989,19 @@
       initSysInfo();
       initWeather();
       measurePing();
-      // Re-measure ping every 30 s
-      setInterval(measurePing, 30000);
+
+      // Re-measure ping every 30 s, but don't bother while the tab is hidden.
+      // Take one fresh measurement immediately on becoming visible again.
+      let pingTimer = setInterval(measurePing, 30000);
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          clearInterval(pingTimer);
+        } else {
+          measurePing();
+          pingTimer = setInterval(measurePing, 30000);
+        }
+      });
+
       setInterval(updateClock, 1000);
 
       const searchInput = document.getElementById("searchInput");
