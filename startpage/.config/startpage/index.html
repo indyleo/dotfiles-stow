@@ -1048,6 +1048,7 @@
               : avg < 120
                 ? "var(--yellow)"
                 : "var(--red)";
+          document.getElementById("ping-container").classList.remove("hidden");
           pingEl.innerHTML = `<span style="color:${color}">${avg} ms</span>`;
         } else {
           document.getElementById("ping-container").classList.add("hidden");
@@ -1351,6 +1352,7 @@
 
         if (e.key === "Escape") {
           overlay.classList.remove("visible");
+          searchInput.value = "";
           searchInput.blur();
           return;
         }
