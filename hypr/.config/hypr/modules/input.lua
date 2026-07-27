@@ -1,4 +1,3 @@
--- https://wiki.hypr.land/Configuring/Variables/#input
 hl.config({
 	input = {
 		kb_layout = "us",

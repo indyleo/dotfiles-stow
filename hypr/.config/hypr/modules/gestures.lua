@@ -1,5 +1,3 @@
--- See https://wiki.hypr.land/Configuring/Gestures
-
 -- Workspace switching
 hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
 

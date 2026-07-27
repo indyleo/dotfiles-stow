@@ -6,9 +6,6 @@
 --    \_/\_/  |_|_| |_|\__,_|\___/ \_/\_/   |_| \_\\__,_|_|\___||___/ --
 -- ################################################################## --
 
--- See https://wiki.hypr.land/Configuring/Window-Rules/ for more
--- See https://wiki.hypr.land/Configuring/Workspace-Rules/ for workspace rules
-
 -- --- Window Rules ---
 
 -- Ignore maximize requests
