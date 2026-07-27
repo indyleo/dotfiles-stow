@@ -1,4 +1,3 @@
--- https://wiki.hypr.land/Configuring/Variables/#decoration
 hl.config({
 	decoration = {
 		rounding = 10,
@@ -15,7 +14,6 @@ hl.config({
 			color = "rgba(282828ee)",
 		},
 
-		-- https://wiki.hypr.land/Configuring/Variables/#blur
 		blur = {
 			enabled = true,
 			size = 3,
