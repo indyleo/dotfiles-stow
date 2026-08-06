@@ -562,7 +562,7 @@ ShellRoot {
 							if (m.button === Qt.MiddleButton) {
 								sysMediaRow.pinned = !sysMediaRow.pinned
 							} else if (m.button === Qt.LeftButton) {
-								shellCmd.command = ["sh", "-c", "record"]
+								shellCmd.command = ["sh", "-c", "recorder"]
 								shellCmd.running = false
 								shellCmd.running = true
 							}
