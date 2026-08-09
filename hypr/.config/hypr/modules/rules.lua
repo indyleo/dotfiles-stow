@@ -48,20 +48,6 @@ hl.window_rule({
 	fullscreen = true,
 })
 
--- SC2 / Brood War report class "steam_app_default", so the rule above
--- already catches them — but title-matching as an explicit fallback
--- in case Valve changes the class string on an update:
-hl.window_rule({
-	match = { title = "^(StarCraft II)$" },
-	float = false,
-	fullscreen = true,
-})
-hl.window_rule({
-	match = { title = "^(Brood War)$" },
-	float = false,
-	fullscreen = true,
-})
-
 -- --- Layer Rules ---
 
 -- Rofi blur
