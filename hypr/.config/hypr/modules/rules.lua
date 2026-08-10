@@ -43,7 +43,7 @@ hl.window_rule({
 
 -- Auto-fullscreen Steam games
 hl.window_rule({
-	match = { class = "^steam_app_(?!0$)[0-9]+$" },
+	match = { class = "^steam_app_[1-9][0-9]*$" },
 	float = false,
 	fullscreen = true,
 })
