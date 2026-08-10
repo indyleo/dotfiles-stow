@@ -220,22 +220,30 @@ ShellRoot {
 		command: ["mediactl", "status"]
 		stdout: SplitParser {
 			onRead: data => {
-				if (!data || data.trim() === "" || data.includes("idle||Idle")) {
+				// 1. Properly check for idle/empty state
+				if (!data || data.replace(/[\r\n]+$/, "") === "" || data.startsWith("idle")) {
 					root.showMedia = false;
 					return;
 				}
 				root.showMedia = true;
-				let parts = data.trim().split("\t");
-				if (parts.length >= 7) {
+
+				// 2. Strip only trailing newlines so internal/trailing tabs stay intact
+				let parts = data.replace(/[\r\n]+$/, "").split("\t");
+
+				if (parts.length >= 5) {
 					root.mediaIsPlaying = (parts[2] === "Playing");
 					root.mediaIcon = root.mediaIsPlaying ? "" : "";
-					root.mediaTitle = parts[3] || "Unknown Title";
-					root.mediaArtist = parts[4] || "Unknown Artist";
-					let art = parts[6] || "";
+					root.mediaTitle = parts[3] ? parts[3].trim() : "Unknown Title";
+					root.mediaArtist = parts[4] ? parts[4].trim() : "Unknown Artist";
 
-					if (art.startsWith("http://") || art.startsWith("https://")) {
-						root.mediaArtUrl = art;
-					} else if (art.startsWith("file://")) {
+					// 3. Extract artwork URL, check index 6 first, fall back to index 5 (if album field was omitted), and trim whitespace
+					let art = (parts[6] || "").trim();
+					if (art === "" && parts[5]) {
+						art = parts[5].trim();
+					}
+
+					// 4. Format URI cleanly
+					if (art.startsWith("http://") || art.startsWith("https://") || art.startsWith("file://")) {
 						root.mediaArtUrl = art;
 					} else if (art !== "") {
 						root.mediaArtUrl = "file://" + art;
