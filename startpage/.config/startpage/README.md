@@ -13,7 +13,8 @@ matrix-rain flavor. Single `index.html`, no build step, no dependencies.
 - **Quicklinks** grouped into categories (Work / Media / Tools / Projects by
   default) with favicons.
 - **Live system info bar**: OS, browser (including Brave detection), distro
-  label, current weather, and round-trip ping — all in a fixed glass panel.
+  label, current weather, round-trip ping, session uptime, and battery level
+  (where supported) — all in a fixed glass panel.
 - **Click-to-expand 3-day weather forecast** — click the weather item in the
   system info bar for a short forecast popover.
 - **Typed greeting** with a random rotating quote/phrase pulled from

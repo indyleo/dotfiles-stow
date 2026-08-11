@@ -691,6 +691,18 @@
         <span class="sys-label">PING:</span>
         <span id="ping-val">...</span>
       </div>
+      <div
+        class="sys-item"
+        id="uptime-container"
+        title="Time since this page loaded"
+      >
+        <span class="sys-label">UPTIME:</span>
+        <span id="uptime-val">...</span>
+      </div>
+      <div class="sys-item" id="battery-container">
+        <span class="sys-label">BATTERY:</span>
+        <span id="battery-val">...</span>
+      </div>
     </div>
 
     <div id="weather-forecast" class="glass-panel"></div>
@@ -1372,6 +1384,64 @@
         }
       }
 
+      /* ---- UPTIME ---- */
+      // Real OS uptime/last-reboot isn't reachable from a web page (browsers
+      // sandbox that away entirely) — this tracks session uptime instead:
+      // time elapsed since this page started loading, terminal-uptime style.
+      const pageLoadTime = performance.timeOrigin ?? Date.now();
+
+      function updateUptime() {
+        const el = document.getElementById("uptime-val");
+        if (!el) return;
+        const totalSec = Math.floor((Date.now() - pageLoadTime) / 1000);
+        const days = Math.floor(totalSec / 86400);
+        const hours = Math.floor((totalSec % 86400) / 3600);
+        const mins = Math.floor((totalSec % 3600) / 60);
+        const secs = totalSec % 60;
+
+        let text;
+        if (days > 0) text = `${days}d ${hours}h ${mins}m`;
+        else if (hours > 0) text = `${hours}h ${mins}m`;
+        else if (mins > 0) text = `${mins}m ${secs}s`;
+        else text = `${secs}s`;
+
+        el.textContent = text;
+      }
+
+      /* ---- BATTERY ---- */
+      // getBattery() is non-standard and unsupported in Firefox/Safari —
+      // feature-detect and hide the field entirely when it's unavailable.
+      async function initBattery() {
+        const container = document.getElementById("battery-container");
+        if (!("getBattery" in navigator)) {
+          container.classList.add("hidden");
+          return;
+        }
+        try {
+          const battery = await navigator.getBattery();
+          const valEl = document.getElementById("battery-val");
+
+          function render() {
+            const pct = Math.round(battery.level * 100);
+            const color = battery.charging
+              ? "var(--aqua)"
+              : pct >= 50
+                ? "var(--green)"
+                : pct >= 20
+                  ? "var(--yellow)"
+                  : "var(--red)";
+            const bolt = battery.charging ? " \u26a1" : "";
+            valEl.innerHTML = `<span style="color:${color}">${pct}%${bolt}</span>`;
+          }
+
+          render();
+          battery.addEventListener("levelchange", render);
+          battery.addEventListener("chargingchange", render);
+        } catch (_) {
+          container.classList.add("hidden");
+        }
+      }
+
       /* ---- LINK HINTS (Vimium-style) ---- */
       // Home-row-first order so common hints are quick to type.
       const HINT_CHARS = "asdfghjklqwertyuiopzxcvbnm";
@@ -1605,7 +1675,9 @@
       loadTextFiles();
       initSysInfo();
       initWeather();
+      initBattery();
       measurePing();
+      updateUptime();
 
       // Re-measure ping every 30 s, but don't bother while the tab is hidden.
       // Take one fresh measurement immediately on becoming visible again.
@@ -1622,7 +1694,10 @@
         }
       });
 
-      setInterval(updateClock, 1000);
+      setInterval(() => {
+        updateClock();
+        updateUptime();
+      }, 1000);
 
       const searchInput = document.getElementById("searchInput");
       document
