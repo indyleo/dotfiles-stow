@@ -82,12 +82,12 @@
       }
 
       /* All content sits above canvas — excludes .sys-info, #keybind-overlay,
-         #hint-overlay, and #weather-forecast so their own fixed
+         #hint-overlay, and #info-popover so their own fixed
          positioning/z-index is preserved */
       body
         > *:not(#matrix-canvas):not(.sys-info):not(#keybind-overlay):not(
           #hint-overlay
-        ):not(#weather-forecast) {
+        ):not(#info-popover) {
         position: relative;
         z-index: 1;
       }
@@ -255,15 +255,15 @@
         color: var(--accent);
       }
 
-      #weather-container {
+      .info-clickable {
         cursor: pointer;
         border-radius: 4px;
         transition: color 0.2s ease;
       }
-      #weather-container:hover {
+      .info-clickable:hover {
         color: var(--accent);
       }
-      #weather-container:hover .sys-label {
+      .info-clickable:hover .sys-label {
         color: var(--alert);
       }
 
@@ -382,26 +382,84 @@
         color: var(--alert);
       }
 
-      /* ---- WEATHER FORECAST POPOVER ---- */
-      #weather-forecast {
+      /* ---- INFO POPOVER (weather / ping / battery / browser / clock / uptime) ---- */
+      #info-popover {
         position: fixed;
-        left: 50%;
-        transform: translateX(-50%);
         z-index: 3;
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 4px 0;
-        padding: 10px 6px;
+        max-width: min(90vw, 320px);
+        padding: 12px 16px;
         font-size: 0.75rem;
         color: var(--fg1);
         opacity: 0;
         pointer-events: none;
         transition: opacity 0.2s ease;
       }
-      #weather-forecast.visible {
+      #info-popover.visible {
         opacity: 1;
         pointer-events: auto;
+      }
+      .popover-title {
+        color: var(--accent);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.72rem;
+        margin-bottom: 8px;
+        text-align: center;
+      }
+      .popover-empty {
+        color: var(--fg2);
+        text-align: center;
+      }
+
+      /* key/value rows — battery, browser, clock, uptime */
+      .popover-kv {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .kv-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      .kv-label {
+        color: var(--fg2);
+      }
+      .popover-ua {
+        max-width: 280px;
+        word-break: break-word;
+        font-size: 0.68rem;
+        color: var(--fg2);
+        margin-top: 4px;
+      }
+
+      /* ping breakdown */
+      .ping-list {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        margin-bottom: 10px;
+      }
+      .ping-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      .ping-label {
+        color: var(--fg2);
+      }
+      .ping-sparkline {
+        display: block;
+        margin: 0 auto;
+      }
+
+      /* weather forecast columns */
+      .popover-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 4px 0;
       }
       .forecast-day {
         display: flex;
@@ -478,7 +536,7 @@
         <div class="kb-row">
           <span class="kb-key">Esc</span
           ><span class="kb-desc"
-            >Close overlay / forecast / clear search / exit hint mode</span
+            >Close overlay / popover / clear search / exit hint mode</span
           >
         </div>
         <h2 id="bang-heading">&#33; Search Bangs</h2>
@@ -493,7 +551,11 @@
       <span id="quote-line" class="quote-text">...</span>
     </h1>
 
-    <div id="datetime" class="glass-panel"></div>
+    <div
+      id="datetime"
+      class="glass-panel info-clickable"
+      title="Click for world clock"
+    ></div>
 
     <div class="search-container">
       <form
@@ -675,37 +737,49 @@
       <div id="distro-container" class="sys-item">
         <span class="sys-label">DISTRO:</span> <span id="distro-val">...</span>
       </div>
-      <div class="sys-item">
+      <div
+        class="sys-item info-clickable"
+        id="browser-container"
+        title="Click for details"
+      >
         <span class="sys-label">BROWSER:</span>
         <span id="browser-val">...</span>
       </div>
       <div
-        class="sys-item"
+        class="sys-item info-clickable"
         id="weather-container"
         title="Click for 3-day forecast"
       >
         <span class="sys-label">WEATHER:</span>
         <span id="weather-val">...</span>
       </div>
-      <div class="sys-item" id="ping-container">
+      <div
+        class="sys-item info-clickable"
+        id="ping-container"
+        title="Click for breakdown"
+      >
         <span class="sys-label">PING:</span>
         <span id="ping-val">...</span>
       </div>
       <div
-        class="sys-item"
+        class="sys-item info-clickable"
         id="uptime-container"
-        title="Time since this page loaded"
+        title="Click for details"
       >
         <span class="sys-label">UPTIME:</span>
         <span id="uptime-val">...</span>
       </div>
-      <div class="sys-item" id="battery-container">
+      <div
+        class="sys-item info-clickable"
+        id="battery-container"
+        title="Click for details"
+      >
         <span class="sys-label">BATTERY:</span>
         <span id="battery-val">...</span>
       </div>
     </div>
 
-    <div id="weather-forecast" class="glass-panel"></div>
+    <div id="info-popover" class="glass-panel"></div>
 
     <script>
       /* ---- MATRIX RAIN ---- */
@@ -1116,6 +1190,45 @@
           quoteEl.textContent = `"${currentQuote}"`;
           quoteEl.style.opacity = "1";
         }
+
+        if (activePopover === "clock") updateWorldClockRows();
+      }
+
+      const WORLD_CLOCK_ZONES = [
+        { label: "Local", zone: undefined },
+        { label: "UTC", zone: "UTC" },
+        { label: "New York", zone: "America/New_York" },
+        { label: "London", zone: "Europe/London" },
+        { label: "Tokyo", zone: "Asia/Tokyo" },
+      ];
+
+      function renderClockPopover(popover) {
+        addPopoverTitle(popover, "World Clock");
+        const kv = document.createElement("div");
+        kv.className = "popover-kv";
+        kv.id = "world-clock-rows";
+        popover.appendChild(kv);
+        updateWorldClockRows();
+      }
+
+      function updateWorldClockRows() {
+        const kv = document.getElementById("world-clock-rows");
+        if (!kv) return;
+        kv.textContent = "";
+        const now = new Date();
+        WORLD_CLOCK_ZONES.forEach(({ label, zone }) => {
+          let time;
+          try {
+            time = new Intl.DateTimeFormat(undefined, {
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZone: zone,
+            }).format(now);
+          } catch (_) {
+            time = "\u2014";
+          }
+          addKvRow(kv, label, time);
+        });
       }
 
       /* ---- WEATHER ---- */
@@ -1181,12 +1294,111 @@
         }
       }
 
-      /* ---- WEATHER FORECAST (click-to-expand) ---- */
+      /* ---- INFO POPOVER (shared by weather / ping / battery / browser / clock / uptime) ---- */
+      let activePopover = null; // key of whichever popover is open, or null
+      let activePopoverTrigger = null; // the element that was clicked to open it
+
+      function positionPopover(triggerEl) {
+        const popover = document.getElementById("info-popover");
+        const rect = triggerEl.getBoundingClientRect();
+        const gap = 10;
+        const margin = 8;
+
+        // Let content render first so we can measure the popover's natural
+        // size, then place it relative to whichever element was clicked —
+        // below it if there's room (or it's near the top of the viewport),
+        // above it otherwise.
+        popover.style.top = "0px";
+        popover.style.bottom = "";
+        popover.style.left = "0px";
+        const popRect = popover.getBoundingClientRect();
+
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const placeBelow =
+          rect.top < window.innerHeight / 2 ||
+          spaceBelow > popRect.height + gap;
+
+        if (placeBelow) {
+          popover.style.top = `${rect.bottom + gap}px`;
+          popover.style.bottom = "";
+        } else {
+          popover.style.top = "";
+          popover.style.bottom = `${window.innerHeight - rect.top + gap}px`;
+        }
+
+        let left = rect.left + rect.width / 2 - popRect.width / 2;
+        left = Math.max(
+          margin,
+          Math.min(left, window.innerWidth - popRect.width - margin),
+        );
+        popover.style.left = `${left}px`;
+      }
+
+      async function openPopover(key, triggerEl) {
+        const popover = document.getElementById("info-popover");
+        if (activePopover === key) {
+          closePopover();
+          return;
+        }
+        activePopover = key;
+        activePopoverTrigger = triggerEl;
+        popover.classList.add("visible");
+        await renderPopoverContent(key, popover);
+        if (activePopover === key) positionPopover(triggerEl);
+      }
+
+      function closePopover() {
+        document.getElementById("info-popover").classList.remove("visible");
+        activePopover = null;
+        activePopoverTrigger = null;
+      }
+
+      async function renderPopoverContent(key, popover) {
+        popover.textContent = "";
+        switch (key) {
+          case "weather":
+            await renderWeatherPopover(popover);
+            break;
+          case "ping":
+            renderPingPopover(popover);
+            break;
+          case "battery":
+            renderBatteryPopover(popover);
+            break;
+          case "browser":
+            renderBrowserPopover(popover);
+            break;
+          case "clock":
+            renderClockPopover(popover);
+            break;
+          case "uptime":
+            renderUptimePopover(popover);
+            break;
+        }
+      }
+
+      // Small DOM-building helpers shared across popover renderers.
+      function addPopoverTitle(popover, text) {
+        const title = document.createElement("div");
+        title.className = "popover-title";
+        title.textContent = text;
+        popover.appendChild(title);
+      }
+      function addKvRow(container, label, value) {
+        const row = document.createElement("div");
+        row.className = "kv-row";
+        const l = document.createElement("span");
+        l.className = "kv-label";
+        l.textContent = label;
+        const v = document.createElement("span");
+        v.textContent = value;
+        row.append(l, v);
+        container.appendChild(row);
+      }
+
+      /* ---- WEATHER FORECAST POPOVER ---- */
       const FORECAST_CACHE_KEY = "weather_forecast_cache";
       const FORECAST_TTL_MS = 30 * 60 * 1000; // 30 minutes
-
-      let forecastVisible = false;
-      let forecastLoaded = false;
 
       function getCachedForecast() {
         try {
@@ -1226,11 +1438,11 @@
         });
       }
 
-      // Builds the forecast panel via DOM APIs (not innerHTML) since the
+      // Builds the forecast columns via DOM APIs (not innerHTML) since the
       // description text comes from a third-party API response.
-      function renderForecast(days) {
-        const panel = document.getElementById("weather-forecast");
-        panel.textContent = "";
+      function renderForecastDays(container, days) {
+        const row = document.createElement("div");
+        row.className = "popover-row";
         days.forEach((d) => {
           const dayEl = document.createElement("div");
           dayEl.className = "forecast-day";
@@ -1251,89 +1463,75 @@
           temps.textContent = `${d.max}\u00b0 / ${d.min}\u00b0C`;
 
           dayEl.append(label, desc, temps);
-          panel.appendChild(dayEl);
+          row.appendChild(dayEl);
         });
+        container.appendChild(row);
       }
 
-      function positionForecastPanel() {
-        const sysInfo = document.getElementById("sysInfo");
-        const panel = document.getElementById("weather-forecast");
-        const rect = sysInfo.getBoundingClientRect();
-        panel.style.bottom = `${window.innerHeight - rect.top + 10}px`;
-      }
+      async function renderWeatherPopover(popover) {
+        addPopoverTitle(popover, "3-Day Forecast");
+        const body = document.createElement("div");
+        popover.appendChild(body);
 
-      async function loadForecast() {
-        const panel = document.getElementById("weather-forecast");
         const cached = getCachedForecast();
         const cacheIsFresh = cached && Date.now() - cached.ts < FORECAST_TTL_MS;
-
         if (cacheIsFresh) {
-          renderForecast(cached.value);
-          forecastLoaded = true;
+          renderForecastDays(body, cached.value);
           return;
         }
 
-        panel.textContent = "Loading forecast\u2026";
+        body.textContent = "Loading forecast\u2026";
         try {
           const days = await fetchForecast();
-          renderForecast(days);
+          if (activePopover !== "weather") return; // closed/switched mid-fetch
+          body.textContent = "";
+          renderForecastDays(body, days);
           setCachedForecast(days);
-          forecastLoaded = true;
         } catch (_) {
+          if (activePopover !== "weather") return;
+          body.textContent = "";
           if (cached) {
-            renderForecast(cached.value);
-            forecastLoaded = true;
+            renderForecastDays(body, cached.value);
           } else {
-            panel.textContent = "Forecast unavailable";
+            body.textContent = "Forecast unavailable";
           }
         }
       }
 
-      async function toggleForecast() {
-        const panel = document.getElementById("weather-forecast");
-        if (forecastVisible) {
-          panel.classList.remove("visible");
-          forecastVisible = false;
-          return;
-        }
-        positionForecastPanel();
-        panel.classList.add("visible");
-        forecastVisible = true;
-        if (!forecastLoaded) {
-          await loadForecast();
-          // Re-measure in case the panel's size/wrap changed after content loaded
-          if (forecastVisible) positionForecastPanel();
-        }
-      }
-
-      function closeForecast() {
-        if (!forecastVisible) return;
-        document.getElementById("weather-forecast").classList.remove("visible");
-        forecastVisible = false;
-      }
-
       /* ---- PING ---- */
+      const PING_TARGETS = [
+        { url: "https://www.google.com/generate_204", label: "Google" },
+        {
+          url: "https://www.cloudflare.com/cdn-cgi/trace",
+          label: "Cloudflare",
+        },
+      ];
+      const PING_HISTORY_MAX = 20;
+      let lastPingResults = []; // [{ label, ms }] — most recent per-target results
+      let pingHistory = []; // [{ ts, avg }] — rolling average history for the sparkline
+
       async function measurePing() {
         const pingEl = document.getElementById("ping-val");
-        const targets = [
-          "https://www.google.com/generate_204",
-          "https://www.cloudflare.com/cdn-cgi/trace",
-        ];
         const results = [];
-        for (const url of targets) {
+        for (const target of PING_TARGETS) {
           try {
             const t0 = performance.now();
-            await fetch(url, {
+            await fetch(target.url, {
               method: "HEAD",
               mode: "no-cors",
               cache: "no-store",
             });
-            results.push(Math.round(performance.now() - t0));
+            results.push({
+              label: target.label,
+              ms: Math.round(performance.now() - t0),
+            });
           } catch (_) {}
         }
+        lastPingResults = results;
+
         if (results.length) {
           const avg = Math.round(
-            results.reduce((a, b) => a + b, 0) / results.length,
+            results.reduce((a, b) => a + b.ms, 0) / results.length,
           );
           const color =
             avg < 50
@@ -1343,8 +1541,86 @@
                 : "var(--red)";
           document.getElementById("ping-container").classList.remove("hidden");
           pingEl.innerHTML = `<span style="color:${color}">${avg} ms</span>`;
+
+          pingHistory.push({ ts: Date.now(), avg });
+          if (pingHistory.length > PING_HISTORY_MAX) pingHistory.shift();
         } else {
           document.getElementById("ping-container").classList.add("hidden");
+        }
+
+        if (activePopover === "ping") {
+          renderPopoverContent("ping", document.getElementById("info-popover"));
+          if (activePopoverTrigger) positionPopover(activePopoverTrigger);
+        }
+      }
+
+      function buildPingSparkline(history) {
+        const w = 180;
+        const h = 32;
+        const pad = 2;
+        const values = history.map((entry) => entry.avg);
+        const max = Math.max(...values, 1);
+        const min = Math.min(...values, 0);
+        const range = Math.max(max - min, 1);
+
+        const points = values
+          .map((v, i) => {
+            const x = pad + (i / (values.length - 1)) * (w - pad * 2);
+            const y = h - pad - ((v - min) / range) * (h - pad * 2);
+            return `${x.toFixed(1)},${y.toFixed(1)}`;
+          })
+          .join(" ");
+
+        const svgNS = "http://www.w3.org/2000/svg";
+        const svg = document.createElementNS(svgNS, "svg");
+        svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+        svg.setAttribute("width", String(w));
+        svg.setAttribute("height", String(h));
+
+        const polyline = document.createElementNS(svgNS, "polyline");
+        polyline.setAttribute("points", points);
+        polyline.setAttribute("fill", "none");
+        polyline.style.stroke = "var(--aqua)";
+        polyline.style.strokeWidth = "1.5";
+        svg.appendChild(polyline);
+
+        return svg;
+      }
+
+      function renderPingPopover(popover) {
+        addPopoverTitle(popover, "Ping Breakdown");
+
+        if (!lastPingResults.length) {
+          const empty = document.createElement("div");
+          empty.className = "popover-empty";
+          empty.textContent = "No data yet";
+          popover.appendChild(empty);
+          return;
+        }
+
+        const list = document.createElement("div");
+        list.className = "ping-list";
+        lastPingResults.forEach((r) => {
+          const row = document.createElement("div");
+          row.className = "ping-row";
+          const label = document.createElement("span");
+          label.className = "ping-label";
+          label.textContent = r.label;
+          const val = document.createElement("span");
+          const color =
+            r.ms < 50
+              ? "var(--green)"
+              : r.ms < 120
+                ? "var(--yellow)"
+                : "var(--red)";
+          val.innerHTML = `<span style="color:${color}">${r.ms} ms</span>`;
+          row.append(label, val);
+          list.appendChild(row);
+        });
+        popover.appendChild(list);
+
+        if (pingHistory.length > 1) {
+          popover.appendChild(buildPingSparkline(pingHistory));
         }
       }
 
@@ -1384,6 +1660,30 @@
         }
       }
 
+      function renderBrowserPopover(popover) {
+        addPopoverTitle(popover, "Browser Details");
+        const kv = document.createElement("div");
+        kv.className = "popover-kv";
+        addKvRow(
+          kv,
+          "Viewport",
+          `${window.innerWidth} \u00d7 ${window.innerHeight}`,
+        );
+        addKvRow(kv, "Language", navigator.language || "Unknown");
+        popover.appendChild(kv);
+
+        const uaLabel = document.createElement("div");
+        uaLabel.className = "kv-label";
+        uaLabel.style.marginTop = "8px";
+        uaLabel.textContent = "User Agent";
+        popover.appendChild(uaLabel);
+
+        const ua = document.createElement("div");
+        ua.className = "popover-ua";
+        ua.textContent = navigator.userAgent;
+        popover.appendChild(ua);
+      }
+
       /* ---- UPTIME ---- */
       // Real OS uptime/last-reboot isn't reachable from a web page (browsers
       // sandbox that away entirely) — this tracks session uptime instead:
@@ -1406,11 +1706,34 @@
         else text = `${secs}s`;
 
         el.textContent = text;
+
+        if (activePopover === "uptime") {
+          renderPopoverContent(
+            "uptime",
+            document.getElementById("info-popover"),
+          );
+          if (activePopoverTrigger) positionPopover(activePopoverTrigger);
+        }
+      }
+
+      function renderUptimePopover(popover) {
+        addPopoverTitle(popover, "Session Uptime");
+        const kv = document.createElement("div");
+        kv.className = "popover-kv";
+        addKvRow(kv, "Page loaded", new Date(pageLoadTime).toLocaleString());
+        addKvRow(
+          kv,
+          "Elapsed",
+          document.getElementById("uptime-val")?.textContent ?? "\u2014",
+        );
+        popover.appendChild(kv);
       }
 
       /* ---- BATTERY ---- */
       // getBattery() is non-standard and unsupported in Firefox/Safari —
       // feature-detect and hide the field entirely when it's unavailable.
+      let currentBattery = null;
+
       async function initBattery() {
         const container = document.getElementById("battery-container");
         if (!("getBattery" in navigator)) {
@@ -1419,6 +1742,7 @@
         }
         try {
           const battery = await navigator.getBattery();
+          currentBattery = battery;
           const valEl = document.getElementById("battery-val");
 
           function render() {
@@ -1432,6 +1756,13 @@
                   : "var(--red)";
             const bolt = battery.charging ? " \u26a1" : "";
             valEl.innerHTML = `<span style="color:${color}">${pct}%${bolt}</span>`;
+            if (activePopover === "battery") {
+              renderPopoverContent(
+                "battery",
+                document.getElementById("info-popover"),
+              );
+              if (activePopoverTrigger) positionPopover(activePopoverTrigger);
+            }
           }
 
           render();
@@ -1440,6 +1771,45 @@
         } catch (_) {
           container.classList.add("hidden");
         }
+      }
+
+      function formatBatteryTime(seconds) {
+        if (seconds == null || isNaN(seconds) || seconds === Infinity) {
+          return "Calculating\u2026";
+        }
+        if (seconds <= 0) return "\u2014";
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        return h > 0 ? `${h}h ${m}m` : `${m}m`;
+      }
+
+      function renderBatteryPopover(popover) {
+        addPopoverTitle(popover, "Battery");
+        if (!currentBattery) {
+          const empty = document.createElement("div");
+          empty.className = "popover-empty";
+          empty.textContent = "Unavailable";
+          popover.appendChild(empty);
+          return;
+        }
+        const kv = document.createElement("div");
+        kv.className = "popover-kv";
+        addKvRow(kv, "Level", `${Math.round(currentBattery.level * 100)}%`);
+        addKvRow(
+          kv,
+          "Status",
+          currentBattery.charging ? "Charging" : "Discharging",
+        );
+        addKvRow(
+          kv,
+          currentBattery.charging ? "Until full" : "Remaining",
+          formatBatteryTime(
+            currentBattery.charging
+              ? currentBattery.chargingTime
+              : currentBattery.dischargingTime,
+          ),
+        );
+        popover.appendChild(kv);
       }
 
       /* ---- LINK HINTS (Vimium-style) ---- */
@@ -1564,7 +1934,9 @@
       // resize rather than showing badges pointing at stale coordinates.
       window.addEventListener("resize", () => {
         if (hintModeActive) deactivateHintMode();
-        if (forecastVisible) positionForecastPanel();
+        if (activePopover && activePopoverTrigger) {
+          positionPopover(activePopoverTrigger);
+        }
       });
 
       /* ---- BANG SEARCH SHORTCUTS ---- */
@@ -1706,16 +2078,24 @@
       populateBangList();
       window.onload = () => searchInput.focus();
 
-      document
-        .getElementById("weather-container")
-        .addEventListener("click", toggleForecast);
+      const popoverTriggers = [
+        { key: "browser", el: document.getElementById("browser-container") },
+        { key: "weather", el: document.getElementById("weather-container") },
+        { key: "ping", el: document.getElementById("ping-container") },
+        { key: "uptime", el: document.getElementById("uptime-container") },
+        { key: "battery", el: document.getElementById("battery-container") },
+        { key: "clock", el: document.getElementById("datetime") },
+      ];
+      popoverTriggers.forEach(({ key, el }) => {
+        el.addEventListener("click", () => openPopover(key, el));
+      });
+
       document.addEventListener("click", (e) => {
-        if (!forecastVisible) return;
-        const panel = document.getElementById("weather-forecast");
-        const container = document.getElementById("weather-container");
-        if (!panel.contains(e.target) && !container.contains(e.target)) {
-          closeForecast();
-        }
+        if (!activePopover) return;
+        const popover = document.getElementById("info-popover");
+        if (popover.contains(e.target)) return;
+        if (popoverTriggers.some(({ el }) => el.contains(e.target))) return;
+        closePopover();
       });
 
       document.addEventListener("keydown", (e) => {
@@ -1731,7 +2111,7 @@
           if (overlay.classList.contains("visible")) {
             overlay.classList.remove("visible");
           }
-          closeForecast();
+          closePopover();
           if (inSearch) {
             searchInput.value = "";
             searchInput.blur();

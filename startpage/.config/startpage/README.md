@@ -15,8 +15,12 @@ matrix-rain flavor. Single `index.html`, no build step, no dependencies.
 - **Live system info bar**: OS, browser (including Brave detection), distro
   label, current weather, round-trip ping, session uptime, and battery level
   (where supported) — all in a fixed glass panel.
-- **Click-to-expand 3-day weather forecast** — click the weather item in the
-  system info bar for a short forecast popover.
+- **Click-to-expand detail popovers** on most sys-info items: weather gets a
+  3-day forecast, ping shows a per-target breakdown with a latency
+  sparkline, battery shows time until full/empty, browser shows the full
+  user-agent/viewport/language, the clock shows a small world clock, and
+  uptime shows the exact page-load timestamp. Popovers position themselves
+  near whichever item you clicked and close on outside click or `Esc`.
 - **Typed greeting** with a random rotating quote/phrase pulled from
   `quotes.txt` / `randomphrases.txt`, holiday-aware (including a
   dynamically-calculated Easter date), with a fallback pool if those files
