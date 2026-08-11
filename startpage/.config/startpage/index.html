@@ -81,8 +81,13 @@
         opacity: 0.22;
       }
 
-      /* All content sits above canvas — excludes .sys-info so fixed positioning is preserved */
-      body > *:not(#matrix-canvas):not(.sys-info):not(#keybind-overlay) {
+      /* All content sits above canvas — excludes .sys-info, #keybind-overlay,
+         #hint-overlay, and #weather-forecast so their own fixed
+         positioning/z-index is preserved */
+      body
+        > *:not(#matrix-canvas):not(.sys-info):not(#keybind-overlay):not(
+          #hint-overlay
+        ):not(#weather-forecast) {
         position: relative;
         z-index: 1;
       }
@@ -250,6 +255,18 @@
         color: var(--accent);
       }
 
+      #weather-container {
+        cursor: pointer;
+        border-radius: 4px;
+        transition: color 0.2s ease;
+      }
+      #weather-container:hover {
+        color: var(--accent);
+      }
+      #weather-container:hover .sys-label {
+        color: var(--alert);
+      }
+
       .hidden {
         display: none !important;
       }
@@ -365,6 +382,53 @@
         color: var(--alert);
       }
 
+      /* ---- WEATHER FORECAST POPOVER ---- */
+      #weather-forecast {
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 3;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 4px 0;
+        padding: 10px 6px;
+        font-size: 0.75rem;
+        color: var(--fg1);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+      }
+      #weather-forecast.visible {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .forecast-day {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        padding: 0 14px;
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+        min-width: 80px;
+      }
+      .forecast-day:last-child {
+        border-right: none;
+      }
+      .fc-day-label {
+        color: var(--accent);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .fc-desc {
+        color: var(--fg2);
+        text-align: center;
+      }
+      .fc-temps {
+        color: var(--fg);
+      }
+
       @media (max-width: 600px) {
         h1 {
           min-width: 90%;
@@ -413,7 +477,9 @@
         </div>
         <div class="kb-row">
           <span class="kb-key">Esc</span
-          ><span class="kb-desc">Close overlay / clear search / exit hint mode</span>
+          ><span class="kb-desc"
+            >Close overlay / forecast / clear search / exit hint mode</span
+          >
         </div>
         <h2 id="bang-heading">&#33; Search Bangs</h2>
         <div id="bang-list"></div>
@@ -455,10 +521,22 @@
         <div class="category">
           <h3>Work</h3>
           <a href="https://github.com"
-            ><img src="favicons/github.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />GitHub</a
+            ><img
+              src="favicons/github.ico"
+              width="16"
+              height="16"
+              alt=""
+              onerror="this.style.display = 'none'"
+            />GitHub</a
           >
           <a href="https://gitlab.com"
-            ><img src="favicons/gitlab.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />GitLab</a
+            ><img
+              src="favicons/gitlab.ico"
+              width="16"
+              height="16"
+              alt=""
+              onerror="this.style.display = 'none'"
+            />GitLab</a
           >
           <a href="https://stackoverflow.com"
             ><img
@@ -466,38 +544,86 @@
               width="16"
               height="16"
               alt=""
-              onerror="this.style.display='none'"
+              onerror="this.style.display = 'none'"
             />Stack Overflow</a
           >
           <a href="https://mail.google.com/mail/u/0/#inbox"
-            ><img src="favicons/gmail.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />Gmail</a
+            ><img
+              src="favicons/gmail.ico"
+              width="16"
+              height="16"
+              alt=""
+              onerror="this.style.display = 'none'"
+            />Gmail</a
           >
         </div>
         <div class="category">
           <h3>Media</h3>
           <a href="https://youtube.com"
-            ><img src="favicons/youtube.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />YouTube</a
+            ><img
+              src="favicons/youtube.ico"
+              width="16"
+              height="16"
+              alt=""
+              onerror="this.style.display = 'none'"
+            />YouTube</a
           >
           <a href="https://twitch.tv"
-            ><img src="favicons/twitch.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />Twitch</a
+            ><img
+              src="favicons/twitch.ico"
+              width="16"
+              height="16"
+              alt=""
+              onerror="this.style.display = 'none'"
+            />Twitch</a
           >
           <a href="https://www.reddit.com/"
-            ><img src="favicons/reddit.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />Reddit</a
+            ><img
+              src="favicons/reddit.ico"
+              width="16"
+              height="16"
+              alt=""
+              onerror="this.style.display = 'none'"
+            />Reddit</a
           >
           <a href="https://discord.com/channels/@me"
-            ><img src="favicons/discord.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />Discord</a
+            ><img
+              src="favicons/discord.ico"
+              width="16"
+              height="16"
+              alt=""
+              onerror="this.style.display = 'none'"
+            />Discord</a
           >
         </div>
         <div class="category">
           <h3>Tools</h3>
           <a href="https://gemini.google.com/u/1"
-            ><img src="favicons/gemini.svg" width="16" height="16" alt="" onerror="this.style.display='none'" />Gemini</a
+            ><img
+              src="favicons/gemini.svg"
+              width="16"
+              height="16"
+              alt=""
+              onerror="this.style.display = 'none'"
+            />Gemini</a
           >
           <a href="https://claude.ai/new"
-            ><img src="favicons/claude.svg" width="16" height="16" alt="" onerror="this.style.display='none'" />Claude</a
+            ><img
+              src="favicons/claude.svg"
+              width="16"
+              height="16"
+              alt=""
+              onerror="this.style.display = 'none'"
+            />Claude</a
           >
           <a href="https://chat.openai.com"
-            ><img src="favicons/chatgpt.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />ChatGPT</a
+            ><img
+              src="favicons/chatgpt.ico"
+              width="16"
+              height="16"
+              alt=""
+              onerror="this.style.display = 'none'"
+            />ChatGPT</a
           >
           <a href="https://terminal.sexy"
             ><img
@@ -505,20 +631,38 @@
               width="16"
               height="16"
               alt=""
-              onerror="this.style.display='none'"
+              onerror="this.style.display = 'none'"
             />Terminal Sexy</a
           >
         </div>
         <div class="category">
           <h3>Projects</h3>
           <a href="https://github.com/indyleo/Catalyst"
-            ><img src="favicons/github.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />Catalyst</a
+            ><img
+              src="favicons/github.ico"
+              width="16"
+              height="16"
+              alt=""
+              onerror="this.style.display = 'none'"
+            />Catalyst</a
           >
           <a href="https://github.com/indyleo/dotfiles-stow"
-            ><img src="favicons/github.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />Dotfiles</a
+            ><img
+              src="favicons/github.ico"
+              width="16"
+              height="16"
+              alt=""
+              onerror="this.style.display = 'none'"
+            />Dotfiles</a
           >
           <a href="https://github.com/indyleo/suckless"
-            ><img src="favicons/github.ico" width="16" height="16" alt="" onerror="this.style.display='none'" />Suckless</a
+            ><img
+              src="favicons/github.ico"
+              width="16"
+              height="16"
+              alt=""
+              onerror="this.style.display = 'none'"
+            />Suckless</a
           >
         </div>
       </div>
@@ -535,7 +679,11 @@
         <span class="sys-label">BROWSER:</span>
         <span id="browser-val">...</span>
       </div>
-      <div class="sys-item" id="weather-container">
+      <div
+        class="sys-item"
+        id="weather-container"
+        title="Click for 3-day forecast"
+      >
         <span class="sys-label">WEATHER:</span>
         <span id="weather-val">...</span>
       </div>
@@ -544,6 +692,8 @@
         <span id="ping-val">...</span>
       </div>
     </div>
+
+    <div id="weather-forecast" class="glass-panel"></div>
 
     <script>
       /* ---- MATRIX RAIN ---- */
@@ -1019,6 +1169,137 @@
         }
       }
 
+      /* ---- WEATHER FORECAST (click-to-expand) ---- */
+      const FORECAST_CACHE_KEY = "weather_forecast_cache";
+      const FORECAST_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+      let forecastVisible = false;
+      let forecastLoaded = false;
+
+      function getCachedForecast() {
+        try {
+          const cached = JSON.parse(localStorage.getItem(FORECAST_CACHE_KEY));
+          if (cached && Array.isArray(cached.value) && cached.ts) {
+            return cached;
+          }
+        } catch (_) {}
+        return null;
+      }
+
+      function setCachedForecast(value) {
+        try {
+          localStorage.setItem(
+            FORECAST_CACHE_KEY,
+            JSON.stringify({ value, ts: Date.now() }),
+          );
+        } catch (_) {}
+      }
+
+      async function fetchForecast() {
+        const res = await fetch("https://wttr.in/?format=j1", {
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        return data.weather.slice(0, 3).map((day) => {
+          // Hourly entries are ~3 hours apart; index 4 lands near midday,
+          // a reasonable single description to represent the whole day.
+          const mid = day.hourly?.[4] ?? day.hourly?.[0];
+          return {
+            date: day.date,
+            max: day.maxtempC,
+            min: day.mintempC,
+            desc: mid?.weatherDesc?.[0]?.value ?? "",
+          };
+        });
+      }
+
+      // Builds the forecast panel via DOM APIs (not innerHTML) since the
+      // description text comes from a third-party API response.
+      function renderForecast(days) {
+        const panel = document.getElementById("weather-forecast");
+        panel.textContent = "";
+        days.forEach((d) => {
+          const dayEl = document.createElement("div");
+          dayEl.className = "forecast-day";
+
+          const dt = new Date(`${d.date}T00:00:00`);
+          const label = document.createElement("div");
+          label.className = "fc-day-label";
+          label.textContent = isNaN(dt)
+            ? d.date
+            : dt.toLocaleDateString(undefined, { weekday: "short" });
+
+          const desc = document.createElement("div");
+          desc.className = "fc-desc";
+          desc.textContent = d.desc;
+
+          const temps = document.createElement("div");
+          temps.className = "fc-temps";
+          temps.textContent = `${d.max}\u00b0 / ${d.min}\u00b0C`;
+
+          dayEl.append(label, desc, temps);
+          panel.appendChild(dayEl);
+        });
+      }
+
+      function positionForecastPanel() {
+        const sysInfo = document.getElementById("sysInfo");
+        const panel = document.getElementById("weather-forecast");
+        const rect = sysInfo.getBoundingClientRect();
+        panel.style.bottom = `${window.innerHeight - rect.top + 10}px`;
+      }
+
+      async function loadForecast() {
+        const panel = document.getElementById("weather-forecast");
+        const cached = getCachedForecast();
+        const cacheIsFresh = cached && Date.now() - cached.ts < FORECAST_TTL_MS;
+
+        if (cacheIsFresh) {
+          renderForecast(cached.value);
+          forecastLoaded = true;
+          return;
+        }
+
+        panel.textContent = "Loading forecast\u2026";
+        try {
+          const days = await fetchForecast();
+          renderForecast(days);
+          setCachedForecast(days);
+          forecastLoaded = true;
+        } catch (_) {
+          if (cached) {
+            renderForecast(cached.value);
+            forecastLoaded = true;
+          } else {
+            panel.textContent = "Forecast unavailable";
+          }
+        }
+      }
+
+      async function toggleForecast() {
+        const panel = document.getElementById("weather-forecast");
+        if (forecastVisible) {
+          panel.classList.remove("visible");
+          forecastVisible = false;
+          return;
+        }
+        positionForecastPanel();
+        panel.classList.add("visible");
+        forecastVisible = true;
+        if (!forecastLoaded) {
+          await loadForecast();
+          // Re-measure in case the panel's size/wrap changed after content loaded
+          if (forecastVisible) positionForecastPanel();
+        }
+      }
+
+      function closeForecast() {
+        if (!forecastVisible) return;
+        document.getElementById("weather-forecast").classList.remove("visible");
+        forecastVisible = false;
+      }
+
       /* ---- PING ---- */
       async function measurePing() {
         const pingEl = document.getElementById("ping-val");
@@ -1069,7 +1350,8 @@
 
         let browser;
         if (ua.includes("Firefox")) browser = "Firefox";
-        else if (ua.includes("Edg/")) browser = "Edge"; // Edge UA also contains "Chrome" — check first
+        else if (ua.includes("Edg/"))
+          browser = "Edge"; // Edge UA also contains "Chrome" — check first
         else if (ua.includes("Chrome")) browser = "Chrome";
         else browser = "Safari";
         document.getElementById("browser-val").textContent = browser;
@@ -1164,6 +1446,12 @@
           deactivateHintMode();
           return;
         }
+        if (e.key === "Backspace") {
+          e.preventDefault();
+          hintBuffer = hintBuffer.slice(0, -1);
+          refreshHintVisibility();
+          return;
+        }
         // Ignore modified keys (Ctrl+R, Cmd+whatever, etc.) so browser
         // shortcuts still work while hint mode is active. Shift is allowed
         // through — it's how you open a hint in a new tab, Vimium-style.
@@ -1206,6 +1494,7 @@
       // resize rather than showing badges pointing at stale coordinates.
       window.addEventListener("resize", () => {
         if (hintModeActive) deactivateHintMode();
+        if (forecastVisible) positionForecastPanel();
       });
 
       /* ---- BANG SEARCH SHORTCUTS ---- */
@@ -1341,6 +1630,19 @@
         .addEventListener("submit", handleSearchSubmit);
       populateBangList();
       window.onload = () => searchInput.focus();
+
+      document
+        .getElementById("weather-container")
+        .addEventListener("click", toggleForecast);
+      document.addEventListener("click", (e) => {
+        if (!forecastVisible) return;
+        const panel = document.getElementById("weather-forecast");
+        const container = document.getElementById("weather-container");
+        if (!panel.contains(e.target) && !container.contains(e.target)) {
+          closeForecast();
+        }
+      });
+
       document.addEventListener("keydown", (e) => {
         const active = document.activeElement;
         const inSearch = active === searchInput;
@@ -1351,9 +1653,14 @@
         }
 
         if (e.key === "Escape") {
-          overlay.classList.remove("visible");
-          searchInput.value = "";
-          searchInput.blur();
+          if (overlay.classList.contains("visible")) {
+            overlay.classList.remove("visible");
+          }
+          closeForecast();
+          if (inSearch) {
+            searchInput.value = "";
+            searchInput.blur();
+          }
           return;
         }
         if (e.key === "?" && !inSearch) {
@@ -1366,7 +1673,11 @@
           searchInput.focus();
           return;
         }
-        if (e.key === "f" && !inSearch && !overlay.classList.contains("visible")) {
+        if (
+          e.key === "f" &&
+          !inSearch &&
+          !overlay.classList.contains("visible")
+        ) {
           e.preventDefault();
           activateHintMode();
           return;
