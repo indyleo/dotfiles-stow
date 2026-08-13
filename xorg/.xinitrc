@@ -14,7 +14,6 @@ if echo "$XRANDR_OUTPUT" | grep -q "DP-1 connected" \
         --output HDMI-A-4 --mode 1024x600 --rate 59.82 --below DP-1 --rotate inverted
 
     xinput map-to-output "ILITEK       ILITEK-TOUCH" "HDMI-1-4"
-    xinput set-prop "ILITEK       ILITEK-TOUCH" "Coordinate Transformation Matrix" -1 0 1 0 -1 1 0 0 1
 
 
 elif echo "$XRANDR_OUTPUT" | grep -q "DP-1 connected" \
@@ -25,7 +24,6 @@ elif echo "$XRANDR_OUTPUT" | grep -q "DP-1 connected" \
         --output HDMI-1-4 --mode 1024x600 --rate 59.82 --below DP-1 --rotate inverted
 
     xinput map-to-output "ILITEK       ILITEK-TOUCH" "HDMI-1-4"
-    xinput set-prop "ILITEK       ILITEK-TOUCH" "Coordinate Transformation Matrix" -1 0 1 0 -1 1 0 0 1
 
 elif echo "$XRANDR_OUTPUT" | grep -q "DP-1 connected" \
     && echo "$XRANDR_OUTPUT" | grep -q "HDMI-1-1 connected"; then
