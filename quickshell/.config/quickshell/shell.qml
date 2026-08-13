@@ -236,11 +236,15 @@ ShellRoot {
 					root.mediaTitle = parts[3] ? parts[3].trim() : "Unknown Title";
 					root.mediaArtist = parts[4] ? parts[4].trim() : "Unknown Artist";
 
-					// 3. Extract artwork URL, check index 6 first, fall back to index 5 (if album field was omitted), and trim whitespace
+					// 3. Extract artwork URL. mediactl always emits all 9
+					// tab-separated fields (empty values stay as empty
+					// strings between tabs), so index 6 is always the
+					// art_url slot -- it's never "shifted" by an omitted
+					// album. Falling back to parts[5] (the album name) was
+					// wrong: it turned plain album text into a bogus
+					// "file://Album Name" URI whenever a track legitimately
+					// had no art.
 					let art = (parts[6] || "").trim();
-					if (art === "" && parts[5]) {
-						art = parts[5].trim();
-					}
 
 					// 4. Format URI cleanly
 					if (art.startsWith("http://") || art.startsWith("https://") || art.startsWith("file://")) {
@@ -758,3 +762,4 @@ ShellRoot {
 		}
 	}
 }
+
