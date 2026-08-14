@@ -25,6 +25,10 @@ ShellRoot {
 	readonly property color cal14: "#fe8019" // Orange (audio)
 	readonly property color cal15: "#bdae93" // Silver (fg2)
 
+	// Background for the OSD popups (vol/bri/mic + media), at 85% opacity
+	// rather than fully solid.
+	readonly property color osdBgColor: Qt.rgba(cal1.r, cal1.g, cal1.b, 0.85)
+
 	property string fontFamily: "JetBrainsMono Nerd Font"
 	property int fontSize: 13
 
@@ -926,7 +930,7 @@ ShellRoot {
 			height: 44
 			anchors.horizontalCenter: parent.horizontalCenter
 			anchors.bottom: parent.bottom
-			color: root.cal1
+			color: root.osdBgColor
 			radius: 10
 			border.width: 2
 			border.color: root.osdAccent
@@ -984,7 +988,7 @@ ShellRoot {
 			height: 122
 			anchors.horizontalCenter: parent.horizontalCenter
 			anchors.bottom: parent.bottom
-			color: root.cal1
+			color: root.osdBgColor
 			radius: 12
 			border.width: 2
 			border.color: root.cal14
