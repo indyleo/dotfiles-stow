@@ -1,4 +1,4 @@
--- plugin/fileutils_terminal.lua
+-- plugin/terminal.lua
 -- Terminal utilities as a standalone plugin file
 
 ------------------------------------------------------------
@@ -18,11 +18,25 @@ local function is_git_repo()
   return vim.v.shell_error == 0 and output[1] == "true"
 end
 
+local function get_float_dimensions()
+  local width = math.floor(vim.o.columns * 0.8)
+  local height = math.floor(vim.o.lines * 0.8)
+
+  return {
+    width = width,
+    height = height,
+    col = math.floor((vim.o.columns - width) / 2),
+    row = math.floor((vim.o.lines - height) / 2),
+  }
+end
+
 local function create_floating_window(opts)
   opts = opts or {}
-  local width = opts.width or math.floor(vim.o.columns * 0.8)
-  local height = opts.height or math.floor(vim.o.lines * 0.8)
 
+  local size = get_float_dimensions()
+
+  local width = opts.width or size.width
+  local height = opts.height or size.height
   local col = math.floor((vim.o.columns - width) / 2)
   local row = math.floor((vim.o.lines - height) / 2)
 
@@ -44,6 +58,22 @@ local function create_floating_window(opts)
   })
 
   return { buf = buf, win = win }
+end
+
+local function resize_floating_window(win)
+  if not vim.api.nvim_win_is_valid(win) then
+    return
+  end
+
+  local size = get_float_dimensions()
+
+  vim.api.nvim_win_set_config(win, {
+    relative = "editor",
+    width = size.width,
+    height = size.height,
+    col = size.col,
+    row = size.row,
+  })
 end
 
 ------------------------------------------------------------
@@ -188,6 +218,22 @@ local function command_run_forever(cmd)
     vim.api.nvim_win_hide(foreverstate.floating.win)
   end
 end
+
+------------------------------------------------------------
+-- Autocommands
+------------------------------------------------------------
+
+local mkau = vim.api.nvim_create_autocmd
+
+mkau("VimResized", {
+  callback = function()
+    resize_floating_window(termstate.floating.win)
+    resize_floating_window(gitstate.floating.win)
+    resize_floating_window(claudestate.floating.win)
+    resize_floating_window(cmdstate.floating.win)
+    resize_floating_window(foreverstate.floating.win)
+  end,
+})
 
 ------------------------------------------------------------
 -- User Commands
