@@ -293,8 +293,21 @@ ShellRoot {
 			volProc.running = false; volProc.running = true
 			micProc.running = false; micProc.running = true
 			sysMediaProc.running = false; sysMediaProc.running = true
-			mediaProc.running = false; mediaProc.running = true
 		}
+	}
+
+	// mediaProc (mediactl status) is intentionally NOT on the 2s timer
+	// above: it forks ~3-4 playerctl calls under the hood (see mediactl),
+	// which is too heavy to run every 2s forever. medianotify already
+	// watches MPRIS in real time (playerctl -a -F, no polling) and calls
+	// `qs ipc call mediaosd show` on every real change -- that's the
+	// primary update path (see the "mediaosd" IpcHandler below). This
+	// slow timer is just a fallback in case medianotify isn't running,
+	// so the bar pill doesn't go stale forever.
+	Timer {
+		interval: 10000
+		running: true; repeat: true; triggeredOnStart: true
+		onTriggered: { mediaProc.running = false; mediaProc.running = true }
 	}
 
 	// --- OSD (On-Screen Display) -----------------------------------
@@ -329,43 +342,55 @@ ShellRoot {
 		onTriggered: root.osdVisible = false
 	}
 
-	// "get" processes: re-read the level, refresh the matching bar pill,
-	// and pop the OSD -- one process does both jobs (dwm's blockidx idea).
+	// "raw" get processes -- cheap, bare-integer reads (sysstats vol_raw /
+	// mic_raw / bri_raw, same idea as dwm's volgetcmd/micgetcmd/brigetcmd).
+	// These run on EVERY change, including key-repeat ticks, so they need
+	// to stay lightweight -- unlike "sysstats volume" etc., which also
+	// resolves an icon/formats a string for the bar pill and is too heavy
+	// to spawn at repeat-key frequency.
 	Process {
-		id: osdVolGetProc
-		command: ["sysstats", "volume"]
-		stdout: SplitParser { onRead: data => { root.parseSysstats(data, "volIcon", "volText"); root.osdShow("VOL", root.osdParseLevel(data), root.cal14) } }
+		id: osdVolRawProc
+		command: ["sysstats", "vol_raw"]
+		stdout: SplitParser { onRead: data => root.osdShow("VOL", root.osdParseLevel(data), root.cal14) }
 	}
 	Process {
-		id: osdMicGetProc
-		command: ["sysstats", "microphone"]
-		stdout: SplitParser { onRead: data => { root.parseSysstats(data, "micIcon", "micText"); root.osdShow("MIC", root.osdParseLevel(data), root.cal14) } }
+		id: osdMicRawProc
+		command: ["sysstats", "mic_raw"]
+		stdout: SplitParser { onRead: data => root.osdShow("MIC", root.osdParseLevel(data), root.cal14) }
 	}
 	Process {
-		id: osdBriGetProc
-		command: ["sysstats", "brightness"]
-		stdout: SplitParser {
-			onRead: data => {
-				if (!data || data.trim() === "" || data.includes("N/A")) return;
-				root.showBright = true;
-				root.parseSysstats(data, "brightIcon", "brightText");
-				root.osdShow("BRI", root.osdParseLevel(data), root.cal10);
-			}
+		id: osdBriRawProc
+		command: ["sysstats", "bri_raw"]
+		stdout: SplitParser { onRead: data => root.osdShow("BRI", root.osdParseLevel(data), root.cal10) }
+	}
+
+	// Debounced bar-pill sync -- the heavier "sysstats volume/microphone/
+	// brightness" call (icon + formatted text) only fires once, a moment
+	// after the bursts of repeat ticks stop, instead of on every tick.
+	Timer {
+		id: osdPillSyncTimer
+		interval: 200
+		property string category: ""
+		onTriggered: {
+			if (category === "VOL") { volProc.running = false; volProc.running = true }
+			else if (category === "MIC") { micProc.running = false; micProc.running = true }
+			else if (category === "BRI") { brightProc.running = false; brightProc.running = true }
 		}
 	}
 
-	// "change" processes -- fired by the IpcHandler below, each kicks off
-	// its matching get proc once the change has landed.
-	Process { id: osdVolUpProc;     command: ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SINK@", "5%+"]; onExited: { osdVolGetProc.running = false; osdVolGetProc.running = true } }
-	Process { id: osdVolDownProc;   command: ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%-"]; onExited: { osdVolGetProc.running = false; osdVolGetProc.running = true } }
-	Process { id: osdVolToggleProc; command: ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"]; onExited: { osdVolGetProc.running = false; osdVolGetProc.running = true } }
+	// "change" processes -- fired by the IpcHandler below. Each kicks off
+	// its matching raw read immediately (cheap, keeps the bar snappy even
+	// mid-repeat) and (re)starts the debounced pill sync.
+	Process { id: osdVolUpProc;     command: ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SINK@", "5%+"]; onExited: { osdVolRawProc.running = false; osdVolRawProc.running = true; osdPillSyncTimer.category = "VOL"; osdPillSyncTimer.restart() } }
+	Process { id: osdVolDownProc;   command: ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%-"]; onExited: { osdVolRawProc.running = false; osdVolRawProc.running = true; osdPillSyncTimer.category = "VOL"; osdPillSyncTimer.restart() } }
+	Process { id: osdVolToggleProc; command: ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"]; onExited: { osdVolRawProc.running = false; osdVolRawProc.running = true; osdPillSyncTimer.category = "VOL"; osdPillSyncTimer.restart() } }
 
-	Process { id: osdMicUpProc;     command: ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SOURCE@", "5%+"]; onExited: { osdMicGetProc.running = false; osdMicGetProc.running = true } }
-	Process { id: osdMicDownProc;   command: ["wpctl", "set-volume", "@DEFAULT_AUDIO_SOURCE@", "5%-"]; onExited: { osdMicGetProc.running = false; osdMicGetProc.running = true } }
-	Process { id: osdMicToggleProc; command: ["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]; onExited: { osdMicGetProc.running = false; osdMicGetProc.running = true } }
+	Process { id: osdMicUpProc;     command: ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SOURCE@", "5%+"]; onExited: { osdMicRawProc.running = false; osdMicRawProc.running = true; osdPillSyncTimer.category = "MIC"; osdPillSyncTimer.restart() } }
+	Process { id: osdMicDownProc;   command: ["wpctl", "set-volume", "@DEFAULT_AUDIO_SOURCE@", "5%-"]; onExited: { osdMicRawProc.running = false; osdMicRawProc.running = true; osdPillSyncTimer.category = "MIC"; osdPillSyncTimer.restart() } }
+	Process { id: osdMicToggleProc; command: ["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]; onExited: { osdMicRawProc.running = false; osdMicRawProc.running = true; osdPillSyncTimer.category = "MIC"; osdPillSyncTimer.restart() } }
 
-	Process { id: osdBriUpProc;   command: ["brightnessctl", "set", "5%+"]; onExited: { osdBriGetProc.running = false; osdBriGetProc.running = true } }
-	Process { id: osdBriDownProc; command: ["brightnessctl", "set", "5%-"]; onExited: { osdBriGetProc.running = false; osdBriGetProc.running = true } }
+	Process { id: osdBriUpProc;   command: ["brightnessctl", "set", "5%+"]; onExited: { osdBriRawProc.running = false; osdBriRawProc.running = true; osdPillSyncTimer.category = "BRI"; osdPillSyncTimer.restart() } }
+	Process { id: osdBriDownProc; command: ["brightnessctl", "set", "5%-"]; onExited: { osdBriRawProc.running = false; osdBriRawProc.running = true; osdPillSyncTimer.category = "BRI"; osdPillSyncTimer.restart() } }
 
 	// External trigger points -- bind these from hyprland.conf, e.g.:
 	//   bindl = , XF86AudioRaiseVolume, exec, qs ipc call osd volUp
