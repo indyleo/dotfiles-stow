@@ -18,7 +18,6 @@ hl.bind(mainMod .. " + SHIFT + G", hl.dsp.exec_cmd("signal-desktop"))
 
 -- --- Launchers ---
 hl.bind(mainMod .. " + R", hl.dsp.exec_cmd(menu))
-hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("wikibook"))
 hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("notebook"))
 hl.bind(mainMod .. " + SHIFT + C", hl.dsp.exec_cmd("clip select"))
 hl.bind(mainMod .. " + SHIFT + E", hl.dsp.exec_cmd("emoji"))
