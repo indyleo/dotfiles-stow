@@ -41,25 +41,28 @@ hl.bind(mainMod .. " + SHIFT + equal", hl.dsp.layout("addmaster"))
 hl.bind(mainMod .. " + SHIFT + minus", hl.dsp.layout("removemaster"))
 
 -- --- System & Hardware ---
-hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("sysctl bri -i 5"), { repeating = true })
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("sysctl bri -d 5"), { repeating = true })
+-- NOTE: these used to call `sysctl` directly; they now call into the
+-- quickshell OSD (IpcHandler target "osd" in shell.qml), which runs the
+-- actual wpctl/brightnessctl change command itself and pops the bar.
+hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("qs ipc call osd briUp"), { repeating = true })
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("qs ipc call osd briDown"), { repeating = true })
 hl.bind(mainMod .. " + SHIFT + L", hl.dsp.exec_cmd("hyprlock"))
 
 -- Volume
-hl.bind(mainMod .. " + ALT + Up", hl.dsp.exec_cmd("sysctl vol -i 5"), { repeating = true })
-hl.bind(mainMod .. " + ALT + Down", hl.dsp.exec_cmd("sysctl vol -d 5"), { repeating = true })
-hl.bind(mainMod .. " + ALT + M", hl.dsp.exec_cmd("sysctl vol --toggle"), { repeating = true })
-hl.bind("ALT + XF86AudioRaiseVolume", hl.dsp.exec_cmd("sysctl vol -i 5"), { repeating = true })
-hl.bind("ALT + XF86AudioLowerVolume", hl.dsp.exec_cmd("sysctl vol -d 5"), { repeating = true })
-hl.bind("ALT + XF86AudioMute", hl.dsp.exec_cmd("sysctl vol --toggle"), { repeating = true })
+hl.bind(mainMod .. " + ALT + Up", hl.dsp.exec_cmd("qs ipc call osd volUp"), { repeating = true })
+hl.bind(mainMod .. " + ALT + Down", hl.dsp.exec_cmd("qs ipc call osd volDown"), { repeating = true })
+hl.bind(mainMod .. " + ALT + M", hl.dsp.exec_cmd("qs ipc call osd volToggle"), { repeating = true })
+hl.bind("ALT + XF86AudioRaiseVolume", hl.dsp.exec_cmd("qs ipc call osd volUp"), { repeating = true })
+hl.bind("ALT + XF86AudioLowerVolume", hl.dsp.exec_cmd("qs ipc call osd volDown"), { repeating = true })
+hl.bind("ALT + XF86AudioMute", hl.dsp.exec_cmd("qs ipc call osd volToggle"), { repeating = true })
 
 -- Microphone
-hl.bind(mainMod .. " + SHIFT + Up", hl.dsp.exec_cmd("sysctl mic -i 5"), { repeating = true })
-hl.bind(mainMod .. " + SHIFT + Down", hl.dsp.exec_cmd("sysctl mic -d 5"), { repeating = true })
-hl.bind(mainMod .. " + SHIFT + M", hl.dsp.exec_cmd("sysctl mic --toggle"), { repeating = true })
-hl.bind("SHIFT + XF86AudioRaiseVolume", hl.dsp.exec_cmd("sysctl mic -i 5"), { repeating = true })
-hl.bind("SHIFT + XF86AudioLowerVolume", hl.dsp.exec_cmd("sysctl mic -d 5"), { repeating = true })
-hl.bind("SHIFT + XF86AudioMicMute", hl.dsp.exec_cmd("sysctl mic --toggle"), { repeating = true })
+hl.bind(mainMod .. " + SHIFT + Up", hl.dsp.exec_cmd("qs ipc call osd micUp"), { repeating = true })
+hl.bind(mainMod .. " + SHIFT + Down", hl.dsp.exec_cmd("qs ipc call osd micDown"), { repeating = true })
+hl.bind(mainMod .. " + SHIFT + M", hl.dsp.exec_cmd("qs ipc call osd micToggle"), { repeating = true })
+hl.bind("SHIFT + XF86AudioRaiseVolume", hl.dsp.exec_cmd("qs ipc call osd micUp"), { repeating = true })
+hl.bind("SHIFT + XF86AudioLowerVolume", hl.dsp.exec_cmd("qs ipc call osd micDown"), { repeating = true })
+hl.bind("SHIFT + XF86AudioMicMute", hl.dsp.exec_cmd("qs ipc call osd micToggle"), { repeating = true })
 
 -- --- Media Controls (Song) ---
 hl.bind(mainMod .. " + Right", hl.dsp.exec_cmd("mediactl --source song next"), { locked = true })

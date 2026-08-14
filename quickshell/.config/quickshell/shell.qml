@@ -83,9 +83,13 @@ ShellRoot {
 	property string mediaIcon: "󰝚"
 	property string mediaTitle: ""
 	property string mediaArtist: ""
+	property string mediaAlbum: ""
+	property string mediaType: ""   // "song" | "browser", per mediactl's type field
 	property string mediaArtUrl: ""
 	property bool mediaIsPlaying: false
 	property bool showMedia: false
+	property int mediaProgress: -1        // 0-100, -1 if unavailable
+	property string mediaProgressTime: "" // "M:SS / M:SS", empty if unavailable
 
 	// --- Logic & Process Control ---
 	Process { id: shellCmd }
@@ -231,6 +235,7 @@ ShellRoot {
 				let parts = data.replace(/[\r\n]+$/, "").split("\t");
 
 				if (parts.length >= 5) {
+					root.mediaType = (parts[0] || "").trim();
 					root.mediaIsPlaying = (parts[2] === "Playing");
 					root.mediaIcon = root.mediaIsPlaying ? "" : "";
 					root.mediaTitle = parts[3] ? parts[3].trim() : "Unknown Title";
@@ -254,6 +259,14 @@ ShellRoot {
 					} else {
 						root.mediaArtUrl = "";
 					}
+
+					root.mediaAlbum = parts.length >= 6 ? (parts[5] || "").trim() : "";
+
+					// 5. Progress percent (0-100, or -1 if unavailable) and
+					// "M:SS / M:SS" text -- same fields mediaosd.c reads.
+					root.mediaProgress = parts.length >= 8 && parts[7] !== "" ? parseInt(parts[7], 10) : -1;
+					if (isNaN(root.mediaProgress)) root.mediaProgress = -1;
+					root.mediaProgressTime = parts.length >= 9 ? (parts[8] || "").trim() : "";
 				}
 			}
 		}
@@ -278,6 +291,139 @@ ShellRoot {
 			sysMediaProc.running = false; sysMediaProc.running = true
 			mediaProc.running = false; mediaProc.running = true
 		}
+	}
+
+	// --- OSD (On-Screen Display) -----------------------------------
+	// Mirrors the dwm osd.c / osds[] setup: an external keybind fires an
+	// IPC call, which runs a "change" command (wpctl/brightnessctl), then
+	// re-reads the level and pops a bottom-center bar for OSD_TIMEOUT_MS.
+	// Assumes wpctl (wireplumber) for volume/mic and brightnessctl for
+	// brightness -- swap the command arrays below if you use something else.
+	property bool osdVisible: false
+	property string osdLabel: ""
+	property int osdLevel: -1        // 0-100, or -1 for "no numeric level"
+	property color osdAccent: cal14
+	readonly property int osdTimeoutMs: 1200
+
+	function osdParseLevel(text) {
+		if (!text) return -1;
+		const m = /(\d+)/.exec(text);
+		return m ? Math.min(100, parseInt(m[1], 10)) : -1;
+	}
+
+	function osdShow(label, level, accent) {
+		root.osdLabel = label;
+		root.osdLevel = level;
+		root.osdAccent = accent;
+		root.osdVisible = true;
+		osdHideTimer.restart();
+	}
+
+	Timer {
+		id: osdHideTimer
+		interval: root.osdTimeoutMs
+		onTriggered: root.osdVisible = false
+	}
+
+	// "get" processes: re-read the level, refresh the matching bar pill,
+	// and pop the OSD -- one process does both jobs (dwm's blockidx idea).
+	Process {
+		id: osdVolGetProc
+		command: ["sysstats", "volume"]
+		stdout: SplitParser { onRead: data => { root.parseSysstats(data, "volIcon", "volText"); root.osdShow("VOL", root.osdParseLevel(data), root.cal14) } }
+	}
+	Process {
+		id: osdMicGetProc
+		command: ["sysstats", "microphone"]
+		stdout: SplitParser { onRead: data => { root.parseSysstats(data, "micIcon", "micText"); root.osdShow("MIC", root.osdParseLevel(data), root.cal14) } }
+	}
+	Process {
+		id: osdBriGetProc
+		command: ["sysstats", "brightness"]
+		stdout: SplitParser {
+			onRead: data => {
+				if (!data || data.trim() === "" || data.includes("N/A")) return;
+				root.showBright = true;
+				root.parseSysstats(data, "brightIcon", "brightText");
+				root.osdShow("BRI", root.osdParseLevel(data), root.cal10);
+			}
+		}
+	}
+
+	// "change" processes -- fired by the IpcHandler below, each kicks off
+	// its matching get proc once the change has landed.
+	Process { id: osdVolUpProc;     command: ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SINK@", "5%+"]; onExited: { osdVolGetProc.running = false; osdVolGetProc.running = true } }
+	Process { id: osdVolDownProc;   command: ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%-"]; onExited: { osdVolGetProc.running = false; osdVolGetProc.running = true } }
+	Process { id: osdVolToggleProc; command: ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"]; onExited: { osdVolGetProc.running = false; osdVolGetProc.running = true } }
+
+	Process { id: osdMicUpProc;     command: ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SOURCE@", "5%+"]; onExited: { osdMicGetProc.running = false; osdMicGetProc.running = true } }
+	Process { id: osdMicDownProc;   command: ["wpctl", "set-volume", "@DEFAULT_AUDIO_SOURCE@", "5%-"]; onExited: { osdMicGetProc.running = false; osdMicGetProc.running = true } }
+	Process { id: osdMicToggleProc; command: ["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]; onExited: { osdMicGetProc.running = false; osdMicGetProc.running = true } }
+
+	Process { id: osdBriUpProc;   command: ["brightnessctl", "set", "5%+"]; onExited: { osdBriGetProc.running = false; osdBriGetProc.running = true } }
+	Process { id: osdBriDownProc; command: ["brightnessctl", "set", "5%-"]; onExited: { osdBriGetProc.running = false; osdBriGetProc.running = true } }
+
+	// External trigger points -- bind these from hyprland.conf, e.g.:
+	//   bindl = , XF86AudioRaiseVolume, exec, qs ipc call osd volUp
+	// See osd.h's comment on osdtrigger() for the dwm-side equivalent.
+	IpcHandler {
+		target: "osd"
+		function volUp(): void     { osdVolUpProc.running = false; osdVolUpProc.running = true }
+		function volDown(): void   { osdVolDownProc.running = false; osdVolDownProc.running = true }
+		function volToggle(): void { osdVolToggleProc.running = false; osdVolToggleProc.running = true }
+		function micUp(): void     { osdMicUpProc.running = false; osdMicUpProc.running = true }
+		function micDown(): void   { osdMicDownProc.running = false; osdMicDownProc.running = true }
+		function micToggle(): void { osdMicToggleProc.running = false; osdMicToggleProc.running = true }
+		function briUp(): void     { osdBriUpProc.running = false; osdBriUpProc.running = true }
+		function briDown(): void   { osdBriDownProc.running = false; osdBriDownProc.running = true }
+	}
+
+	// --- Media OSD ("Now Playing" popup) -----------------------------
+	// Mirrors mediaosd.c: album art + title/artist/album + a live
+	// progress bar. Shows itself automatically whenever the track
+	// changes (mediaProc already polls `mediactl status` every 2s), and
+	// polls a bit faster while visible so the progress bar keeps moving,
+	// same idea as mediaosd.c's MOSD_POLL_MS. Art isn't re-fetched
+	// separately here (unlike the C version's curl/Imlib2 step) since
+	// `mediactl status` already returns the art path/URL inline.
+	readonly property int mosdTimeoutMs: 3500
+	readonly property int mosdPollMs: 1000
+	property bool mosdVisible: false
+	readonly property string mosdSourceIcon: mediaType === "browser" ? "󰖟" : "󰝚"
+
+	Timer {
+		id: mosdHideTimer
+		interval: root.mosdTimeoutMs
+		onTriggered: root.mosdVisible = false
+	}
+
+	Timer {
+		id: mosdPollTimer
+		interval: root.mosdPollMs
+		running: root.mosdVisible
+		repeat: true
+		onTriggered: { mediaProc.running = false; mediaProc.running = true }
+	}
+
+	function mosdShow() {
+		root.mosdVisible = true;
+		mosdHideTimer.restart();
+	}
+
+	// Auto-trigger on any real state change, matching medianotify's
+	// real MPRIS push (which fires on track changes, play/pause, etc.,
+	// not just title diffs) -- so resuming the same paused track pops
+	// the OSD again too, same as mediaosd.c.
+	onMediaTitleChanged: if (root.showMedia) root.mosdShow()
+	onMediaArtistChanged: if (root.showMedia) root.mosdShow()
+	onMediaIsPlayingChanged: if (root.showMedia) root.mosdShow()
+	onShowMediaChanged: if (root.showMedia) root.mosdShow()
+
+	// Manual/external trigger point, e.g. from a playerctl/MPRIS hook
+	// script: qs ipc call mediaosd show
+	IpcHandler {
+		target: "mediaosd"
+		function show(): void { mediaProc.running = false; mediaProc.running = true; root.mosdShow() }
 	}
 
 	Variants {
@@ -761,5 +907,183 @@ ShellRoot {
 			}
 		}
 	}
-}
 
+	// --- OSD popup window (bottom-center, primary screen only) --------
+	PanelWindow {
+		id: osdWindow
+		screen: Quickshell.screens[0]
+		visible: root.osdVisible
+		color: "transparent"
+		exclusionMode: ExclusionMode.Ignore
+		WlrLayershell.layer: WlrLayer.Overlay
+
+		anchors { left: true; right: true; bottom: true }
+		margins.bottom: 48
+		implicitHeight: 44
+
+		Rectangle {
+			width: 260
+			height: 44
+			anchors.horizontalCenter: parent.horizontalCenter
+			anchors.bottom: parent.bottom
+			color: root.cal1
+			radius: 10
+			border.width: 2
+			border.color: root.osdAccent
+
+			RowLayout {
+				anchors.fill: parent
+				anchors.leftMargin: 12
+				anchors.rightMargin: 12
+				spacing: 10
+
+				Text {
+					text: root.osdLabel
+					color: root.cal6
+					font.pixelSize: root.fontSize
+					font.family: root.fontFamily
+					font.bold: true
+				}
+
+				Rectangle {
+					Layout.fillWidth: true
+					Layout.preferredHeight: 10
+					radius: 5
+					color: root.cal3
+					clip: true
+
+					Rectangle {
+						anchors.left: parent.left
+						anchors.top: parent.top
+						anchors.bottom: parent.bottom
+						radius: 5
+						width: root.osdLevel >= 0 ? parent.width * Math.min(root.osdLevel, 100) / 100 : 0
+						color: root.osdAccent
+						Behavior on width { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+					}
+				}
+			}
+		}
+	}
+
+	// --- Media OSD popup window ("Now Playing", primary screen only) --
+	PanelWindow {
+		id: mosdWindow
+		screen: Quickshell.screens[0]
+		visible: root.mosdVisible
+		color: "transparent"
+		exclusionMode: ExclusionMode.Ignore
+		WlrLayershell.layer: WlrLayer.Overlay
+
+		anchors { left: true; right: true; bottom: true }
+		margins.bottom: 110 // taller than the 48px vol/bri/mic OSD so they don't overlap
+		implicitHeight: 122
+
+		Rectangle {
+			width: 460
+			height: 122
+			anchors.horizontalCenter: parent.horizontalCenter
+			anchors.bottom: parent.bottom
+			color: root.cal1
+			radius: 12
+			border.width: 2
+			border.color: root.cal14
+
+			RowLayout {
+				anchors.fill: parent
+				anchors.margins: 14
+				spacing: 14
+
+				// Album art thumbnail
+				Item {
+					Layout.preferredWidth: 80
+					Layout.preferredHeight: 80
+					Layout.alignment: Qt.AlignVCenter
+
+					Rectangle {
+						anchors.fill: parent
+						radius: 8
+						color: root.cal2
+						visible: root.mediaArtUrl === ""
+					}
+
+					Image {
+						id: mosdArt
+						anchors.fill: parent
+						source: root.mediaArtUrl
+						fillMode: Image.PreserveAspectCrop
+						visible: false
+						asynchronous: true
+					}
+					Rectangle { id: mosdArtMask; anchors.fill: parent; radius: 8; visible: false }
+					OpacityMask {
+						anchors.fill: parent
+						source: mosdArt
+						maskSource: mosdArtMask
+						visible: root.mediaArtUrl !== ""
+					}
+				}
+
+				ColumnLayout {
+					Layout.fillWidth: true
+					Layout.fillHeight: true
+					spacing: 4
+
+					RowLayout {
+						spacing: 6
+						Layout.fillWidth: true
+
+						Text { text: root.mosdSourceIcon; color: root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily }
+						Text { text: root.mediaIcon; color: root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily }
+						Text {
+							Layout.fillWidth: true
+							text: root.mediaTitle !== "" ? root.mediaTitle : "Unknown Title"
+							color: root.cal6; font.pixelSize: root.fontSize + 1; font.family: root.fontFamily; font.bold: true
+							elide: Text.ElideRight
+						}
+					}
+
+					Text {
+						Layout.fillWidth: true
+						text: {
+							const hasArtist = root.mediaArtist !== "" && root.mediaArtist !== "Unknown Artist" && root.mediaArtist !== "Unknown";
+							const hasAlbum = root.mediaAlbum !== "" && root.mediaAlbum !== "Unknown" && root.mediaAlbum !== "[Unknown Album]";
+							if (hasArtist && hasAlbum) return root.mediaArtist + " — " + root.mediaAlbum;
+							if (hasArtist) return root.mediaArtist;
+							return "";
+						}
+						color: root.cal15; font.pixelSize: root.fontSize - 1; font.family: root.fontFamily
+						elide: Text.ElideRight
+					}
+
+					Item { Layout.fillHeight: true }
+
+					Text {
+						Layout.alignment: Qt.AlignRight
+						visible: root.mediaProgressTime !== ""
+						text: root.mediaProgressTime
+						color: root.cal15; font.pixelSize: root.fontSize - 2; font.family: root.fontFamily
+					}
+
+					Rectangle {
+						Layout.fillWidth: true
+						Layout.preferredHeight: 6
+						radius: 3
+						color: root.cal3
+						clip: true
+
+						Rectangle {
+							anchors.left: parent.left
+							anchors.top: parent.top
+							anchors.bottom: parent.bottom
+							radius: 3
+							width: root.mediaProgress >= 0 ? parent.width * Math.min(root.mediaProgress, 100) / 100 : 0
+							color: root.cal14
+							Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.Linear } }
+						}
+					}
+				}
+			}
+		}
+	}
+}
