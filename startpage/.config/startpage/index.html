@@ -41,7 +41,7 @@
         --highlight: #d3869b; /* purple */
         --ok: #b8bb26; /* green — matrix rain primary */
 
-        /* Glass — alpha matches alpha=0.85 */
+        /* Glass */
         --glass-bg: rgba(29, 32, 33, 0.85);
         --glass-border: rgba(254, 128, 25, 0.25); /* orange tint border */
         --glass-blur: blur(10px);
@@ -66,7 +66,6 @@
         min-height: 100vh;
         text-align: center;
         overflow: hidden;
-        /* removed position: relative — was breaking position: fixed on .sys-info */
       }
 
       /* ---- MATRIX CANVAS ---- */
@@ -141,6 +140,85 @@
         padding: 8px 22px;
         margin-bottom: 1.8rem;
         border-color: rgba(250, 189, 47, 0.18);
+      }
+
+      #datetime.alarm-ringing {
+        border-color: var(--alert);
+        box-shadow: 0 0 20px rgba(251, 73, 52, 0.45);
+        animation: alarm-pulse 0.6s ease-in-out infinite alternate;
+      }
+
+      @keyframes alarm-pulse {
+        from {
+          transform: scale(1);
+        }
+        to {
+          transform: scale(1.04);
+        }
+      }
+
+      .clock-alarm {
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .clock-alarm-controls {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .clock-alarm input[type="time"] {
+        width: 105px;
+        padding: 5px 7px;
+        border: 1px solid var(--bg3);
+        border-radius: 4px;
+        background: var(--bg2);
+        color: var(--fg);
+        font: inherit;
+        font-size: 0.75rem;
+      }
+
+      .clock-alarm select {
+        padding: 4.5px 7px;
+        border: 1px solid var(--bg3);
+        border-radius: 4px;
+        background: var(--bg2);
+        color: var(--fg);
+        font: inherit;
+        font-size: 0.75rem;
+        cursor: pointer;
+      }
+
+      .clock-alarm select:focus {
+        border-color: var(--accent);
+        outline: none;
+      }
+
+      .clock-alarm button {
+        padding: 5px 8px;
+        border: 1px solid var(--bg3);
+        border-radius: 4px;
+        background: var(--bg2);
+        color: var(--fg1);
+        font: inherit;
+        font-size: 0.72rem;
+        cursor: pointer;
+      }
+
+      .clock-alarm button:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      .clock-alarm-status {
+        margin-top: 6px;
+        color: var(--fg2);
+        text-align: center;
+        font-size: 0.68rem;
       }
 
       /* ---- SEARCH ---- */
@@ -1202,6 +1280,224 @@
         { label: "Tokyo", zone: "Asia/Tokyo" },
       ];
 
+      /* ---- CLOCK ALARM ---- */
+      const ALARM_STORAGE_KEY = "clock_alarm";
+      let clockAlarm = loadClockAlarm();
+      let alarmTimer = null;
+      let alarmAudioContext = null;
+      let alarmRinging = false;
+
+      function loadClockAlarm() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(ALARM_STORAGE_KEY));
+          if (
+            saved &&
+            typeof saved.time === "string" &&
+            /^([01]\d|2[0-3]):[0-5]\d$/.test(saved.time) &&
+            saved.enabled !== false
+          ) {
+            return {
+              time: saved.time,
+              enabled: true,
+              type: saved.type || "recurring",
+            };
+          }
+        } catch (_) {}
+        return null;
+      }
+
+      function saveClockAlarm() {
+        try {
+          if (clockAlarm) {
+            localStorage.setItem(ALARM_STORAGE_KEY, JSON.stringify(clockAlarm));
+          } else {
+            localStorage.removeItem(ALARM_STORAGE_KEY);
+          }
+        } catch (_) {}
+      }
+
+      function getNextAlarmTimestamp(time) {
+        const [hours, minutes] = time.split(":").map(Number);
+        const now = new Date();
+        const next = new Date(now);
+        next.setHours(hours, minutes, 0, 0);
+        if (next <= now) next.setDate(next.getDate() + 1);
+        return next.getTime();
+      }
+
+      function scheduleClockAlarm() {
+        if (alarmTimer) {
+          clearTimeout(alarmTimer);
+          alarmTimer = null;
+        }
+        if (!clockAlarm?.enabled) return;
+
+        const target = getNextAlarmTimestamp(clockAlarm.time);
+        alarmTimer = setTimeout(
+          () => {
+            triggerClockAlarm();
+            scheduleClockAlarm();
+          },
+          Math.max(0, target - Date.now()),
+        );
+      }
+
+      function ensureAlarmAudio() {
+        if (!alarmAudioContext) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContext) return null;
+          alarmAudioContext = new AudioContext();
+        }
+        if (alarmAudioContext.state === "suspended") {
+          alarmAudioContext.resume().catch(() => {});
+        }
+        return alarmAudioContext;
+      }
+
+      function beepClockAlarm() {
+        const ctx = ensureAlarmAudio();
+        if (!ctx) return;
+        const start = ctx.currentTime;
+        [0, 0.22, 0.44, 0.66, 0.88].forEach((offset, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.value = i % 2 ? 880 : 660;
+          gain.gain.setValueAtTime(0.0001, start + offset);
+          gain.gain.exponentialRampToValueAtTime(0.18, start + offset + 0.015);
+          gain.gain.exponentialRampToValueAtTime(0.0001, start + offset + 0.18);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(start + offset);
+          osc.stop(start + offset + 0.2);
+        });
+      }
+
+      function stopClockAlarm() {
+        alarmRinging = false;
+        document.getElementById("datetime")?.classList.remove("alarm-ringing");
+      }
+
+      function triggerClockAlarm() {
+        if (!clockAlarm?.enabled || alarmRinging) return;
+        alarmRinging = true;
+        beepClockAlarm();
+        document.getElementById("datetime")?.classList.add("alarm-ringing");
+
+        setTimeout(stopClockAlarm, 10000);
+
+        if (
+          typeof Notification !== "undefined" &&
+          Notification.permission === "granted"
+        ) {
+          new Notification("Clock alarm", {
+            body: `Alarm: ${clockAlarm.time}`,
+          });
+        }
+
+        // If the alarm was set to 'once', disable it so it doesn't trigger tomorrow
+        if (clockAlarm.type === "once") {
+          clockAlarm.enabled = false;
+          saveClockAlarm();
+          updateClockAlarmUI();
+        }
+      }
+
+      function setClockAlarm(time, type) {
+        if (!time) return;
+        clockAlarm = { time, enabled: true, type: type || "recurring" };
+        saveClockAlarm();
+        ensureAlarmAudio();
+        scheduleClockAlarm();
+        updateClockAlarmUI();
+        if (
+          typeof Notification !== "undefined" &&
+          Notification.permission === "default"
+        ) {
+          Notification.requestPermission().catch(() => {});
+        }
+      }
+
+      function clearClockAlarm() {
+        clockAlarm = null;
+        saveClockAlarm();
+        if (alarmTimer) {
+          clearTimeout(alarmTimer);
+          alarmTimer = null;
+        }
+        stopClockAlarm();
+        updateClockAlarmUI();
+      }
+
+      function updateClockAlarmUI() {
+        const input = document.getElementById("clock-alarm-time");
+        const typeSelect = document.getElementById("clock-alarm-type");
+        const status = document.getElementById("clock-alarm-status");
+
+        if (!input || !status || !typeSelect) return;
+
+        input.value = clockAlarm?.time ?? "";
+        if (clockAlarm?.type) {
+          typeSelect.value = clockAlarm.type;
+        }
+
+        if (clockAlarm?.enabled) {
+          const frequency = clockAlarm.type === "once" ? "once" : "daily";
+          status.textContent = `Alarm set for ${formatAlarmTime(clockAlarm.time)} (${frequency})`;
+        } else {
+          status.textContent = "No alarm set";
+        }
+      }
+
+      function formatAlarmTime(time) {
+        const [hours, minutes] = time.split(":").map(Number);
+        const d = new Date();
+        d.setHours(hours, minutes, 0, 0);
+        return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      }
+
+      function renderClockAlarm(popover) {
+        const section = document.createElement("div");
+        section.className = "clock-alarm";
+        const controls = document.createElement("div");
+        controls.className = "clock-alarm-controls";
+
+        const input = document.createElement("input");
+        input.type = "time";
+        input.id = "clock-alarm-time";
+        input.setAttribute("aria-label", "Alarm time");
+
+        const typeSelect = document.createElement("select");
+        typeSelect.id = "clock-alarm-type";
+        const optOnce = document.createElement("option");
+        optOnce.value = "once";
+        optOnce.textContent = "Once";
+        const optRecurring = document.createElement("option");
+        optRecurring.value = "recurring";
+        optRecurring.textContent = "Daily";
+        typeSelect.append(optOnce, optRecurring);
+
+        const setButton = document.createElement("button");
+        setButton.type = "button";
+        setButton.textContent = "Set";
+        setButton.addEventListener("click", () =>
+          setClockAlarm(input.value, typeSelect.value),
+        );
+
+        const clearButton = document.createElement("button");
+        clearButton.type = "button";
+        clearButton.textContent = "Clear";
+        clearButton.addEventListener("click", clearClockAlarm);
+
+        controls.append(input, typeSelect, setButton, clearButton);
+        const status = document.createElement("div");
+        status.className = "clock-alarm-status";
+        status.id = "clock-alarm-status";
+        section.append(controls, status);
+        popover.appendChild(section);
+        updateClockAlarmUI();
+      }
+
       function renderClockPopover(popover) {
         addPopoverTitle(popover, "World Clock");
         const kv = document.createElement("div");
@@ -1209,7 +1505,10 @@
         kv.id = "world-clock-rows";
         popover.appendChild(kv);
         updateWorldClockRows();
+        renderClockAlarm(popover);
       }
+
+      scheduleClockAlarm();
 
       function updateWorldClockRows() {
         const kv = document.getElementById("world-clock-rows");
@@ -2021,18 +2320,47 @@
 
       function handleSearchSubmit(e) {
         const raw = searchInput.value.trim();
-        const match = raw.match(/^!(\S+)\s*(.*)$/);
-        if (!match) return; // no bang — let it submit to SearXNG normally
+        if (!raw) return;
 
-        const target = BANG_MAP[match[1].toLowerCase()];
-        if (!target) return; // unrecognized bang — SearXNG has its own bang support, let it try
+        const match = raw.match(/^!(\S+)(?:\s+(.*))?$/);
+        if (!match) return; // normal searches go to SearXNG
+
+        const bang = match[1].toLowerCase();
+        const target = BANG_MAP[bang];
+
+        // IMPORTANT: unknown bangs must stay on this page.
+        // Previously these were allowed through to SearXNG, which can
+        // produce a CloudFront 494 for some inputs.
+        if (!target) {
+          e.preventDefault();
+          return;
+        }
 
         e.preventDefault();
-        const query = match[2].trim();
+        const query = (match[2] || "").trim();
         window.location.href = query
           ? target.search + encodeURIComponent(query)
           : target.base;
       }
+
+      // Keep the search form from navigating to the external search service
+      // for a bang-like input that isn't one of our supported shortcuts.
+      const searchInput = document.getElementById("searchInput");
+      searchInput.addEventListener("input", () => {
+        const value = searchInput.value.trim();
+        const bangMatch = value.match(/^!(\S*)/);
+        if (
+          bangMatch &&
+          bangMatch[1] &&
+          !BANG_MAP[bangMatch[1].toLowerCase()]
+        ) {
+          searchInput.setCustomValidity(
+            "Unknown shortcut. Use a supported !bang or remove the !.",
+          );
+        } else {
+          searchInput.setCustomValidity("");
+        }
+      });
 
       /* ---- KEYBIND OVERLAY ---- */
       const overlay = document.getElementById("keybind-overlay");
@@ -2063,15 +2391,26 @@
           measurePing();
           pingTimer = setInterval(measurePing, 30000);
           matrixRainVisibility.resume();
+          scheduleClockAlarm();
         }
       });
 
       setInterval(() => {
         updateClock();
         updateUptime();
+        if (clockAlarm?.enabled) {
+          const now = new Date();
+          const [hours, minutes] = clockAlarm.time.split(":").map(Number);
+          if (
+            now.getHours() === hours &&
+            now.getMinutes() === minutes &&
+            now.getSeconds() < 2
+          ) {
+            triggerClockAlarm();
+          }
+        }
       }, 1000);
 
-      const searchInput = document.getElementById("searchInput");
       document
         .getElementById("searchForm")
         .addEventListener("submit", handleSearchSubmit);
@@ -2108,6 +2447,7 @@
         }
 
         if (e.key === "Escape") {
+          stopClockAlarm();
           if (overlay.classList.contains("visible")) {
             overlay.classList.remove("visible");
           }
