@@ -1,7 +1,10 @@
+
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
 import Quickshell.Hyprland
+import Quickshell.Services.Notifications
+import Quickshell.Widgets
 import QtQuick
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
@@ -91,6 +94,13 @@ ShellRoot {
 	// and only shells out to brightnessctl to actually change the level.
 	AudioController { id: audio }
 	BrightnessController { id: bright }
+
+	// --- Notifications (native org.freedesktop.Notifications daemon) --
+	// Replaces mako. See NotificationController.qml for the mako ->
+	// Quickshell config mapping. `notifs.popups` is the live ObjectModel
+	// backing the top-right popup stack below; `notifs.history` is the
+	// max-history=20 in-memory scrollback for the notification center.
+	NotificationController { id: notifs }
 
 	// --- Logic & Process Control ---
 	Process { id: shellCmd }
@@ -298,6 +308,21 @@ ShellRoot {
 	IpcHandler {
 		target: "mediaosd"
 		function show(): void { root.mosdShow() }
+	}
+
+	// --- Notification center (history panel) --------------------------
+	// Toggle from a keybind, e.g.:
+	//   bindl = , XF86Notification, exec, qs ipc call notifcenter toggle
+	property bool notifCenterVisible: false
+
+	IpcHandler {
+		target: "notifcenter"
+		function toggle(): void { root.notifCenterVisible = !root.notifCenterVisible }
+		function show(): void { root.notifCenterVisible = true }
+		function hide(): void { root.notifCenterVisible = false }
+		// mako-cli equivalents: `makoctl dismiss --all` / `makoctl history --clear`
+		function dismissAll(): void { notifs.dismissAll() }
+		function clearHistory(): void { notifs.clearHistory() }
 	}
 
 	Variants {
@@ -769,6 +794,43 @@ ShellRoot {
 						Timer { interval: 1000; running: true; repeat: true; onTriggered: parent.dateTime = new Date() }
 					}
 				}
+
+				// 5. Notification center toggle -- left-click opens/closes the
+				// history panel, right-click dismisses every live popup. The
+				// small dot lights up while there's at least one un-dismissed
+				// notification, same "accent-only" language as the rest of the bar.
+				Rectangle {
+					visible: isPrimary
+					Layout.preferredHeight: 26; Layout.preferredWidth: 26; radius: 13
+					color: root.notifCenterVisible ? root.cal3 : root.cal2
+
+					Text {
+						anchors.centerIn: parent
+						text: notifs.popups.values.length > 0 ? "\uf0f3" : "\uf0a2" // bell / bell-outline (nerd font fa)
+						color: root.notifCenterVisible ? root.cal7 : root.cal6
+						font.pixelSize: root.fontSize + 2
+						font.family: root.fontFamily
+					}
+
+					Rectangle {
+						visible: notifs.popups.values.length > 0
+						width: 8; height: 8; radius: 4
+						color: root.cal11
+						border.width: 1; border.color: root.cal0
+						anchors.top: parent.top; anchors.right: parent.right
+						anchors.topMargin: -1; anchors.rightMargin: -1
+					}
+
+					MouseArea {
+						anchors.fill: parent
+						cursorShape: Qt.PointingHandCursor
+						acceptedButtons: Qt.LeftButton | Qt.RightButton
+						onClicked: (m) => {
+							if (m.button === Qt.LeftButton) root.notifCenterVisible = !root.notifCenterVisible
+							else if (m.button === Qt.RightButton) notifs.dismissAll()
+						}
+					}
+				}
 			}
 		}
 	}
@@ -951,4 +1013,287 @@ ShellRoot {
 			}
 		}
 	}
+
+	// --- Notification urgency accents ----------------------------------
+	// Same idea as osdAccent/mosd's per-type accent color (cal14 for
+	// vol/mic, cal10 for brightness): one consistent card chrome
+	// (osdBgColor + cal7 border, same as every other popup in this
+	// shell) with only the accent swapping per urgency, rather than
+	// mako's approach of recoloring the whole card background.
+	function notifBorder(urgency) {
+		if (urgency === NotificationUrgency.Critical) return root.cal11
+		if (urgency === NotificationUrgency.Low) return root.cal3
+		return root.cal7 // normal
+	}
+	function notifAccentText(urgency) {
+		return urgency === NotificationUrgency.Critical ? root.cal8 : root.cal6
+	}
+
+	// --- Notification popups (top-right stack) -------------------------
+	// Mirrors mako's `anchor=top-right`, `border-radius=10`, `border-size=2`,
+	// and the "persist until dismissed unless the app sets its own
+	// expire-timeout" behavior -- but chrome/type/alignment match the
+	// rest of this shell (osdBgColor, JetBrainsMono Nerd Font, left-aligned)
+	// rather than mako's own font/centering/palette.
+	PanelWindow {
+		id: notifWindow
+		screen: Quickshell.screens[0]
+		visible: notifColumn.count > 0
+		color: "transparent"
+		exclusionMode: ExclusionMode.Ignore
+		WlrLayershell.layer: WlrLayer.Overlay
+
+		anchors { top: true; right: true }
+		margins.top: 42
+		margins.right: 12
+		implicitWidth: 340
+		implicitHeight: notifColumn.implicitHeight
+
+		ColumnLayout {
+			id: notifColumn
+			readonly property int count: notifs.popups.values.length
+			width: 340
+			spacing: 8
+
+			Repeater {
+				model: notifs.popups
+
+				delegate: Rectangle {
+					id: notifCard
+					required property Notification modelData
+
+					Layout.preferredWidth: 340
+					Layout.preferredHeight: notifContent.implicitHeight + 16 // padding=8 top+bottom
+					radius: 10 // border-radius=10, matches osdWindow's pill radius
+					color: root.osdBgColor // same translucent bg1 as every other popup
+					border.width: 2 // border-size=2
+					border.color: root.notifBorder(modelData.urgency)
+					clip: true
+
+					// Auto-dismiss only if the sender requested a timeout
+					// (mako behavior with no default-timeout configured).
+					Timer {
+						running: notifCard.modelData.expireTimeout > 0
+						interval: notifCard.modelData.expireTimeout * 1000
+						onTriggered: notifCard.modelData.expire()
+					}
+
+					// on-button-left=dismiss / -right=dismiss-all / -middle=invoke-default-action
+					MouseArea {
+						anchors.fill: parent
+						acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+						cursorShape: Qt.PointingHandCursor
+						onClicked: mouse => {
+							if (mouse.button === Qt.LeftButton) notifCard.modelData.dismiss()
+							else if (mouse.button === Qt.RightButton) notifs.dismissAll()
+							else if (mouse.button === Qt.MiddleButton) notifs.invokeDefaultAction(notifCard.modelData)
+						}
+					}
+
+					RowLayout {
+						id: notifContent
+						anchors.left: parent.left
+						anchors.right: parent.right
+						anchors.verticalCenter: parent.verticalCenter
+						anchors.leftMargin: 10
+						anchors.rightMargin: 10
+						spacing: 10
+
+						// icons=1 -- image hint takes priority over the app icon,
+						// same preference order mako uses. Same square-with-
+						// placeholder-bg treatment as the media OSD's album art.
+						Item {
+							visible: notifCard.modelData.image !== "" || notifCard.modelData.appIcon !== ""
+							Layout.preferredWidth: 36
+							Layout.preferredHeight: 36
+							Layout.alignment: Qt.AlignVCenter
+
+							Rectangle {
+								anchors.fill: parent
+								radius: 8
+								color: root.cal2
+							}
+							Image {
+								anchors.fill: parent
+								visible: notifCard.modelData.image !== ""
+								source: notifCard.modelData.image
+								fillMode: Image.PreserveAspectCrop
+								asynchronous: true
+							}
+							IconImage {
+								anchors.fill: parent
+								anchors.margins: notifCard.modelData.image === "" ? 6 : 0
+								visible: notifCard.modelData.image === "" && notifCard.modelData.appIcon !== ""
+								source: Quickshell.iconPath(notifCard.modelData.appIcon, "")
+							}
+						}
+
+						ColumnLayout {
+							Layout.fillWidth: true
+							spacing: 3
+
+							Text {
+								Layout.fillWidth: true
+								text: notifCard.modelData.summary
+								color: root.notifAccentText(notifCard.modelData.urgency)
+								font.family: root.fontFamily
+								font.pixelSize: root.fontSize
+								font.bold: true
+								wrapMode: Text.Wrap
+								elide: Text.ElideRight
+								maximumLineCount: 2
+							}
+
+							Text {
+								Layout.fillWidth: true
+								visible: notifCard.modelData.body !== ""
+								text: notifCard.modelData.body
+								textFormat: Text.StyledText // markup=1
+								color: root.cal15
+								font.family: root.fontFamily
+								font.pixelSize: root.fontSize - 2
+								wrapMode: Text.Wrap
+								elide: Text.ElideRight
+								maximumLineCount: 4
+							}
+
+							// progress-color -- shown when the sender attaches a
+							// "value" hint (0-100), e.g. volume/brightness bridges.
+							// Same track/fill treatment as the OSD/media-OSD bars.
+							Rectangle {
+								visible: notifs.hasProgress(notifCard.modelData)
+								Layout.fillWidth: true
+								Layout.preferredHeight: 6
+								radius: 3
+								color: root.cal3
+								clip: true
+
+								Rectangle {
+									anchors.left: parent.left
+									anchors.top: parent.top
+									anchors.bottom: parent.bottom
+									radius: 3
+									width: parent.width * Math.min(Math.max(notifCard.modelData.hints.value ?? 0, 0), 100) / 100
+									color: root.notifBorder(notifCard.modelData.urgency)
+									Behavior on width { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// --- Notification center (history panel) ---------------------------
+	// Toggled via `qs ipc call notifcenter toggle`. Shows the last
+	// historyLimit (mako: max-history=20) notifications, newest first.
+	PanelWindow {
+		id: notifCenterWindow
+		screen: Quickshell.screens[0]
+		visible: root.notifCenterVisible
+		color: "transparent"
+		exclusionMode: ExclusionMode.Ignore
+		WlrLayershell.layer: WlrLayer.Overlay
+
+		anchors { top: true; right: true; bottom: true }
+		margins.top: 42
+		margins.right: 12
+		margins.bottom: 12
+		implicitWidth: 340
+
+		Rectangle {
+			anchors.fill: parent
+			radius: 10
+			color: root.osdBgColor
+			border.width: 2
+			border.color: root.cal7
+
+			ColumnLayout {
+				anchors.fill: parent
+				anchors.margins: 10
+				spacing: 8
+
+				RowLayout {
+					Layout.fillWidth: true
+					Text {
+						Layout.fillWidth: true
+						text: "Notifications"
+						color: root.cal6
+						font.family: root.fontFamily
+						font.pixelSize: root.fontSize
+						font.bold: true
+					}
+					Text {
+						text: "Clear"
+						color: root.cal8
+						font.family: root.fontFamily
+						font.pixelSize: root.fontSize - 1
+						MouseArea {
+							anchors.fill: parent
+							cursorShape: Qt.PointingHandCursor
+							onClicked: notifs.clearHistory()
+						}
+					}
+				}
+
+				Rectangle { Layout.fillWidth: true; height: 1; color: root.cal3 }
+
+				ListView {
+					Layout.fillWidth: true
+					Layout.fillHeight: true
+					clip: true
+					spacing: 6
+					model: notifs.history
+
+					Text {
+						visible: notifs.history.length === 0
+						anchors.centerIn: parent
+						text: "No notifications"
+						color: root.cal15
+						font.family: root.fontFamily
+						font.pixelSize: root.fontSize - 1
+					}
+
+					delegate: Rectangle {
+						required property var modelData
+						width: ListView.view.width
+						height: histContent.implicitHeight + 12
+						radius: 8
+						color: root.cal2
+
+						ColumnLayout {
+							id: histContent
+							anchors.fill: parent
+							anchors.margins: 6
+							spacing: 2
+
+							Text {
+								Layout.fillWidth: true
+								text: modelData.appName + ": " + modelData.summary
+								color: root.cal6
+								font.family: root.fontFamily
+								font.pixelSize: root.fontSize - 1
+								font.bold: true
+								elide: Text.ElideRight
+							}
+							Text {
+								Layout.fillWidth: true
+								visible: modelData.body !== ""
+								text: modelData.body
+								textFormat: Text.StyledText
+								color: root.cal15
+								font.family: root.fontFamily
+								font.pixelSize: root.fontSize - 2
+								wrapMode: Text.Wrap
+								maximumLineCount: 2
+								elide: Text.ElideRight
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 }
+

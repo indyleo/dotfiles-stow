@@ -1,7 +1,6 @@
 hl.on("hyprland.start", function()
 	-- --- Launch Desktop ---
 	hl.exec_cmd(barLaunch)
-	hl.exec_cmd("mako")
 	hl.exec_cmd("awww-daemon")
 	hl.exec_cmd("desktopctl time ~/Pictures/Wallpapers/gruvbox 900")
 	hl.exec_cmd('hyprctl setcursor "Capitaine Cursors" 24')
