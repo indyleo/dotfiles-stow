@@ -54,9 +54,8 @@ ShellRoot {
 	property string diskIcon: "󰋊"
 	property string diskText: "0%"
 
-	property string brightIcon: "󰃠"
-	property string brightText: "100%"
-	property bool showBright: false
+	// brightIcon/brightText/showBright removed -- now BrightnessController's
+	// bright.icon / bright.text / bright.available (see below).
 
 	property string batIcon: "󰢜"
 	property string batText: "100%"
@@ -74,26 +73,24 @@ ShellRoot {
 	property string tailText: "Not connected"
 	property bool showTail: false
 
-	property string volIcon: "󰕾"
-	property string volText: "0%"
-	property string micIcon: ""
-	property string micText: "0%"
+	// volIcon/volText/micIcon/micText removed -- now AudioController's
+	// audio.volIcon / audio.volText / audio.micIcon / audio.micText.
 
 	// --- Screen/Media Data Properties ---
 	property string sysMediaIcon: "" // Fallback icon if sysstats doesn't provide one
 	property string sysMediaText: ""
 
-	// --- Media Data Properties ---
-	property string mediaIcon: "󰝚"
-	property string mediaTitle: ""
-	property string mediaArtist: ""
-	property string mediaAlbum: ""
-	property string mediaType: ""   // "song" | "browser", per mediactl's type field
-	property string mediaArtUrl: ""
-	property bool mediaIsPlaying: false
-	property bool showMedia: false
-	property int mediaProgress: -1        // 0-100, -1 if unavailable
-	property string mediaProgressTime: "" // "M:SS / M:SS", empty if unavailable
+	// --- Media Data (native MPRIS via Quickshell.Services.Mpris) ---
+	// No mediactl/medianotify/playerctl subprocesses: MediaController reads
+	// MPRIS directly over DBus and updates reactively on real state changes.
+	MediaController { id: media }
+
+	// --- Volume/Mic (native Pipewire) and Brightness (sysfs FileView) ---
+	// No wpctl/raw-read subprocess chain: AudioController reads/writes
+	// Pipewire directly; BrightnessController watches sysfs via inotify
+	// and only shells out to brightnessctl to actually change the level.
+	AudioController { id: audio }
+	BrightnessController { id: bright }
 
 	// --- Logic & Process Control ---
 	Process { id: shellCmd }
@@ -133,21 +130,6 @@ ShellRoot {
 		id: diskProc
 		command: ["sysstats", "disk"]
 		stdout: SplitParser { onRead: data => root.parseSysstats(data, "diskIcon", "diskText") }
-	}
-
-	Process {
-		id: brightProc
-		command: ["sysstats", "brightness"]
-		stdout: SplitParser {
-			onRead: data => {
-				if (!data || data.trim() === "" || data.includes("N/A")) {
-					root.showBright = false;
-					return
-				}
-				root.showBright = true;
-				root.parseSysstats(data, "brightIcon", "brightText")
-			}
-		}
 	}
 
 	Process {
@@ -203,77 +185,11 @@ ShellRoot {
 		}
 	}
 
-	Process {
-		id: volProc
-		command: ["sysstats", "volume"]
-		stdout: SplitParser { onRead: data => root.parseSysstats(data, "volIcon", "volText") }
-	}
-
-	Process {
-		id: micProc
-		command: ["sysstats", "microphone"]
-		stdout: SplitParser { onRead: data => root.parseSysstats(data, "micIcon", "micText") }
-	}
-
 	// Media Process
 	Process {
 		id: sysMediaProc
 		command: ["sysstats", "media"]
 		stdout: SplitParser { onRead: data => root.parseSysstats(data, "sysMediaIcon", "sysMediaText") }
-	}
-
-	// Mediactl Process
-	Process {
-		id: mediaProc
-		command: ["mediactl", "status"]
-		stdout: SplitParser {
-			onRead: data => {
-				// 1. Properly check for idle/empty state
-				if (!data || data.replace(/[\r\n]+$/, "") === "" || data.startsWith("idle")) {
-					root.showMedia = false;
-					return;
-				}
-				root.showMedia = true;
-
-				// 2. Strip only trailing newlines so internal/trailing tabs stay intact
-				let parts = data.replace(/[\r\n]+$/, "").split("\t");
-
-				if (parts.length >= 5) {
-					root.mediaType = (parts[0] || "").trim();
-					root.mediaIsPlaying = (parts[2] === "Playing");
-					root.mediaIcon = root.mediaIsPlaying ? "" : "";
-					root.mediaTitle = parts[3] ? parts[3].trim() : "Unknown Title";
-					root.mediaArtist = parts[4] ? parts[4].trim() : "Unknown Artist";
-
-					// 3. Extract artwork URL. mediactl always emits all 9
-					// tab-separated fields (empty values stay as empty
-					// strings between tabs), so index 6 is always the
-					// art_url slot -- it's never "shifted" by an omitted
-					// album. Falling back to parts[5] (the album name) was
-					// wrong: it turned plain album text into a bogus
-					// "file://Album Name" URI whenever a track legitimately
-					// had no art.
-					let art = (parts[6] || "").trim();
-
-					// 4. Format URI cleanly
-					if (art.startsWith("http://") || art.startsWith("https://") || art.startsWith("file://")) {
-						root.mediaArtUrl = art;
-					} else if (art !== "") {
-						root.mediaArtUrl = "file://" + art;
-					} else {
-						root.mediaArtUrl = "";
-					}
-
-					root.mediaAlbum = parts.length >= 6 ? (parts[5] || "").trim() : "";
-
-					// 5. Progress percent (0-100, or -1 if unavailable) and
-					// "M:SS / M:SS" text -- same fields mediaosd.c reads.
-					root.mediaProgress = parts.length >= 8 && parts[7] !== "" ? parseInt(parts[7], 10) : -1;
-					if (isNaN(root.mediaProgress)) root.mediaProgress = -1;
-					root.mediaProgressTime = parts.length >= 9 ? (parts[8] || "").trim() : "";
-				}
-			}
-		}
 	}
 
 	Timer {
@@ -285,48 +201,28 @@ ShellRoot {
 			kernelProc.running = false; kernelProc.running = true
 			memProc.running = false; memProc.running = true
 			diskProc.running = false; diskProc.running = true
-			brightProc.running = false; brightProc.running = true
 			wifiProc.running = false; wifiProc.running = true
 			ethProc.running = false; ethProc.running = true
 			tailProc.running = false; tailProc.running = true
 			batProc.running = false; batProc.running = true
-			volProc.running = false; volProc.running = true
-			micProc.running = false; micProc.running = true
 			sysMediaProc.running = false; sysMediaProc.running = true
 		}
 	}
 
-	// mediaProc (mediactl status) is intentionally NOT on the 2s timer
-	// above: it forks ~3-4 playerctl calls under the hood (see mediactl),
-	// which is too heavy to run every 2s forever. medianotify already
-	// watches MPRIS in real time (playerctl -a -F, no polling) and calls
-	// `qs ipc call mediaosd show` on every real change -- that's the
-	// primary update path (see the "mediaosd" IpcHandler below). This
-	// slow timer is just a fallback in case medianotify isn't running,
-	// so the bar pill doesn't go stale forever.
-	Timer {
-		interval: 10000
-		running: true; repeat: true; triggeredOnStart: true
-		onTriggered: { mediaProc.running = false; mediaProc.running = true }
-	}
 
 	// --- OSD (On-Screen Display) -----------------------------------
 	// Mirrors the dwm osd.c / osds[] setup: an external keybind fires an
-	// IPC call, which runs a "change" command (wpctl/brightnessctl), then
-	// re-reads the level and pops a bottom-center bar for OSD_TIMEOUT_MS.
-	// Assumes wpctl (wireplumber) for volume/mic and brightnessctl for
-	// brightness -- swap the command arrays below if you use something else.
+	// IPC call, which pops a bottom-center bar for OSD_TIMEOUT_MS.
+	// Volume/mic go through AudioController (native Pipewire, no wpctl
+	// subprocess to change OR read back). Brightness still shells out to
+	// brightnessctl to write (sysfs perms), but BrightnessController
+	// reads the result back via an inotify-watched FileView, not a
+	// spawned "get" process.
 	property bool osdVisible: false
 	property string osdLabel: ""
 	property int osdLevel: -1        // 0-100, or -1 for "no numeric level"
 	property color osdAccent: cal14
 	readonly property int osdTimeoutMs: 1200
-
-	function osdParseLevel(text) {
-		if (!text) return -1;
-		const m = /(\d+)/.exec(text);
-		return m ? Math.min(100, parseInt(m[1], 10)) : -1;
-	}
 
 	function osdShow(label, level, accent) {
 		root.osdLabel = label;
@@ -342,83 +238,42 @@ ShellRoot {
 		onTriggered: root.osdVisible = false
 	}
 
-	// "raw" get processes -- cheap, bare-integer reads (sysstats vol_raw /
-	// mic_raw / bri_raw, same idea as dwm's volgetcmd/micgetcmd/brigetcmd).
-	// These run on EVERY change, including key-repeat ticks, so they need
-	// to stay lightweight -- unlike "sysstats volume" etc., which also
-	// resolves an icon/formats a string for the bar pill and is too heavy
-	// to spawn at repeat-key frequency.
-	Process {
-		id: osdVolRawProc
-		command: ["sysstats", "vol_raw"]
-		stdout: SplitParser { onRead: data => root.osdShow("VOL", root.osdParseLevel(data), root.cal14) }
-	}
-	Process {
-		id: osdMicRawProc
-		command: ["sysstats", "mic_raw"]
-		stdout: SplitParser { onRead: data => root.osdShow("MIC", root.osdParseLevel(data), root.cal14) }
-	}
-	Process {
-		id: osdBriRawProc
-		command: ["sysstats", "bri_raw"]
-		stdout: SplitParser { onRead: data => root.osdShow("BRI", root.osdParseLevel(data), root.cal10) }
-	}
-
-	// Debounced bar-pill sync -- the heavier "sysstats volume/microphone/
-	// brightness" call (icon + formatted text) only fires once, a moment
-	// after the bursts of repeat ticks stop, instead of on every tick.
-	Timer {
-		id: osdPillSyncTimer
-		interval: 200
-		property string category: ""
-		onTriggered: {
-			if (category === "VOL") { volProc.running = false; volProc.running = true }
-			else if (category === "MIC") { micProc.running = false; micProc.running = true }
-			else if (category === "BRI") { brightProc.running = false; brightProc.running = true }
-		}
-	}
-
-	// "change" processes -- fired by the IpcHandler below. Each kicks off
-	// its matching raw read immediately (cheap, keeps the bar snappy even
-	// mid-repeat) and (re)starts the debounced pill sync.
-	Process { id: osdVolUpProc;     command: ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SINK@", "5%+"]; onExited: { osdVolRawProc.running = false; osdVolRawProc.running = true; osdPillSyncTimer.category = "VOL"; osdPillSyncTimer.restart() } }
-	Process { id: osdVolDownProc;   command: ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%-"]; onExited: { osdVolRawProc.running = false; osdVolRawProc.running = true; osdPillSyncTimer.category = "VOL"; osdPillSyncTimer.restart() } }
-	Process { id: osdVolToggleProc; command: ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"]; onExited: { osdVolRawProc.running = false; osdVolRawProc.running = true; osdPillSyncTimer.category = "VOL"; osdPillSyncTimer.restart() } }
-
-	Process { id: osdMicUpProc;     command: ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SOURCE@", "5%+"]; onExited: { osdMicRawProc.running = false; osdMicRawProc.running = true; osdPillSyncTimer.category = "MIC"; osdPillSyncTimer.restart() } }
-	Process { id: osdMicDownProc;   command: ["wpctl", "set-volume", "@DEFAULT_AUDIO_SOURCE@", "5%-"]; onExited: { osdMicRawProc.running = false; osdMicRawProc.running = true; osdPillSyncTimer.category = "MIC"; osdPillSyncTimer.restart() } }
-	Process { id: osdMicToggleProc; command: ["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]; onExited: { osdMicRawProc.running = false; osdMicRawProc.running = true; osdPillSyncTimer.category = "MIC"; osdPillSyncTimer.restart() } }
-
-	Process { id: osdBriUpProc;   command: ["brightnessctl", "set", "5%+"]; onExited: { osdBriRawProc.running = false; osdBriRawProc.running = true; osdPillSyncTimer.category = "BRI"; osdPillSyncTimer.restart() } }
-	Process { id: osdBriDownProc; command: ["brightnessctl", "set", "5%-"]; onExited: { osdBriRawProc.running = false; osdBriRawProc.running = true; osdPillSyncTimer.category = "BRI"; osdPillSyncTimer.restart() } }
+	// Volume/mic/brightness pill icon+text (bar section below) bind
+	// directly to audio.volIcon/audio.micIcon/bright.icon and friends --
+	// no sync step needed here anymore. Those are plain property
+	// bindings derived from the same reactive state the OSD itself
+	// reads, so they update in the same tick as the OSD, with nothing
+	// to debounce and no process to (re)spawn.
 
 	// External trigger points -- bind these from hyprland.conf, e.g.:
 	//   bindl = , XF86AudioRaiseVolume, exec, qs ipc call osd volUp
 	// See osd.h's comment on osdtrigger() for the dwm-side equivalent.
+	// Each function writes through its controller directly (property
+	// assignment for audio, one brightnessctl call for brightness) and
+	// pops the OSD off the value the controller hands back immediately
+	// -- no separate "raw read" process in either path.
 	IpcHandler {
 		target: "osd"
-		function volUp(): void     { osdVolUpProc.running = false; osdVolUpProc.running = true }
-		function volDown(): void   { osdVolDownProc.running = false; osdVolDownProc.running = true }
-		function volToggle(): void { osdVolToggleProc.running = false; osdVolToggleProc.running = true }
-		function micUp(): void     { osdMicUpProc.running = false; osdMicUpProc.running = true }
-		function micDown(): void   { osdMicDownProc.running = false; osdMicDownProc.running = true }
-		function micToggle(): void { osdMicToggleProc.running = false; osdMicToggleProc.running = true }
-		function briUp(): void     { osdBriUpProc.running = false; osdBriUpProc.running = true }
-		function briDown(): void   { osdBriDownProc.running = false; osdBriDownProc.running = true }
+		function volUp(): void     { const l = audio.volUp();     if (l >= 0) root.osdShow("VOL", l, root.cal14) }
+		function volDown(): void   { const l = audio.volDown();   if (l >= 0) root.osdShow("VOL", l, root.cal14) }
+		function volToggle(): void { const l = audio.volToggle(); if (l >= 0) root.osdShow("VOL", l, root.cal14) }
+		function micUp(): void     { const l = audio.micUp();     if (l >= 0) root.osdShow("MIC", l, root.cal14) }
+		function micDown(): void   { const l = audio.micDown();   if (l >= 0) root.osdShow("MIC", l, root.cal14) }
+		function micToggle(): void { const l = audio.micToggle(); if (l >= 0) root.osdShow("MIC", l, root.cal14) }
+		function briUp(): void     { root.osdShow("BRI", bright.up(), root.cal10) }
+		function briDown(): void   { root.osdShow("BRI", bright.down(), root.cal10) }
 	}
 
 	// --- Media OSD ("Now Playing" popup) -----------------------------
-	// Mirrors mediaosd.c: album art + title/artist/album + a live
-	// progress bar. Shows itself automatically whenever the track
-	// changes (mediaProc already polls `mediactl status` every 2s), and
-	// polls a bit faster while visible so the progress bar keeps moving,
-	// same idea as mediaosd.c's MOSD_POLL_MS. Art isn't re-fetched
-	// separately here (unlike the C version's curl/Imlib2 step) since
-	// `mediactl status` already returns the art path/URL inline.
+	// Shows itself automatically whenever MediaController.nowPlaying()
+	// fires (track change, resume/pause, switching active players) --
+	// no polling needed since that signal is a direct consequence of
+	// MPRIS's DBus PropertiesChanged. `media.ticking` is bound to
+	// mosdVisible so the position timer (see MediaController.qml) only
+	// runs while the popup is actually on screen.
 	readonly property int mosdTimeoutMs: 3500
-	readonly property int mosdPollMs: 1000
 	property bool mosdVisible: false
-	readonly property string mosdSourceIcon: mediaType === "browser" ? "󰖟" : "󰝚"
+	readonly property string mosdSourceIcon: media.activeType === "browser" ? "󰖟" : "󰝚"
 
 	Timer {
 		id: mosdHideTimer
@@ -426,33 +281,23 @@ ShellRoot {
 		onTriggered: root.mosdVisible = false
 	}
 
-	Timer {
-		id: mosdPollTimer
-		interval: root.mosdPollMs
-		running: root.mosdVisible
-		repeat: true
-		onTriggered: { mediaProc.running = false; mediaProc.running = true }
-	}
+	Binding { target: media; property: "ticking"; value: root.mosdVisible }
 
 	function mosdShow() {
 		root.mosdVisible = true;
 		mosdHideTimer.restart();
 	}
 
-	// Auto-trigger on any real state change, matching medianotify's
-	// real MPRIS push (which fires on track changes, play/pause, etc.,
-	// not just title diffs) -- so resuming the same paused track pops
-	// the OSD again too, same as mediaosd.c.
-	onMediaTitleChanged: if (root.showMedia) root.mosdShow()
-	onMediaArtistChanged: if (root.showMedia) root.mosdShow()
-	onMediaIsPlayingChanged: if (root.showMedia) root.mosdShow()
-	onShowMediaChanged: if (root.showMedia) root.mosdShow()
+	Connections {
+		target: media
+		function onNowPlaying() { if (media.showMedia) root.mosdShow() }
+	}
 
-	// Manual/external trigger point, e.g. from a playerctl/MPRIS hook
-	// script: qs ipc call mediaosd show
+	// Manual/external trigger point, e.g. from a keybind:
+	// qs ipc call mediaosd show
 	IpcHandler {
 		target: "mediaosd"
-		function show(): void { mediaProc.running = false; mediaProc.running = true; root.mosdShow() }
+		function show(): void { root.mosdShow() }
 	}
 
 	Variants {
@@ -518,7 +363,7 @@ ShellRoot {
 
 						// 🎵 Dynamic Music Row
 						RowLayout {
-							visible: root.showMedia
+							visible: media.showMedia
 							spacing: 8
 							Layout.alignment: Qt.AlignVCenter
 
@@ -536,7 +381,7 @@ ShellRoot {
 								Image {
 									id: musicArt
 									anchors.fill: parent
-									source: root.mediaArtUrl
+									source: media.displayArtUrl
 									fillMode: Image.PreserveAspectCrop
 									visible: false
 									asynchronous: true
@@ -554,7 +399,7 @@ ShellRoot {
 									anchors.fill: parent
 									source: musicArt
 									maskSource: musicMask
-									visible: root.mediaArtUrl !== ""
+									visible: media.displayArtUrl !== ""
 
 									// 🌀 Spins the circular thumbnail when playing
 									RotationAnimation on rotation {
@@ -563,7 +408,7 @@ ShellRoot {
 										from: spinningArt.rotation  // resume from current angle, no jarring reset
 										to: spinningArt.rotation + 360
 										duration: 5000
-										running: root.mediaIsPlaying
+										running: media.isPlaying
 
 										onRunningChanged: {
 											if (running) {
@@ -578,7 +423,7 @@ ShellRoot {
 
 							// ▶️ Play/Pause Indicator Status
 							Text {
-								text: root.mediaIcon
+								text: media.icon
 								color: root.cal14
 								font.pixelSize: root.fontSize + 2
 								font.family: root.fontFamily
@@ -592,7 +437,7 @@ ShellRoot {
 								Text {
 									id: songTxt
 									x: 0
-									text: root.mediaTitle !== "" ? root.mediaTitle : "Unknown Title"
+									text: media.title
 									color: root.cal6
 									font.pixelSize: root.fontSize
 									font.family: root.fontFamily
@@ -606,7 +451,7 @@ ShellRoot {
 									SequentialAnimation {
 										id: songScrollAnim
 										loops: Animation.Infinite
-										running: songTxt.implicitWidth > 180 && root.mediaIsPlaying
+										running: songTxt.implicitWidth > 180 && media.isPlaying
 
 										PauseAnimation { duration: 1000 }
 
@@ -640,19 +485,18 @@ ShellRoot {
 						hoverEnabled: true
 
 						onClicked: (m) => {
-							if (root.showMedia) {
+							if (media.showMedia) {
 								if (m.button === Qt.LeftButton) {
-									shellCmd.command = ["mediactl", "play-pause"]
+									media.playPause()
 								} else if (m.button === Qt.RightButton) {
 									shellCmd.command = ["rofi", "-show", "drun"]
+									shellCmd.running = false
+									shellCmd.running = true
 								} else if (m.button === Qt.MiddleButton) {
 									shellCmd.command = ["sh", "-c", "power"]
+									shellCmd.running = false
+									shellCmd.running = true
 								}
-								shellCmd.running = false
-								shellCmd.running = true
-
-								mediaProc.running = false
-								mediaProc.running = true
 							} else {
 								if (m.button === Qt.LeftButton) shellCmd.command = ["rofi", "-show", "drun"]
 								else shellCmd.command = ["sh", "-c", "power"]
@@ -662,17 +506,9 @@ ShellRoot {
 						}
 
 						onWheel: (wheel) => {
-							if (root.showMedia) {
-								if (wheel.angleDelta.y > 0) {
-									shellCmd.command = ["mediactl", "next"]
-								} else {
-									shellCmd.command = ["mediactl", "previous"]
-								}
-								shellCmd.running = false
-								shellCmd.running = true
-
-								mediaProc.running = false
-								mediaProc.running = true
+							if (media.showMedia) {
+								if (wheel.angleDelta.y > 0) media.next()
+								else media.previous()
 							}
 						}
 					}
@@ -826,23 +662,23 @@ ShellRoot {
 							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: diskRow.hovered = true; onExited: diskRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) diskRow.pinned = !diskRow.pinned; } }
 						}
 
-						Rectangle { width: 1; height: 12; color: root.cal3; visible: root.showBright || root.showBat }
+						Rectangle { width: 1; height: 12; color: root.cal3; visible: bright.available || root.showBat }
 
 						// Brightness
 						Item {
-							visible: root.showBright
+							visible: bright.available
 							Layout.preferredHeight: 20; Layout.preferredWidth: brightRow.width
 							Row {
 								id: brightRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
-								Text { text: root.brightIcon; color: root.cal10; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+								Text { text: bright.icon; color: root.cal10; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
 								Item { height: 20; width: parent.expanded ? brightTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-								Text { id: brightTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.brightText; color: root.cal10; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
+								Text { id: brightTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: bright.text; color: root.cal10; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
 							}
 							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: brightRow.hovered = true; onExited: brightRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) brightRow.pinned = !brightRow.pinned } }
 						}
 
 						// Battery
-						Rectangle { width: 1; height: 12; color: root.cal3; visible: root.showBat && root.showBright }
+						Rectangle { width: 1; height: 12; color: root.cal3; visible: root.showBat && bright.available }
 						Item {
 							visible: root.showBat; Layout.preferredHeight: 20; Layout.preferredWidth: batRow.width
 							Row {
@@ -902,11 +738,11 @@ ShellRoot {
 							Layout.preferredHeight: 20; Layout.preferredWidth: micRow.width
 							Row {
 								id: micRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
-								Text { text: root.micIcon; color: root.cal14; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+								Text { text: audio.micIcon; color: root.cal14; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
 								Item { height: 20; width: parent.expanded ? micTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-								Text { id: micTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.micText; color: root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
+								Text { id: micTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: audio.micText; color: root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
 							}
-							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: micRow.hovered = true; onExited: micRow.hovered = false; onWheel: (wheel) => { if(wheel.angleDelta.y > 0) shellCmd.command = ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SOURCE@", "5%+"]; else shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SOURCE@", "5%-"]; shellCmd.running = false; shellCmd.running = true; micProc.running = false; micProc.running = true }; onClicked: (m) => { if(m.button === Qt.MiddleButton) micRow.pinned = !micRow.pinned; else if (m.button === Qt.LeftButton) { shellCmd.command = ["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]; shellCmd.running = false; shellCmd.running = true; micProc.running = false; micProc.running = true } else if (m.button === Qt.RightButton) { shellCmd.command = ["pavucontrol", "-t", "4"]; shellCmd.running = false; shellCmd.running = true } } }
+							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: micRow.hovered = true; onExited: micRow.hovered = false; onWheel: (wheel) => { if (wheel.angleDelta.y > 0) audio.micUp(); else audio.micDown() }; onClicked: (m) => { if(m.button === Qt.MiddleButton) micRow.pinned = !micRow.pinned; else if (m.button === Qt.LeftButton) { audio.micToggle() } else if (m.button === Qt.RightButton) { shellCmd.command = ["pavucontrol", "-t", "4"]; shellCmd.running = false; shellCmd.running = true } } }
 						}
 
 						// Volume
@@ -914,11 +750,11 @@ ShellRoot {
 							Layout.preferredHeight: 20; Layout.preferredWidth: volRow.width
 							Row {
 								id: volRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
-								Text { text: root.volIcon; color: root.cal14; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+								Text { text: audio.volIcon; color: root.cal14; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
 								Item { height: 20; width: parent.expanded ? volTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-								Text { id: volTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.volText; color: root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
+								Text { id: volTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: audio.volText; color: root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
 							}
-							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: volRow.hovered = true; onExited: volRow.hovered = false; onWheel: (wheel) => { if(wheel.angleDelta.y > 0) shellCmd.command = ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SINK@", "5%+"]; else shellCmd.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%-"]; shellCmd.running = false; shellCmd.running = true; volProc.running = false; volProc.running = true }; onClicked: (m) => { if(m.button === Qt.MiddleButton) volRow.pinned = !volRow.pinned; else if (m.button === Qt.LeftButton) { shellCmd.command = ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"]; shellCmd.running = false; shellCmd.running = true; volProc.running = false; volProc.running = true } else if (m.button === Qt.RightButton) { shellCmd.command = ["pavucontrol", "-t", "3"]; shellCmd.running = false; shellCmd.running = true } } }
+							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: volRow.hovered = true; onExited: volRow.hovered = false; onWheel: (wheel) => { if (wheel.angleDelta.y > 0) audio.volUp(); else audio.volDown() }; onClicked: (m) => { if(m.button === Qt.MiddleButton) volRow.pinned = !volRow.pinned; else if (m.button === Qt.LeftButton) { audio.volToggle() } else if (m.button === Qt.RightButton) { shellCmd.command = ["pavucontrol", "-t", "3"]; shellCmd.running = false; shellCmd.running = true } } }
 						}
 					}
 				}
@@ -1033,13 +869,13 @@ ShellRoot {
 						anchors.fill: parent
 						radius: 8
 						color: root.cal2
-						visible: root.mediaArtUrl === ""
+						visible: media.displayArtUrl === ""
 					}
 
 					Image {
 						id: mosdArt
 						anchors.fill: parent
-						source: root.mediaArtUrl
+						source: media.displayArtUrl
 						fillMode: Image.PreserveAspectCrop
 						visible: false
 						asynchronous: true
@@ -1049,7 +885,7 @@ ShellRoot {
 						anchors.fill: parent
 						source: mosdArt
 						maskSource: mosdArtMask
-						visible: root.mediaArtUrl !== ""
+						visible: media.displayArtUrl !== ""
 					}
 				}
 
@@ -1063,10 +899,10 @@ ShellRoot {
 						Layout.fillWidth: true
 
 						Text { text: root.mosdSourceIcon; color: root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily }
-						Text { text: root.mediaIcon; color: root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily }
+						Text { text: media.icon; color: root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily }
 						Text {
 							Layout.fillWidth: true
-							text: root.mediaTitle !== "" ? root.mediaTitle : "Unknown Title"
+							text: media.title
 							color: root.cal6; font.pixelSize: root.fontSize + 1; font.family: root.fontFamily; font.bold: true
 							elide: Text.ElideRight
 						}
@@ -1075,10 +911,10 @@ ShellRoot {
 					Text {
 						Layout.fillWidth: true
 						text: {
-							const hasArtist = root.mediaArtist !== "" && root.mediaArtist !== "Unknown Artist" && root.mediaArtist !== "Unknown";
-							const hasAlbum = root.mediaAlbum !== "" && root.mediaAlbum !== "Unknown" && root.mediaAlbum !== "[Unknown Album]";
-							if (hasArtist && hasAlbum) return root.mediaArtist + " — " + root.mediaAlbum;
-							if (hasArtist) return root.mediaArtist;
+							const hasArtist = media.artist !== "";
+							const hasAlbum = media.album !== "";
+							if (hasArtist && hasAlbum) return media.artist + " — " + media.album;
+							if (hasArtist) return media.artist;
 							return "";
 						}
 						color: root.cal15; font.pixelSize: root.fontSize - 1; font.family: root.fontFamily
@@ -1089,8 +925,8 @@ ShellRoot {
 
 					Text {
 						Layout.alignment: Qt.AlignRight
-						visible: root.mediaProgressTime !== ""
-						text: root.mediaProgressTime
+						visible: media.progressTime !== ""
+						text: media.progressTime
 						color: root.cal15; font.pixelSize: root.fontSize - 2; font.family: root.fontFamily
 					}
 
@@ -1106,7 +942,7 @@ ShellRoot {
 							anchors.top: parent.top
 							anchors.bottom: parent.bottom
 							radius: 3
-							width: root.mediaProgress >= 0 ? parent.width * Math.min(root.mediaProgress, 100) / 100 : 0
+							width: media.progressPct >= 0 ? parent.width * Math.min(media.progressPct, 100) / 100 : 0
 							color: root.cal14
 							Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.Linear } }
 						}
