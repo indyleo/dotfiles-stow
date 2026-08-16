@@ -1259,36 +1259,76 @@ ShellRoot {
 					delegate: Rectangle {
 						required property var modelData
 						width: ListView.view.width
-						height: histContent.implicitHeight + 12
+						height: histRow.implicitHeight + 12
 						radius: 8
 						color: root.cal2
 
-						ColumnLayout {
-							id: histContent
+						RowLayout {
+							id: histRow
 							anchors.fill: parent
 							anchors.margins: 6
-							spacing: 2
+							spacing: 8
 
-							Text {
-								Layout.fillWidth: true
-								text: modelData.appName + ": " + modelData.summary
-								color: root.cal6
-								font.family: root.fontFamily
-								font.pixelSize: root.fontSize - 1
-								font.bold: true
-								elide: Text.ElideRight
+							// Notification Image / Icon
+							Item {
+								visible: (modelData.image && modelData.image !== "") || (modelData.appIcon && modelData.appIcon !== "")
+								Layout.preferredWidth: 32
+								Layout.preferredHeight: 32
+								Layout.alignment: Qt.AlignVCenter
+
+								Rectangle {
+									anchors.fill: parent
+									radius: 6
+									color: root.cal1
+								}
+								Image {
+									anchors.fill: parent
+									visible: modelData.image && modelData.image !== ""
+									source: modelData.image || ""
+									fillMode: Image.PreserveAspectCrop
+									asynchronous: true
+								}
+								IconImage {
+									anchors.fill: parent
+									anchors.margins: (modelData.image && modelData.image !== "") ? 0 : 4
+									visible: (!modelData.image || modelData.image === "") && (modelData.appIcon && modelData.appIcon !== "")
+									source: Quickshell.iconPath(modelData.appIcon || "", "")
+								}
 							}
-							Text {
+
+							ColumnLayout {
 								Layout.fillWidth: true
-								visible: modelData.body !== ""
-								text: modelData.body
-								textFormat: Text.StyledText
-								color: root.cal15
-								font.family: root.fontFamily
-								font.pixelSize: root.fontSize - 2
-								wrapMode: Text.Wrap
-								maximumLineCount: 2
-								elide: Text.ElideRight
+								spacing: 2
+								// Summary (App name removed, markup enabled)
+								Text {
+									Layout.fillWidth: true
+									text: modelData.summary
+									textFormat: Text.StyledText
+									color: root.cal6
+									font.family: root.fontFamily
+									font.pixelSize: root.fontSize - 1
+									font.bold: true
+									horizontalAlignment: Text.AlignHCenter
+									wrapMode: Text.Wrap
+									elide: Text.ElideRight
+									maximumLineCount: 2
+								}
+
+								// Body (Markup/Formatting enabled)
+								Text {
+									Layout.fillWidth: true
+									visible: modelData.body !== ""
+									text: modelData.body
+									textFormat: Text.StyledText
+									color: root.cal15
+									font.family: root.fontFamily
+									font.pixelSize: root.fontSize - 2
+									horizontalAlignment: Text.AlignHCenter
+									wrapMode: Text.Wrap
+									maximumLineCount: 4
+									elide: Text.ElideRight
+								}
+
 							}
 						}
 					}
@@ -1297,4 +1337,3 @@ ShellRoot {
 		}
 	}
 }
-
