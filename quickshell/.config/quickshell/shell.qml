@@ -1,4 +1,3 @@
-
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
@@ -1139,6 +1138,7 @@ ShellRoot {
 								font.family: root.fontFamily
 								font.pixelSize: root.fontSize
 								font.bold: true
+								horizontalAlignment: Text.AlignHCenter // mako/dunst-style centered text
 								wrapMode: Text.Wrap
 								elide: Text.ElideRight
 								maximumLineCount: 2
@@ -1152,6 +1152,7 @@ ShellRoot {
 								color: root.cal15
 								font.family: root.fontFamily
 								font.pixelSize: root.fontSize - 2
+								horizontalAlignment: Text.AlignHCenter // mako/dunst-style centered text
 								wrapMode: Text.Wrap
 								elide: Text.ElideRight
 								maximumLineCount: 4
