@@ -11,30 +11,26 @@ import Qt5Compat.GraphicalEffects
 ShellRoot {
 	id: root
 
-	// --- Gruvbox Theme Colors ---
-	readonly property color cal0:  "#282828" // Background (bg0)
-	readonly property color cal1:  "#3c3836" // Pills (bg1)
-	readonly property color cal2:  "#504945" // Pill BG (bg2)
-	readonly property color cal3:  "#7c6f64" // Separators (bg3)
+	// Colors
+	readonly property color cal0:  "#282828"
+	readonly property color cal1:  "#3c3836"
+	readonly property color cal2:  "#504945"
+	readonly property color cal3:  "#7c6f64"
+	readonly property color cal6:  "#ebdbb2"
+	readonly property color cal7:  "#83a598"
+	readonly property color cal8:  "#fb4934"
+	readonly property color cal9:  "#d3869b"
+	readonly property color cal10: "#fabd2f"
+	readonly property color cal11: "#cc241d"
+	readonly property color cal13: "#b8bb26"
+	readonly property color cal14: "#fe8019"
+	readonly property color cal15: "#bdae93"
 
-	readonly property color cal6:  "#ebdbb2" // Main Text (fg1)
-	readonly property color cal7:  "#83a598" // Teal → Blue (storage/memory)
-	readonly property color cal8:  "#fb4934" // Red
-	readonly property color cal9:  "#d3869b" // Purple (system core)
-	readonly property color cal10: "#fabd2f" // Gold → Yellow (power)
-	readonly property color cal11: "#cc241d" // Alert Red (darker red)
-	readonly property color cal13: "#b8bb26" // Green (network)
-	readonly property color cal14: "#fe8019" // Orange (audio)
-	readonly property color cal15: "#bdae93" // Silver (fg2)
-
-	// Background for the OSD popups (vol/bri/mic + media), at 85% opacity
-	// rather than fully solid.
 	readonly property color osdBgColor: Qt.rgba(cal1.r, cal1.g, cal1.b, 0.85)
 
 	property string fontFamily: "JetBrainsMono Nerd Font"
 	property int fontSize: 13
 
-	// --- Layout Data ---
 	property string currentLayout: {
 		const top = Hyprland.activeToplevel
 		const focusedWs = Hyprland.focusedWorkspace
@@ -44,7 +40,6 @@ ShellRoot {
 		return "TILED"
 	}
 
-	// --- System Data Properties ---
 	property string kernelIcon: ""
 	property string kernelVersion: "..."
 	property string cpuIcon: ""
@@ -55,53 +50,29 @@ ShellRoot {
 	property string memText: "0%"
 	property string diskIcon: "󰋊"
 	property string diskText: "0%"
-
-	// brightIcon/brightText/showBright removed -- now BrightnessController's
-	// bright.icon / bright.text / bright.available (see below).
-
 	property string batIcon: "󰢜"
 	property string batText: "100%"
 	property bool showBat: false
-
 	property string ethIcon: "󰲜"
 	property string ethText: "Disconnected"
 	property bool showEth: false
-
 	property string wifiIcon: "󰤮"
 	property string wifiText: "Offline"
 	property bool showWifi: true
-
 	property string tailIcon: "󰈂"
 	property string tailText: "Not connected"
 	property bool showTail: false
 
-	// volIcon/volText/micIcon/micText removed -- now AudioController's
-	// audio.volIcon / audio.volText / audio.micIcon / audio.micText.
-
-	// --- Screen/Media Data Properties ---
-	property string sysMediaIcon: "" // Fallback icon if sysstats doesn't provide one
+	property string sysMediaIcon: ""
 	property string sysMediaText: ""
 
-	// --- Media Data (native MPRIS via Quickshell.Services.Mpris) ---
-	// No mediactl/medianotify/playerctl subprocesses: MediaController reads
-	// MPRIS directly over DBus and updates reactively on real state changes.
-	MediaController { id: media }
+	property bool notifCenterVisible: false
 
-	// --- Volume/Mic (native Pipewire) and Brightness (sysfs FileView) ---
-	// No wpctl/raw-read subprocess chain: AudioController reads/writes
-	// Pipewire directly; BrightnessController watches sysfs via inotify
-	// and only shells out to brightnessctl to actually change the level.
+	MediaController { id: media }
 	AudioController { id: audio }
 	BrightnessController { id: bright }
-
-	// --- Notifications (native org.freedesktop.Notifications daemon) --
-	// Replaces mako. See NotificationController.qml for the mako ->
-	// Quickshell config mapping. `notifs.popups` is the live ObjectModel
-	// backing the top-right popup stack below; `notifs.history` is the
-	// max-history=20 in-memory scrollback for the notification center.
 	NotificationController { id: notifs }
 
-	// --- Logic & Process Control ---
 	Process { id: shellCmd }
 
 	function parseSysstats(data, iconProp, textProp) {
@@ -146,7 +117,6 @@ ShellRoot {
 		command: ["sysstats", "battery"]
 		stdout: SplitParser {
 			onRead: data => {
-				// Catches "" (empty) and "No acpi" from your bash script
 				if (!data || data.trim() === "" || data.includes("N/A") || data.includes("No") || data.includes("Not") || data.trim().endsWith(" 0%") || data.trim() === "0%") {
 					root.showBat = false;
 					return
@@ -194,7 +164,6 @@ ShellRoot {
 		}
 	}
 
-	// Media Process
 	Process {
 		id: sysMediaProc
 		command: ["sysstats", "media"]
@@ -218,18 +187,10 @@ ShellRoot {
 		}
 	}
 
-
-	// --- OSD (On-Screen Display) -----------------------------------
-	// Mirrors the dwm osd.c / osds[] setup: an external keybind fires an
-	// IPC call, which pops a bottom-center bar for OSD_TIMEOUT_MS.
-	// Volume/mic go through AudioController (native Pipewire, no wpctl
-	// subprocess to change OR read back). Brightness still shells out to
-	// brightnessctl to write (sysfs perms), but BrightnessController
-	// reads the result back via an inotify-watched FileView, not a
-	// spawned "get" process.
+	// OSD
 	property bool osdVisible: false
 	property string osdLabel: ""
-	property int osdLevel: -1        // 0-100, or -1 for "no numeric level"
+	property int osdLevel: -1
 	property color osdAccent: cal14
 	readonly property int osdTimeoutMs: 1200
 
@@ -247,20 +208,6 @@ ShellRoot {
 		onTriggered: root.osdVisible = false
 	}
 
-	// Volume/mic/brightness pill icon+text (bar section below) bind
-	// directly to audio.volIcon/audio.micIcon/bright.icon and friends --
-	// no sync step needed here anymore. Those are plain property
-	// bindings derived from the same reactive state the OSD itself
-	// reads, so they update in the same tick as the OSD, with nothing
-	// to debounce and no process to (re)spawn.
-
-	// External trigger points -- bind these from hyprland.conf, e.g.:
-	//   bindl = , XF86AudioRaiseVolume, exec, qs ipc call osd volUp
-	// See osd.h's comment on osdtrigger() for the dwm-side equivalent.
-	// Each function writes through its controller directly (property
-	// assignment for audio, one brightnessctl call for brightness) and
-	// pops the OSD off the value the controller hands back immediately
-	// -- no separate "raw read" process in either path.
 	IpcHandler {
 		target: "osd"
 		function volUp(): void     { const l = audio.volUp();     if (l >= 0) root.osdShow("VOL", l, root.cal14) }
@@ -273,13 +220,7 @@ ShellRoot {
 		function briDown(): void   { root.osdShow("BRI", bright.down(), root.cal10) }
 	}
 
-	// --- Media OSD ("Now Playing" popup) -----------------------------
-	// Shows itself automatically whenever MediaController.nowPlaying()
-	// fires (track change, resume/pause, switching active players) --
-	// no polling needed since that signal is a direct consequence of
-	// MPRIS's DBus PropertiesChanged. `media.ticking` is bound to
-	// mosdVisible so the position timer (see MediaController.qml) only
-	// runs while the popup is actually on screen.
+	// Media OSD
 	readonly property int mosdTimeoutMs: 3500
 	property bool mosdVisible: false
 	readonly property string mosdSourceIcon: media.activeType === "browser" ? "󰖟" : "󰝚"
@@ -290,7 +231,7 @@ ShellRoot {
 		onTriggered: root.mosdVisible = false
 	}
 
-	Binding { target: media; property: "ticking"; value: root.mosdVisible }
+	Binding { target: media; property: "ticking"; value: root.mosdVisible || root.notifCenterVisible }
 
 	function mosdShow() {
 		root.mosdVisible = true;
@@ -302,28 +243,22 @@ ShellRoot {
 		function onNowPlaying() { if (media.showMedia) root.mosdShow() }
 	}
 
-	// Manual/external trigger point, e.g. from a keybind:
-	// qs ipc call mediaosd show
 	IpcHandler {
 		target: "mediaosd"
 		function show(): void { root.mosdShow() }
 	}
 
-	// --- Notification center (history panel) --------------------------
-	// Toggle from a keybind, e.g.:
-	//   bindl = , XF86Notification, exec, qs ipc call notifcenter toggle
-	property bool notifCenterVisible: false
-
+	// Notification center controls
 	IpcHandler {
 		target: "notifcenter"
 		function toggle(): void { root.notifCenterVisible = !root.notifCenterVisible }
 		function show(): void { root.notifCenterVisible = true }
 		function hide(): void { root.notifCenterVisible = false }
-		// mako-cli equivalents: `makoctl dismiss --all` / `makoctl history --clear`
 		function dismissAll(): void { notifs.dismissAll() }
 		function clearHistory(): void { notifs.clearHistory() }
 	}
 
+	// Bar
 	Variants {
 		model: Quickshell.screens
 
@@ -348,7 +283,7 @@ ShellRoot {
 			RowLayout {
 				anchors.fill: parent; spacing: 8; anchors.leftMargin: 12; anchors.rightMargin: 12
 
-				// 0. The Locked Profile + Dynamic Play/Pause and Title Pill
+				// Profile / media pill
 				Rectangle {
 					visible: isPrimary
 					Layout.preferredHeight: 26
@@ -368,7 +303,6 @@ ShellRoot {
 						anchors.rightMargin: 6
 						spacing: 8
 
-						// 🖼️ Always-Visible Icon (Profile Pic)
 						Item {
 							Layout.preferredWidth: 22
 							Layout.preferredHeight: 22
@@ -385,7 +319,6 @@ ShellRoot {
 							OpacityMask { anchors.fill: parent; source: profileImg; maskSource: profileMask }
 						}
 
-						// 🎵 Dynamic Music Row
 						RowLayout {
 							visible: media.showMedia
 							spacing: 8
@@ -397,7 +330,6 @@ ShellRoot {
 								color: root.cal3
 							}
 
-							// 📦 Music Thumbnail (Circular & Spinning)
 							Item {
 								Layout.preferredWidth: 22
 								Layout.preferredHeight: 22
@@ -425,18 +357,16 @@ ShellRoot {
 									maskSource: musicMask
 									visible: media.displayArtUrl !== ""
 
-									// 🌀 Spins the circular thumbnail when playing
 									RotationAnimation on rotation {
 										id: spinAnim
 										loops: Animation.Infinite
-										from: spinningArt.rotation  // resume from current angle, no jarring reset
+										from: spinningArt.rotation
 										to: spinningArt.rotation + 360
 										duration: 5000
 										running: media.isPlaying
 
 										onRunningChanged: {
 											if (running) {
-												// re-anchor from/to from current position each time we resume
 												from = spinningArt.rotation
 												to = spinningArt.rotation + 360
 											}
@@ -445,14 +375,13 @@ ShellRoot {
 								}
 							}
 
-							// ▶️ Play/Pause Indicator Status
 							Text {
 								text: media.icon
 								color: root.cal14
 								font.pixelSize: root.fontSize + 2
 								font.family: root.fontFamily
 							}
-							// 📜 Song Name (Scrolling Marquee)
+
 							Item {
 								Layout.preferredWidth: Math.min(180, songTxt.implicitWidth)
 								Layout.preferredHeight: songTxt.implicitHeight
@@ -469,7 +398,7 @@ ShellRoot {
 										songScrollAnim.stop()
 										songTxt.x = 0
 										if (songTxt.implicitWidth > 180)
-										songScrollAnim.restart()
+											songScrollAnim.restart()
 									}
 
 									SequentialAnimation {
@@ -484,7 +413,7 @@ ShellRoot {
 											property: "x"
 											from: 0
 											to: -(songTxt.implicitWidth - 180)
-											duration: (songTxt.implicitWidth - 180) * 30
+											duration: Math.max(0, (songTxt.implicitWidth - 180) * 30)
 										}
 
 										PauseAnimation { duration: 1000 }
@@ -494,7 +423,7 @@ ShellRoot {
 											property: "x"
 											from: -(songTxt.implicitWidth - 180)
 											to: 0
-											duration: (songTxt.implicitWidth - 180) * 30
+											duration: Math.max(0, (songTxt.implicitWidth - 180) * 30)
 										}
 									}
 								}
@@ -537,13 +466,14 @@ ShellRoot {
 						}
 					}
 				}
-				// 1. Layout
+
+				// Layout
 				Rectangle {
 					Layout.preferredHeight: 26; Layout.preferredWidth: layoutText.implicitWidth + 24; color: root.cal2; radius: 13
 					Text { id: layoutText; anchors.centerIn: parent; text: root.currentLayout; color: root.cal7; font.pixelSize: root.fontSize - 2; font.family: root.fontFamily; font.bold: true }
 				}
 
-				// 2. Window
+				// Window
 				Rectangle {
 					Layout.preferredHeight: 26; Layout.fillWidth: true; Layout.minimumWidth: 100; color: root.cal2; radius: 13; clip: true
 					RowLayout {
@@ -552,7 +482,8 @@ ShellRoot {
 						Text { Layout.fillWidth: true; text: localActiveWindow; color: root.cal6; font.pixelSize: root.fontSize; font.family: root.fontFamily; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter }
 					}
 				}
-				// 2.5 Screen/Media Status Pill
+
+				// Screen/Media status
 				Rectangle {
 					visible: isPrimary
 					Layout.preferredHeight: 26
@@ -570,7 +501,7 @@ ShellRoot {
 
 						Text {
 							text: root.sysMediaIcon
-							color: root.cal10 // Uses the yellow system color
+							color: root.cal10
 							font.pixelSize: root.fontSize + 2
 							font.family: root.fontFamily
 							anchors.verticalCenter: parent.verticalCenter
@@ -617,14 +548,13 @@ ShellRoot {
 					}
 				}
 
-				// 3. Stats
+				// Stats
 				Rectangle {
 					visible: isPrimary
 					Layout.preferredHeight: 26; Layout.preferredWidth: statsRow.implicitWidth + 30; color: root.cal2; radius: 13
 					RowLayout {
 						id: statsRow; anchors.centerIn: parent; spacing: 12
 
-						// Kernel
 						Item {
 							Layout.preferredHeight: 20; Layout.preferredWidth: kernelRow.width
 							Row {
@@ -636,7 +566,6 @@ ShellRoot {
 							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: kernelRow.hovered = true; onExited: kernelRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) kernelRow.pinned = !kernelRow.pinned } }
 						}
 
-						// CPU
 						Item {
 							Layout.preferredHeight: 20; Layout.preferredWidth: cpuRow.width
 							Row {
@@ -648,7 +577,6 @@ ShellRoot {
 							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: cpuRow.hovered = true; onExited: cpuRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) cpuRow.pinned = !cpuRow.pinned; } }
 						}
 
-						// GPU
 						Item {
 							Layout.preferredHeight: 20; Layout.preferredWidth: gpuRow.width
 							Row {
@@ -662,7 +590,6 @@ ShellRoot {
 
 						Rectangle { width: 1; height: 12; color: root.cal3 }
 
-						// RAM
 						Item {
 							Layout.preferredHeight: 20; Layout.preferredWidth: memRow.width
 							Row {
@@ -674,7 +601,6 @@ ShellRoot {
 							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton; hoverEnabled: true; onEntered: memRow.hovered = true; onExited: memRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) memRow.pinned = !memRow.pinned; else if (m.button === Qt.LeftButton) { memProc.running = false; memProc.running = true } } }
 						}
 
-						// Disk
 						Item {
 							Layout.preferredHeight: 20; Layout.preferredWidth: diskRow.width
 							Row {
@@ -688,7 +614,6 @@ ShellRoot {
 
 						Rectangle { width: 1; height: 12; color: root.cal3; visible: bright.available || root.showBat }
 
-						// Brightness
 						Item {
 							visible: bright.available
 							Layout.preferredHeight: 20; Layout.preferredWidth: brightRow.width
@@ -701,7 +626,6 @@ ShellRoot {
 							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: brightRow.hovered = true; onExited: brightRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) brightRow.pinned = !brightRow.pinned } }
 						}
 
-						// Battery
 						Rectangle { width: 1; height: 12; color: root.cal3; visible: root.showBat && bright.available }
 						Item {
 							visible: root.showBat; Layout.preferredHeight: 20; Layout.preferredWidth: batRow.width
@@ -716,7 +640,6 @@ ShellRoot {
 
 						Rectangle { width: 1; height: 12; color: root.cal3; visible: (root.showEth || root.showWifi || root.showTail) }
 
-						// Ethernet
 						Item {
 							visible: root.showEth
 							Layout.preferredHeight: 20; Layout.preferredWidth: ethRow.width
@@ -729,7 +652,6 @@ ShellRoot {
 							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: ethRow.hovered = true; onExited: ethRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) ethRow.pinned = !ethRow.pinned; else if (m.button === Qt.RightButton) { shellCmd.command = ["nm-connection-editor"]; shellCmd.running = false; shellCmd.running = true } } }
 						}
 
-						// WIFI
 						Item {
 							visible: root.showWifi
 							Layout.preferredHeight: 20; Layout.preferredWidth: wifiRow.width
@@ -742,7 +664,6 @@ ShellRoot {
 							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: wifiRow.hovered = true; onExited: wifiRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) wifiRow.pinned = !wifiRow.pinned; else if (m.button === Qt.LeftButton) { shellCmd.command = ["sh", "-c", "wifi"]; shellCmd.running = false; shellCmd.running = true } else if (m.button === Qt.RightButton) { shellCmd.command = ["nm-connection-editor"]; shellCmd.running = false; shellCmd.running = true } } }
 						}
 
-						// Tailscale
 						Item {
 							visible: root.showTail
 							Layout.preferredHeight: 20; Layout.preferredWidth: tailRow.width
@@ -757,7 +678,6 @@ ShellRoot {
 
 						Rectangle { width: 1; height: 12; color: root.cal3 }
 
-						// Microphone
 						Item {
 							Layout.preferredHeight: 20; Layout.preferredWidth: micRow.width
 							Row {
@@ -769,7 +689,6 @@ ShellRoot {
 							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: micRow.hovered = true; onExited: micRow.hovered = false; onWheel: (wheel) => { if (wheel.angleDelta.y > 0) audio.micUp(); else audio.micDown() }; onClicked: (m) => { if(m.button === Qt.MiddleButton) micRow.pinned = !micRow.pinned; else if (m.button === Qt.LeftButton) { audio.micToggle() } else if (m.button === Qt.RightButton) { shellCmd.command = ["pavucontrol", "-t", "4"]; shellCmd.running = false; shellCmd.running = true } } }
 						}
 
-						// Volume
 						Item {
 							Layout.preferredHeight: 20; Layout.preferredWidth: volRow.width
 							Row {
@@ -783,7 +702,7 @@ ShellRoot {
 					}
 				}
 
-				// 4. Clock
+				// Clock
 				Rectangle {
 					visible: isPrimary
 					Layout.preferredHeight: 26; Layout.preferredWidth: clockText.implicitWidth + 30; color: root.cal2; radius: 13
@@ -794,10 +713,7 @@ ShellRoot {
 					}
 				}
 
-				// 5. Notification center toggle -- left-click opens/closes the
-				// history panel, right-click dismisses every live popup. The
-				// small dot lights up while there's at least one un-dismissed
-				// notification, same "accent-only" language as the rest of the bar.
+				// Notification center toggle
 				Rectangle {
 					visible: isPrimary
 					Layout.preferredHeight: 26; Layout.preferredWidth: 26; radius: 13
@@ -805,7 +721,7 @@ ShellRoot {
 
 					Text {
 						anchors.centerIn: parent
-						text: notifs.popups.values.length > 0 ? "\uf0f3" : "\uf0a2" // bell / bell-outline (nerd font fa)
+						text: notifs.popups.values.length > 0 ? "\uf0f3" : "\uf0a2"
 						color: root.notifCenterVisible ? root.cal7 : root.cal6
 						font.pixelSize: root.fontSize + 2
 						font.family: root.fontFamily
@@ -834,7 +750,7 @@ ShellRoot {
 		}
 	}
 
-	// --- OSD popup window (bottom-center, primary screen only) --------
+	// OSD popup
 	PanelWindow {
 		id: osdWindow
 		screen: Quickshell.screens[0]
@@ -892,7 +808,7 @@ ShellRoot {
 		}
 	}
 
-	// --- Media OSD popup window ("Now Playing", primary screen only) --
+	// Media OSD popup
 	PanelWindow {
 		id: mosdWindow
 		screen: Quickshell.screens[0]
@@ -902,7 +818,7 @@ ShellRoot {
 		WlrLayershell.layer: WlrLayer.Overlay
 
 		anchors { left: true; right: true; bottom: true }
-		margins.bottom: 110 // taller than the 48px vol/bri/mic OSD so they don't overlap
+		margins.bottom: 110
 		implicitHeight: 122
 
 		Rectangle {
@@ -920,7 +836,6 @@ ShellRoot {
 				anchors.margins: 14
 				spacing: 14
 
-				// Album art thumbnail
 				Item {
 					Layout.preferredWidth: 80
 					Layout.preferredHeight: 80
@@ -1013,27 +928,7 @@ ShellRoot {
 		}
 	}
 
-	// --- Notification urgency accents ----------------------------------
-	// Same idea as osdAccent/mosd's per-type accent color (cal14 for
-	// vol/mic, cal10 for brightness): one consistent card chrome
-	// (osdBgColor + cal7 border, same as every other popup in this
-	// shell) with only the accent swapping per urgency, rather than
-	// mako's approach of recoloring the whole card background.
-	function notifBorder(urgency) {
-		if (urgency === NotificationUrgency.Critical) return root.cal11
-		if (urgency === NotificationUrgency.Low) return root.cal3
-		return root.cal7 // normal
-	}
-	function notifAccentText(urgency) {
-		return urgency === NotificationUrgency.Critical ? root.cal8 : root.cal6
-	}
-
-	// --- Notification popups (top-right stack) -------------------------
-	// Mirrors mako's `anchor=top-right`, `border-radius=10`, `border-size=2`,
-	// and the "persist until dismissed unless the app sets its own
-	// expire-timeout" behavior -- but chrome/type/alignment match the
-	// rest of this shell (osdBgColor, JetBrainsMono Nerd Font, left-aligned)
-	// rather than mako's own font/centering/palette.
+	// Notification popups
 	PanelWindow {
 		id: notifWindow
 		screen: Quickshell.screens[0]
@@ -1062,22 +957,19 @@ ShellRoot {
 					required property Notification modelData
 
 					Layout.preferredWidth: 340
-					Layout.preferredHeight: notifContent.implicitHeight + 16 // padding=8 top+bottom
-					radius: 10 // border-radius=10, matches osdWindow's pill radius
-					color: root.osdBgColor // same translucent bg1 as every other popup
-					border.width: 2 // border-size=2
+					Layout.preferredHeight: notifContent.implicitHeight + 16
+					radius: 10
+					color: root.osdBgColor
+					border.width: 2
 					border.color: root.notifBorder(modelData.urgency)
 					clip: true
 
-					// Auto-dismiss only if the sender requested a timeout
-					// (mako behavior with no default-timeout configured).
 					Timer {
 						running: notifCard.modelData.expireTimeout > 0
 						interval: notifCard.modelData.expireTimeout * 1000
 						onTriggered: notifCard.modelData.expire()
 					}
 
-					// on-button-left=dismiss / -right=dismiss-all / -middle=invoke-default-action
 					MouseArea {
 						anchors.fill: parent
 						acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
@@ -1098,9 +990,6 @@ ShellRoot {
 						anchors.rightMargin: 10
 						spacing: 10
 
-						// icons=1 -- image hint takes priority over the app icon,
-						// same preference order mako uses. Same square-with-
-						// placeholder-bg treatment as the media OSD's album art.
 						Item {
 							visible: notifCard.modelData.image !== "" || notifCard.modelData.appIcon !== ""
 							Layout.preferredWidth: 36
@@ -1138,7 +1027,7 @@ ShellRoot {
 								font.family: root.fontFamily
 								font.pixelSize: root.fontSize
 								font.bold: true
-								horizontalAlignment: Text.AlignHCenter // mako/dunst-style centered text
+								horizontalAlignment: Text.AlignHCenter
 								wrapMode: Text.Wrap
 								elide: Text.ElideRight
 								maximumLineCount: 2
@@ -1148,19 +1037,16 @@ ShellRoot {
 								Layout.fillWidth: true
 								visible: notifCard.modelData.body !== ""
 								text: notifCard.modelData.body
-								textFormat: Text.StyledText // markup=1
+								textFormat: Text.StyledText
 								color: root.cal15
 								font.family: root.fontFamily
 								font.pixelSize: root.fontSize - 2
-								horizontalAlignment: Text.AlignHCenter // mako/dunst-style centered text
+								horizontalAlignment: Text.AlignHCenter
 								wrapMode: Text.Wrap
 								elide: Text.ElideRight
 								maximumLineCount: 4
 							}
 
-							// progress-color -- shown when the sender attaches a
-							// "value" hint (0-100), e.g. volume/brightness bridges.
-							// Same track/fill treatment as the OSD/media-OSD bars.
 							Rectangle {
 								visible: notifs.hasProgress(notifCard.modelData)
 								Layout.fillWidth: true
@@ -1186,9 +1072,7 @@ ShellRoot {
 		}
 	}
 
-	// --- Notification center (history panel) ---------------------------
-	// Toggled via `qs ipc call notifcenter toggle`. Shows the last
-	// historyLimit (mako: max-history=20) notifications, newest first.
+	// Notification center
 	PanelWindow {
 		id: notifCenterWindow
 		screen: Quickshell.screens[0]
@@ -1205,35 +1089,255 @@ ShellRoot {
 
 		Rectangle {
 			anchors.fill: parent
-			radius: 10
-			color: root.osdBgColor
+			radius: 13
+			color: root.cal0
 			border.width: 2
-			border.color: root.cal7
+			border.color: root.cal3
 
 			ColumnLayout {
 				anchors.fill: parent
-				anchors.margins: 10
+				anchors.margins: 8
 				spacing: 8
 
 				RowLayout {
 					Layout.fillWidth: true
-					Text {
-						Layout.fillWidth: true
-						text: "Notifications"
-						color: root.cal6
-						font.family: root.fontFamily
-						font.pixelSize: root.fontSize
-						font.bold: true
+
+					Rectangle {
+						Layout.preferredHeight: 26
+						Layout.preferredWidth: notifHeaderText.implicitWidth + 24
+						radius: 13
+						color: root.cal2
+
+						Text {
+							id: notifHeaderText
+							anchors.centerIn: parent
+							text: notifs.popups.values.length > 0 ? "\uf0f3 Notifications" : "\uf0a2 Notifications"
+							color: root.cal6
+							font.family: root.fontFamily
+							font.pixelSize: root.fontSize
+							font.bold: true
+						}
 					}
-					Text {
-						text: "Clear"
-						color: root.cal8
-						font.family: root.fontFamily
-						font.pixelSize: root.fontSize - 1
+
+					Item { Layout.fillWidth: true }
+
+					Rectangle {
+						Layout.preferredHeight: 26
+						Layout.preferredWidth: clearText.implicitWidth + 20
+						radius: 13
+						color: root.cal2
+
+						Text {
+							id: clearText
+							anchors.centerIn: parent
+							text: "Clear"
+							color: root.cal8
+							font.family: root.fontFamily
+							font.pixelSize: root.fontSize
+							font.bold: true
+						}
+
 						MouseArea {
 							anchors.fill: parent
 							cursorShape: Qt.PointingHandCursor
 							onClicked: notifs.clearHistory()
+						}
+					}
+				}
+
+				Rectangle {
+					visible: media.showMedia
+					Layout.fillWidth: true
+					Layout.preferredHeight: 108
+					radius: 13
+					color: root.cal2
+					clip: true
+
+					RowLayout {
+						anchors.fill: parent
+						anchors.margins: 8
+						spacing: 10
+
+						Item {
+							Layout.preferredWidth: 64
+							Layout.preferredHeight: 64
+							Layout.alignment: Qt.AlignVCenter
+
+							Rectangle {
+								anchors.fill: parent
+								radius: 8
+								color: root.cal1
+								visible: media.displayArtUrl === ""
+							}
+
+							Image {
+								id: ncArt
+								anchors.fill: parent
+								source: media.displayArtUrl
+								fillMode: Image.PreserveAspectCrop
+								visible: false
+								asynchronous: true
+							}
+
+							Rectangle {
+								id: ncArtMask
+								anchors.fill: parent
+								radius: 8
+								visible: false
+							}
+
+							OpacityMask {
+								anchors.fill: parent
+								source: ncArt
+								maskSource: ncArtMask
+								visible: media.displayArtUrl !== ""
+							}
+						}
+
+						ColumnLayout {
+							Layout.fillWidth: true
+							spacing: 2
+
+							RowLayout {
+								spacing: 6
+
+								Text {
+									text: root.mosdSourceIcon
+									color: root.cal14
+									font.family: root.fontFamily
+									font.pixelSize: root.fontSize
+								}
+
+								Text {
+									text: media.icon
+									color: root.cal14
+									font.family: root.fontFamily
+									font.pixelSize: root.fontSize
+								}
+
+								Text {
+									Layout.fillWidth: true
+									text: media.title
+									color: root.cal6
+									font.family: root.fontFamily
+									font.pixelSize: root.fontSize
+									font.bold: true
+									elide: Text.ElideRight
+								}
+							}
+
+							Text {
+								Layout.fillWidth: true
+								visible: media.artist !== "" || media.album !== ""
+								text: {
+									const hasArtist = media.artist !== "";
+									const hasAlbum = media.album !== "";
+									if (hasArtist && hasAlbum) return media.artist + " — " + media.album;
+									if (hasArtist) return media.artist;
+									return "";
+								}
+								color: root.cal15
+								font.family: root.fontFamily
+								font.pixelSize: root.fontSize - 1
+								elide: Text.ElideRight
+							}
+
+							RowLayout {
+								Layout.fillWidth: true
+								Layout.topMargin: 4
+								spacing: 12
+
+								Item { Layout.fillWidth: true }
+
+								Text {
+									text: "󰒫"
+									color: root.cal14
+									font.family: root.fontFamily
+									font.pixelSize: root.fontSize + 8
+									MouseArea {
+										anchors.fill: parent
+										cursorShape: Qt.PointingHandCursor
+										onClicked: media.seekBackward()
+									}
+								}
+
+								Text {
+									text: "󰒮"
+									color: root.cal14
+									font.family: root.fontFamily
+									font.pixelSize: root.fontSize + 8
+									MouseArea {
+										anchors.fill: parent
+										cursorShape: Qt.PointingHandCursor
+										onClicked: media.previous()
+									}
+								}
+
+								Text {
+									text: media.icon
+									color: root.cal14
+									font.family: root.fontFamily
+									font.pixelSize: root.fontSize + 8
+									MouseArea {
+										anchors.fill: parent
+										cursorShape: Qt.PointingHandCursor
+										onClicked: media.playPause()
+									}
+								}
+
+								Text {
+									text: "󰒭"
+									color: root.cal14
+									font.family: root.fontFamily
+									font.pixelSize: root.fontSize + 8
+									MouseArea {
+										anchors.fill: parent
+										cursorShape: Qt.PointingHandCursor
+										onClicked: media.next()
+									}
+								}
+
+								Text {
+									text: "󰒬"
+									color: root.cal14
+									font.family: root.fontFamily
+									font.pixelSize: root.fontSize + 8
+									MouseArea {
+										anchors.fill: parent
+										cursorShape: Qt.PointingHandCursor
+										onClicked: media.seekForward()
+									}
+								}
+
+								Item { Layout.fillWidth: true }
+							}
+
+							Text {
+								Layout.alignment: Qt.AlignRight
+								visible: media.progressTime !== ""
+								text: media.progressTime
+								color: root.cal15
+								font.family: root.fontFamily
+								font.pixelSize: root.fontSize - 2
+							}
+
+							Rectangle {
+								Layout.fillWidth: true
+								Layout.preferredHeight: 4
+								radius: 2
+								color: root.cal3
+								clip: true
+
+								Rectangle {
+									anchors.left: parent.left
+									anchors.top: parent.top
+									anchors.bottom: parent.bottom
+									radius: 2
+									width: media.progressPct >= 0 ? parent.width * Math.min(media.progressPct, 100) / 100 : 0
+									color: root.cal14
+									Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.Linear } }
+								}
+							}
 						}
 					}
 				}
@@ -1255,21 +1359,20 @@ ShellRoot {
 						font.family: root.fontFamily
 						font.pixelSize: root.fontSize - 1
 					}
-
 					delegate: Rectangle {
 						required property var modelData
+						required property int index
 						width: ListView.view.width
 						height: histRow.implicitHeight + 12
-						radius: 8
+						radius: 13
 						color: root.cal2
 
 						RowLayout {
 							id: histRow
 							anchors.fill: parent
-							anchors.margins: 6
+							anchors.margins: 8
 							spacing: 8
 
-							// Notification Image / Icon
 							Item {
 								visible: (modelData.image && modelData.image !== "") || (modelData.appIcon && modelData.appIcon !== "")
 								Layout.preferredWidth: 32
@@ -1281,6 +1384,7 @@ ShellRoot {
 									radius: 6
 									color: root.cal1
 								}
+
 								Image {
 									anchors.fill: parent
 									visible: modelData.image && modelData.image !== ""
@@ -1288,6 +1392,7 @@ ShellRoot {
 									fillMode: Image.PreserveAspectCrop
 									asynchronous: true
 								}
+
 								IconImage {
 									anchors.fill: parent
 									anchors.margins: (modelData.image && modelData.image !== "") ? 0 : 4
@@ -1299,7 +1404,7 @@ ShellRoot {
 							ColumnLayout {
 								Layout.fillWidth: true
 								spacing: 2
-								// Summary (App name removed, markup enabled)
+
 								Text {
 									Layout.fillWidth: true
 									text: modelData.summary
@@ -1314,7 +1419,6 @@ ShellRoot {
 									maximumLineCount: 2
 								}
 
-								// Body (Markup/Formatting enabled)
 								Text {
 									Layout.fillWidth: true
 									visible: modelData.body !== ""
@@ -1328,8 +1432,14 @@ ShellRoot {
 									maximumLineCount: 4
 									elide: Text.ElideRight
 								}
-
 							}
+						}
+						MouseArea {
+							z: 10
+							anchors.fill: parent
+							cursorShape: Qt.PointingHandCursor
+							acceptedButtons: Qt.LeftButton
+							onClicked: notifs.removeHistory(index)
 						}
 					}
 				}

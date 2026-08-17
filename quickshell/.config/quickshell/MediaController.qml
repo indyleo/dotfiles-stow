@@ -2,23 +2,10 @@ import QtQuick
 import Quickshell.Io
 import Quickshell.Services.Mpris
 
-// Drop-in replacement for the mediactl/medianotify/playerctl pipeline.
-//
-// Everything here is DBus-signal-driven via Quickshell's built-in MPRIS
-// service: no polling, no subprocess spawning, no bash. Track/playback
-// changes reach this component the instant the player emits them, and
-// `activePlayer` (and everything derived from it) is a plain QML property
-// binding, so it re-evaluates automatically whenever any property it read
-// (player list, playbackState, identity, ...) changes.
-//
-// Usage in shell.qml:
-//   MediaController { id: media }
-//   ... media.title / media.artist / media.isPlaying / media.playPause() ...
+// MPRIS media controller. Reacts to DBus signals, no polling.
 Item {
 	id: root
 
-	// Same two buckets mediactl used, same priority order:
-	// browser playing > song playing > browser paused > song paused > none.
 	readonly property var browserIdentities: ["firefox", "chromium", "chrome", "brave", "vivaldi", "zen", "edge"]
 	readonly property var songIdentities: ["spotify", "subsonic", "feishin", "supersonic", "mpd", "mopidy", "elisa", "rhythmbox", "vlc"]
 
@@ -30,11 +17,6 @@ Item {
 		return "none"
 	}
 
-	// This is a genuine property binding (not a function called once), so
-	// QML's dependency tracker re-runs it whenever anything it reads
-	// changes: the player list itself, or any .identity/.playbackState it
-	// touched on this pass. That's what makes the whole chain reactive
-	// with zero timers.
 	readonly property var activePlayer: {
 		const list = Mpris.players.values
 		let browserPlaying = null, songPlaying = null, browserPaused = null, songPaused = null
@@ -56,19 +38,23 @@ Item {
 	readonly property string activeType: classify(activePlayer)
 	readonly property bool showMedia: activePlayer !== null
 	readonly property bool isPlaying: activePlayer ? activePlayer.isPlaying : false
-	readonly property string icon: isPlaying ? "\uf04c" : "\uf04b" // nf-fa-pause / nf-fa-play
+	readonly property string icon: isPlaying ? "\uf04c" : "\uf04b"
 
 	readonly property string title: activePlayer ? (activePlayer.trackTitle || "Unknown Title") : ""
 	readonly property string artist: activePlayer ? (activePlayer.trackArtist || "") : ""
-	readonly property string album: looksLikeArtPath(rawAlbum) ? "" : rawAlbum
-	readonly property string rawAlbum: activePlayer ? (activePlayer.trackAlbum || "") : ""
 
-	// Some MPRIS bridges (firefox-mpris in particular) leak the real art
-	// path into the album field instead of populating trackArtUrl.
-	// Recover it there if trackArtUrl came back empty.
 	function looksLikeArtPath(val) {
 		if (!val) return false
 		return val.startsWith("file://") || /\.(png|jpe?g|gif|bmp|webp)$/i.test(val)
+	}
+
+	readonly property string rawAlbum: activePlayer ? (activePlayer.trackAlbum || "") : ""
+
+	readonly property string album: {
+		if (looksLikeArtPath(rawAlbum)) return ""
+		const a = rawAlbum.trim()
+		if (a === "" || a.toLowerCase().includes("unknown album")) return ""
+		return rawAlbum
 	}
 
 	readonly property string rawArtUrl: {
@@ -78,12 +64,6 @@ Item {
 	}
 	readonly property string artUrl: rawArtUrl === "" ? "" : (rawArtUrl.includes("://") ? rawArtUrl : "file://" + rawArtUrl)
 
-	// Chromium/electron players write their thumbnail to a temp path that
-	// can get rotated or deleted moments after trackArtUrl reports it.
-	// Snapshot local (file://) art into a stable, per-track-keyed path so
-	// the Image element in the bar/OSD isn't racing the source player.
-	// Remote (http/https) URLs don't need this -- Qt's own network image
-	// loader handles those directly.
 	property string stableArtUrl: ""
 	readonly property string displayArtUrl: artUrl.startsWith("file://") ? stableArtUrl : artUrl
 
@@ -110,7 +90,6 @@ Item {
 		}
 	}
 
-	// --- Progress -------------------------------------------------------
 	readonly property real positionSec: activePlayer ? activePlayer.position : 0
 	readonly property real lengthSec: activePlayer ? activePlayer.length : 0
 	readonly property bool hasLength: activePlayer ? activePlayer.lengthSupported : false
@@ -127,9 +106,6 @@ Item {
 		return m + ":" + (s < 10 ? "0" + s : s)
 	}
 
-	// MPRIS position rarely pushes updates on its own (see MprisPlayer
-	// docs). Tick it manually, but only while a consumer actually cares
-	// (bind `ticking` to e.g. mosdVisible) and only while playing.
 	property bool ticking: false
 	Timer {
 		interval: 1000
@@ -138,16 +114,16 @@ Item {
 		onTriggered: if (root.activePlayer) root.activePlayer.positionChanged()
 	}
 
-	// --- Controls ---------------------------------------------------------
 	function playPause() { if (activePlayer && activePlayer.canTogglePlaying) activePlayer.togglePlaying() }
 	function next()      { if (activePlayer && activePlayer.canGoNext) activePlayer.next() }
 	function previous()  { if (activePlayer && activePlayer.canGoPrevious) activePlayer.previous() }
+	function seekForward() {
+		if (activePlayer && activePlayer.canSeek) activePlayer.seek(5)
+	}
+	function seekBackward() {
+		if (activePlayer && activePlayer.canSeek) activePlayer.seek(-5)
+	}
 
-	// --- "Now playing" popup trigger --------------------------------------
-	// Fires on track change, resume/pause, or switching active players --
-	// same triggers medianotify used to push over IPC, but derived
-	// directly from the reactive properties above instead of a bash
-	// daemon watching `playerctl -a -F`.
 	signal nowPlaying()
 	property string _lastKey: ""
 	function _currentKey() {
