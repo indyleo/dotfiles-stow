@@ -21,9 +21,9 @@ Item {
 			time: Date.now(),
 			closeReason: reason
 		}
-		history.unshift(snapshot)
-		if (history.length > root.historyLimit) history.length = root.historyLimit
-		root.historyChanged()
+		root.history = [snapshot, ...root.history]
+		if (root.history.length > root.historyLimit)
+			root.history = root.history.slice(0, root.historyLimit)
 	}
 
 	function clearHistory() { root.history = [] }
@@ -31,7 +31,6 @@ Item {
 	function removeHistory(index) {
 		if (index < 0 || index >= root.history.length) return
 		root.history = root.history.filter((_, i) => i !== index)
-		root.historyChanged()
 	}
 
 	NotificationServer {
@@ -60,7 +59,14 @@ Item {
 
 	function invokeDefaultAction(n) {
 		if (!n.actions || n.actions.length === 0) return
-		const def = n.actions.find(a => a.identifier === "default") || n.actions[0]
+		let def = null
+		for (let i = 0; i < n.actions.length; i++) {
+			if (n.actions[i].identifier === "default") {
+				def = n.actions[i]
+				break
+			}
+		}
+		if (!def) def = n.actions[0]
 		def.invoke()
 	}
 

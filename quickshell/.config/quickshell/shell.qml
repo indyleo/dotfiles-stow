@@ -16,12 +16,15 @@ ShellRoot {
 	readonly property color cal1:  "#3c3836"
 	readonly property color cal2:  "#504945"
 	readonly property color cal3:  "#7c6f64"
+	readonly property color cal4:  "#a89984"
+	readonly property color cal5:  "#d5c4a1"
 	readonly property color cal6:  "#ebdbb2"
 	readonly property color cal7:  "#83a598"
 	readonly property color cal8:  "#fb4934"
 	readonly property color cal9:  "#d3869b"
 	readonly property color cal10: "#fabd2f"
 	readonly property color cal11: "#cc241d"
+	readonly property color cal12: "#458588"
 	readonly property color cal13: "#b8bb26"
 	readonly property color cal14: "#fe8019"
 	readonly property color cal15: "#bdae93"
@@ -34,7 +37,7 @@ ShellRoot {
 	property string currentLayout: {
 		const top = Hyprland.activeToplevel
 		const focusedWs = Hyprland.focusedWorkspace
-		if (!top || !focusedWs || top.workspace !== focusedWs) return "EMPTY"
+		if (!top || !focusedWs || top.workspace.id !== focusedWs.id) return "EMPTY"
 		if (top.fullscreen) return "FULLSCREEN"
 		if (top.floating) return "FLOATING"
 		return "TILED"
@@ -72,6 +75,22 @@ ShellRoot {
 	AudioController { id: audio }
 	BrightnessController { id: bright }
 	NotificationController { id: notifs }
+
+	// Urgency → color mapping (arrow functions to guarantee availability)
+	property var notifBorder: (urgency) => {
+		switch (urgency) {
+			case NotificationUrgency.Critical: return root.cal8   // red
+			case NotificationUrgency.Low:      return root.cal3   // muted grey
+			default:                           return root.cal14  // orange (Normal)
+		}
+	}
+	property var notifAccentText: (urgency) => {
+		switch (urgency) {
+			case NotificationUrgency.Critical: return root.cal8
+			case NotificationUrgency.Low:      return root.cal15
+			default:                           return root.cal6
+		}
+	}
 
 	Process { id: shellCmd }
 
@@ -117,7 +136,7 @@ ShellRoot {
 		command: ["sysstats", "battery"]
 		stdout: SplitParser {
 			onRead: data => {
-				if (!data || data.trim() === "" || data.includes("N/A") || data.includes("No") || data.includes("Not") || data.trim().endsWith(" 0%") || data.trim() === "0%") {
+				if (!data || data.trim() === "" || data.includes("N/A") || data.startsWith("No") || data.trim() === "0%") {
 					root.showBat = false;
 					return
 				}
@@ -134,7 +153,7 @@ ShellRoot {
 			onRead: data => {
 				if (!data) return;
 				root.parseSysstats(data, "ethIcon", "ethText")
-				root.showEth = data.includes("Connected")
+				root.showEth = data.includes("Connected") && !data.includes("Disconnected")
 			}
 		}
 	}
@@ -170,13 +189,12 @@ ShellRoot {
 		stdout: SplitParser { onRead: data => root.parseSysstats(data, "sysMediaIcon", "sysMediaText") }
 	}
 
+	// Dynamic stats: 2s
 	Timer {
 		interval: 2000;
 		running: true; repeat: true; triggeredOnStart: true
 		onTriggered: {
 			cpuProc.running = false; cpuProc.running = true
-			gpuProc.running = false; gpuProc.running = true
-			kernelProc.running = false; kernelProc.running = true
 			memProc.running = false; memProc.running = true
 			diskProc.running = false; diskProc.running = true
 			wifiProc.running = false; wifiProc.running = true
@@ -184,6 +202,16 @@ ShellRoot {
 			tailProc.running = false; tailProc.running = true
 			batProc.running = false; batProc.running = true
 			sysMediaProc.running = false; sysMediaProc.running = true
+		}
+	}
+
+	// Static stats: kernel/gpu every 60s
+	Timer {
+		interval: 60000;
+		running: true; repeat: true; triggeredOnStart: true
+		onTriggered: {
+			kernelProc.running = false; kernelProc.running = true
+			gpuProc.running = false; gpuProc.running = true
 		}
 	}
 
@@ -216,8 +244,8 @@ ShellRoot {
 		function micUp(): void     { const l = audio.micUp();     if (l >= 0) root.osdShow("MIC", l, root.cal14) }
 		function micDown(): void   { const l = audio.micDown();   if (l >= 0) root.osdShow("MIC", l, root.cal14) }
 		function micToggle(): void { const l = audio.micToggle(); if (l >= 0) root.osdShow("MIC", l, root.cal14) }
-		function briUp(): void     { root.osdShow("BRI", bright.up(), root.cal10) }
-		function briDown(): void   { root.osdShow("BRI", bright.down(), root.cal10) }
+		function briUp(): void     { const l = bright.up();       if (l >= 0) root.osdShow("BRI", l, root.cal10) }
+		function briDown(): void   { const l = bright.down();     if (l >= 0) root.osdShow("BRI", l, root.cal10) }
 	}
 
 	// Media OSD
@@ -398,7 +426,7 @@ ShellRoot {
 										songScrollAnim.stop()
 										songTxt.x = 0
 										if (songTxt.implicitWidth > 180)
-											songScrollAnim.restart()
+										songScrollAnim.restart()
 									}
 
 									SequentialAnimation {
@@ -556,7 +584,7 @@ ShellRoot {
 						id: statsRow; anchors.centerIn: parent; spacing: 12
 
 						Item {
-							Layout.preferredHeight: 20; Layout.preferredWidth: kernelRow.width
+							Layout.preferredHeight: 20; Layout.preferredWidth: kernelRow.implicitWidth
 							Row {
 								id: kernelRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
 								Text { text: root.kernelIcon; color: root.cal9; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
@@ -567,7 +595,7 @@ ShellRoot {
 						}
 
 						Item {
-							Layout.preferredHeight: 20; Layout.preferredWidth: cpuRow.width
+							Layout.preferredHeight: 20; Layout.preferredWidth: cpuRow.implicitWidth
 							Row {
 								id: cpuRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
 								Text { text: root.cpuIcon; color: root.cal9; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
@@ -578,7 +606,7 @@ ShellRoot {
 						}
 
 						Item {
-							Layout.preferredHeight: 20; Layout.preferredWidth: gpuRow.width
+							Layout.preferredHeight: 20; Layout.preferredWidth: gpuRow.implicitWidth
 							Row {
 								id: gpuRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
 								Text { text: root.gpuIcon; color: root.cal9; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
@@ -591,7 +619,7 @@ ShellRoot {
 						Rectangle { width: 1; height: 12; color: root.cal3 }
 
 						Item {
-							Layout.preferredHeight: 20; Layout.preferredWidth: memRow.width
+							Layout.preferredHeight: 20; Layout.preferredWidth: memRow.implicitWidth
 							Row {
 								id: memRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
 								Text { text: root.memIcon; color: root.cal7; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
@@ -602,7 +630,7 @@ ShellRoot {
 						}
 
 						Item {
-							Layout.preferredHeight: 20; Layout.preferredWidth: diskRow.width
+							Layout.preferredHeight: 20; Layout.preferredWidth: diskRow.implicitWidth
 							Row {
 								id: diskRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
 								Text { text: root.diskIcon; color: root.cal7; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
@@ -616,7 +644,7 @@ ShellRoot {
 
 						Item {
 							visible: bright.available
-							Layout.preferredHeight: 20; Layout.preferredWidth: brightRow.width
+							Layout.preferredHeight: 20; Layout.preferredWidth: brightRow.implicitWidth
 							Row {
 								id: brightRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
 								Text { text: bright.icon; color: root.cal10; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
@@ -628,7 +656,7 @@ ShellRoot {
 
 						Rectangle { width: 1; height: 12; color: root.cal3; visible: root.showBat && bright.available }
 						Item {
-							visible: root.showBat; Layout.preferredHeight: 20; Layout.preferredWidth: batRow.width
+							visible: root.showBat; Layout.preferredHeight: 20; Layout.preferredWidth: batRow.implicitWidth
 							Row {
 								id: batRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
 								Text { text: root.batIcon; color: root.cal10; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
@@ -642,7 +670,7 @@ ShellRoot {
 
 						Item {
 							visible: root.showEth
-							Layout.preferredHeight: 20; Layout.preferredWidth: ethRow.width
+							Layout.preferredHeight: 20; Layout.preferredWidth: ethRow.implicitWidth
 							Row {
 								id: ethRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
 								Text { text: root.ethIcon; color: root.cal13; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
@@ -654,7 +682,7 @@ ShellRoot {
 
 						Item {
 							visible: root.showWifi
-							Layout.preferredHeight: 20; Layout.preferredWidth: wifiRow.width
+							Layout.preferredHeight: 20; Layout.preferredWidth: wifiRow.implicitWidth
 							Row {
 								id: wifiRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
 								Text { text: root.wifiIcon; color: root.cal13; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
@@ -666,7 +694,7 @@ ShellRoot {
 
 						Item {
 							visible: root.showTail
-							Layout.preferredHeight: 20; Layout.preferredWidth: tailRow.width
+							Layout.preferredHeight: 20; Layout.preferredWidth: tailRow.implicitWidth
 							Row {
 								id: tailRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
 								Text { text: root.tailIcon; color: root.cal13; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
@@ -679,7 +707,7 @@ ShellRoot {
 						Rectangle { width: 1; height: 12; color: root.cal3 }
 
 						Item {
-							Layout.preferredHeight: 20; Layout.preferredWidth: micRow.width
+							Layout.preferredHeight: 20; Layout.preferredWidth: micRow.implicitWidth
 							Row {
 								id: micRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
 								Text { text: audio.micIcon; color: root.cal14; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
@@ -690,7 +718,7 @@ ShellRoot {
 						}
 
 						Item {
-							Layout.preferredHeight: 20; Layout.preferredWidth: volRow.width
+							Layout.preferredHeight: 20; Layout.preferredWidth: volRow.implicitWidth
 							Row {
 								id: volRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
 								Text { text: audio.volIcon; color: root.cal14; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
@@ -964,6 +992,11 @@ ShellRoot {
 					border.color: root.notifBorder(modelData.urgency)
 					clip: true
 
+					readonly property real progressValue: {
+						const h = notifCard.modelData.hints
+						return (h && h.value !== undefined) ? Math.min(Math.max(h.value, 0), 100) : 0
+					}
+
 					Timer {
 						running: notifCard.modelData.expireTimeout > 0
 						interval: notifCard.modelData.expireTimeout * 1000
@@ -977,7 +1010,10 @@ ShellRoot {
 						onClicked: mouse => {
 							if (mouse.button === Qt.LeftButton) notifCard.modelData.dismiss()
 							else if (mouse.button === Qt.RightButton) notifs.dismissAll()
-							else if (mouse.button === Qt.MiddleButton) notifs.invokeDefaultAction(notifCard.modelData)
+							else if (mouse.button === Qt.MiddleButton) {
+								notifs.invokeDefaultAction(notifCard.modelData)
+								notifCard.modelData.dismiss()
+							}
 						}
 					}
 
@@ -1027,7 +1063,7 @@ ShellRoot {
 								font.family: root.fontFamily
 								font.pixelSize: root.fontSize
 								font.bold: true
-								horizontalAlignment: Text.AlignHCenter
+								horizontalAlignment: Text.AlignLeft
 								wrapMode: Text.Wrap
 								elide: Text.ElideRight
 								maximumLineCount: 2
@@ -1041,7 +1077,7 @@ ShellRoot {
 								color: root.cal15
 								font.family: root.fontFamily
 								font.pixelSize: root.fontSize - 2
-								horizontalAlignment: Text.AlignHCenter
+								horizontalAlignment: Text.AlignLeft
 								wrapMode: Text.Wrap
 								elide: Text.ElideRight
 								maximumLineCount: 4
@@ -1060,7 +1096,7 @@ ShellRoot {
 									anchors.top: parent.top
 									anchors.bottom: parent.bottom
 									radius: 3
-									width: parent.width * Math.min(Math.max(notifCard.modelData.hints.value ?? 0, 0), 100) / 100
+									width: parent.width * notifCard.progressValue / 100
 									color: root.notifBorder(notifCard.modelData.urgency)
 									Behavior on width { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
 								}
@@ -1413,7 +1449,7 @@ ShellRoot {
 									font.family: root.fontFamily
 									font.pixelSize: root.fontSize - 1
 									font.bold: true
-									horizontalAlignment: Text.AlignHCenter
+									horizontalAlignment: Text.AlignLeft
 									wrapMode: Text.Wrap
 									elide: Text.ElideRight
 									maximumLineCount: 2
@@ -1427,7 +1463,7 @@ ShellRoot {
 									color: root.cal15
 									font.family: root.fontFamily
 									font.pixelSize: root.fontSize - 2
-									horizontalAlignment: Text.AlignHCenter
+									horizontalAlignment: Text.AlignLeft
 									wrapMode: Text.Wrap
 									maximumLineCount: 4
 									elide: Text.ElideRight

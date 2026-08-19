@@ -67,21 +67,38 @@ Item {
 	property string stableArtUrl: ""
 	readonly property string displayArtUrl: artUrl.startsWith("file://") ? stableArtUrl : artUrl
 
+	property var tempArtFiles: []
+	property int _artRequestId: 0
+
 	Process {
 		id: artSnapshotProc
 		property string pendingDest: ""
+		property int requestId: 0
 		onExited: (exitCode, exitStatus) => {
-			if (exitCode === 0 && pendingDest !== "")
+			if (exitCode === 0 && pendingDest !== "" && requestId === root._artRequestId)
 				root.stableArtUrl = "file://" + pendingDest
 		}
 	}
 	onArtUrlChanged: {
 		if (artUrl.startsWith("file://")) {
+			// Invalidate any pending copy
+			++root._artRequestId
 			const src = artUrl.substring("file://".length)
 			const dot = src.lastIndexOf(".")
 			const ext = dot >= 0 ? src.substring(dot) : ".img"
 			const dest = "/tmp/qs-mediaosd-art-" + (activePlayer ? activePlayer.uniqueId : 0) + ext
+
+			// Cleanup old files (keep max 10)
+			if (tempArtFiles.length >= 10) {
+				const oldest = tempArtFiles.shift()
+				cleanupProc.command = ["rm", "-f", oldest]
+				cleanupProc.running = false
+				cleanupProc.running = true
+			}
+			tempArtFiles.push(dest)
+
 			artSnapshotProc.pendingDest = dest
+			artSnapshotProc.requestId = root._artRequestId
 			artSnapshotProc.command = ["cp", "-f", src, dest]
 			artSnapshotProc.running = false
 			artSnapshotProc.running = true
@@ -90,7 +107,15 @@ Item {
 		}
 	}
 
-	readonly property real positionSec: activePlayer ? activePlayer.position : 0
+	Process {
+		id: cleanupProc
+	}
+
+	property int positionUpdateCounter: 0
+	readonly property real positionSec: {
+		positionUpdateCounter // dummy dependency to force reevaluation
+		return activePlayer ? activePlayer.position : 0
+	}
 	readonly property real lengthSec: activePlayer ? activePlayer.length : 0
 	readonly property bool hasLength: activePlayer ? activePlayer.lengthSupported : false
 	readonly property int progressPct: (activePlayer && hasLength && lengthSec > 0)
@@ -111,7 +136,10 @@ Item {
 		interval: 1000
 		repeat: true
 		running: root.ticking && root.isPlaying
-		onTriggered: if (root.activePlayer) root.activePlayer.positionChanged()
+		onTriggered: {
+			if (root.activePlayer && root.isPlaying)
+				root.positionUpdateCounter++
+		}
 	}
 
 	function playPause() { if (activePlayer && activePlayer.canTogglePlaying) activePlayer.togglePlaying() }

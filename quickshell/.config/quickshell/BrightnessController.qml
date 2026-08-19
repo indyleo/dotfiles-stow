@@ -59,6 +59,7 @@ Item {
 	Process { id: changeProc }
 
 	function up(): int {
+		if (!available) return -1
 		const target = Math.min(100, pct + step)
 		changeProc.command = ["brightnessctl", "set", step + "%+"]
 		changeProc.running = false
@@ -66,6 +67,7 @@ Item {
 		return target
 	}
 	function down(): int {
+		if (!available) return -1
 		const target = Math.max(0, pct - step)
 		changeProc.command = ["brightnessctl", "set", step + "%-"]
 		changeProc.running = false
