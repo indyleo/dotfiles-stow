@@ -85,12 +85,12 @@ hl.bind("ALT + XF86AudioPrev", hl.dsp.exec_cmd("mediactl --source browser previo
 hl.bind("ALT + XF86AudioPlay", hl.dsp.exec_cmd("mediactl --source browser play-pause"), { locked = true })
 
 -- --- Screenshots & Recording ---
-hl.bind("Print", hl.dsp.exec_cmd("screenshot --select"))
-hl.bind(mainMod .. " + Print", hl.dsp.exec_cmd("screenshot --screen"))
-hl.bind(mainMod .. " + SHIFT + Print", hl.dsp.exec_cmd("screenshot --full"))
-hl.bind(mainMod .. " + CTRL + Print", hl.dsp.exec_cmd("screenshot --window"))
-hl.bind(mainMod .. " + ALT + Print", hl.dsp.exec_cmd("screenshot --colorpicker"))
-hl.bind(mainMod .. " + ALT + R", hl.dsp.exec_cmd("recorder"))
+hl.bind("Print", hl.dsp.exec_cmd("qs ipc call screenshot region"))
+hl.bind(mainMod .. " + Print", hl.dsp.exec_cmd("qs ipc call screenshot monitor"))
+hl.bind(mainMod .. " + SHIFT + Print", hl.dsp.exec_cmd("qs ipc call screenshot full"))
+hl.bind(mainMod .. " + CTRL + Print", hl.dsp.exec_cmd("qs ipc call screenshot window"))
+hl.bind(mainMod .. " + ALT + Print", hl.dsp.exec_cmd("qs ipc call screenshot color"))
+hl.bind(mainMod .. " + ALT + R", hl.dsp.exec_cmd("qs ipc call recording toggle"))
 
 -- --- Wallpapers ---
 hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("desktopctl random ~/Pictures/Wallpapers/gruvbox"))
