@@ -29,14 +29,14 @@ Rectangle {
             color: btnRoot.iconColor
             font.family: btnRoot.fontFamily
             font.pixelSize: btnRoot.fontSize + 8
-            anchors.horizontalCenter: parent.horizontalCenter
+            Layout.alignment: Qt.AlignHCenter
         }
         Text {
             text: btnRoot.label
             color: btnRoot.textColor
             font.family: btnRoot.fontFamily
             font.pixelSize: btnRoot.fontSize - 2
-            anchors.horizontalCenter: parent.horizontalCenter
+            Layout.alignment: Qt.AlignHCenter
         }
     }
 
