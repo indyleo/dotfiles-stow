@@ -1,3 +1,680 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: *
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+AudioController.qml
+BatteryController.qml
+BrightnessController.qml
+icon.png
+MediaController.qml
+NotificationController.qml
+PowerButton.qml
+PowerController.qml
+shell.qml
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="AudioController.qml">
+import QtQuick
+import Quickshell.Services.Pipewire
+
+// Native Pipewire audio control. Reads/writes default sink/source directly.
+Item {
+	id: root
+
+	readonly property PwNode sink: Pipewire.defaultAudioSink
+	readonly property PwNode source: Pipewire.defaultAudioSource
+
+	PwObjectTracker { objects: [root.sink, root.source] }
+
+	readonly property bool sinkReady: !!(sink && sink.ready && sink.audio)
+	readonly property bool sourceReady: !!(source && source.ready && source.audio)
+
+	readonly property real volume: sinkReady ? sink.audio.volume : 0
+	readonly property bool muted: sinkReady ? sink.audio.muted : true
+	readonly property int volumePct: Math.round(volume * 100)
+
+	readonly property real micVolume: sourceReady ? source.audio.volume : 0
+	readonly property bool micMuted: sourceReady ? source.audio.muted : true
+	readonly property int micVolumePct: Math.round(micVolume * 100)
+
+	readonly property real step: 0.05
+
+	function volUp(): int {
+		if (!sinkReady) return -1
+		sink.audio.muted = false
+		sink.audio.volume = Math.min(1.0, sink.audio.volume + step)
+		return Math.round(sink.audio.volume * 100)
+	}
+	function volDown(): int {
+		if (!sinkReady) return -1
+		sink.audio.volume = Math.max(0.0, sink.audio.volume - step)
+		return Math.round(sink.audio.volume * 100)
+	}
+	function volToggle(): int {
+		if (!sinkReady) return -1
+		sink.audio.muted = !sink.audio.muted
+		return Math.round(sink.audio.volume * 100)
+	}
+
+	function micUp(): int {
+		if (!sourceReady) return -1
+		source.audio.muted = false
+		source.audio.volume = Math.min(1.0, source.audio.volume + step)
+		return Math.round(source.audio.volume * 100)
+	}
+	function micDown(): int {
+		if (!sourceReady) return -1
+		source.audio.volume = Math.max(0.0, source.audio.volume - step)
+		return Math.round(source.audio.volume * 100)
+	}
+	function micToggle(): int {
+		if (!sourceReady) return -1
+		source.audio.muted = !source.audio.muted
+		return Math.round(source.audio.volume * 100)
+	}
+
+	readonly property string volIcon: (muted || volumePct === 0) ? "󰝟"
+		: volumePct === 100 ? "󰶬"
+		: volumePct >= 75   ? "󰕾"
+		: volumePct >= 25   ? "󰖀"
+		: "󰕿"
+	readonly property string volText: (muted || volumePct === 0) ? "Muted" : volumePct + "%"
+
+	readonly property string micIcon: (!micMuted && micVolumePct > 0) ? "" : ""
+	readonly property string micText: (!micMuted && micVolumePct > 0) ? micVolumePct + "%" : "Muted"
+
+	signal volChanged()
+	signal micChanged()
+	onVolumeChanged: volChanged()
+	onMutedChanged: volChanged()
+	onMicVolumeChanged: micChanged()
+	onMicMutedChanged: micChanged()
+}
+</file>
+
+<file path="BatteryController.qml">
+import QtQuick
+import Quickshell.Io
+
+// Battery controller reading directly from sysfs (like BrightnessController.qml).
+// Finds the first available battery (BAT0, BAT1, ...) and exposes:
+//   available, percentage, status, icon, text, show
+Item {
+    id: root
+
+    property string batteryPath: ""          // e.g. "/sys/class/power_supply/BAT0"
+    property int capacity: 0                 // 0–100
+    property string status: ""               // "Charging", "Discharging", "Full", "Unknown"
+
+    readonly property bool available: batteryPath !== ""
+    readonly property int percentage: capacity
+    readonly property bool show: available && percentage > 0   // hides 0% automatically
+
+    readonly property string text: show ? percentage + "%" : ""
+
+    readonly property string icon: {
+        if (!show) return "󰂑"
+        if (status === "Charging") {
+            if (percentage >= 100) return "󰂅"
+            if (percentage >= 90) return "󰂋"
+            if (percentage >= 80) return "󰂊"
+            if (percentage >= 70) return "󰢞"
+            if (percentage >= 60) return "󰂉"
+            if (percentage >= 50) return "󰢝"
+            if (percentage >= 40) return "󰂈"
+            if (percentage >= 30) return "󰂇"
+            if (percentage >= 20) return "󰂆"
+            if (percentage >= 10) return "󰢜"
+            return "󰢟"
+        } else if (status === "Discharging") {
+            if (percentage >= 100) return "󰁹"
+            if (percentage >= 90) return "󰂂"
+            if (percentage >= 80) return "󰂁"
+            if (percentage >= 70) return "󰂀"
+            if (percentage >= 60) return "󰁿"
+            if (percentage >= 50) return "󰁾"
+            if (percentage >= 40) return "󰁽"
+            if (percentage >= 30) return "󰁼"
+            if (percentage >= 20) return "󰁻"
+            if (percentage >= 10) return "󰁺"
+            return "󰂎"
+        } else if (status === "Full") {
+            return "󰂄"
+        }
+        return "󰂑"
+    }
+
+    signal changed()
+    onPercentageChanged: changed()
+    onStatusChanged: changed()
+    onAvailableChanged: changed()
+
+    // Discover the first battery in /sys/class/power_supply/
+    Process {
+        id: discoverProc
+        command: ["sh", "-c", "ls /sys/class/power_supply/ 2>/dev/null | grep -E '^BAT[0-9]+$' | head -n1"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const name = text.trim()
+                if (name !== "") root.batteryPath = "/sys/class/power_supply/" + name
+            }
+        }
+    }
+
+    // Read capacity (0–100)
+    FileView {
+        id: capacityFile
+        path: root.batteryPath !== "" ? root.batteryPath + "/capacity" : ""
+        watchChanges: false
+        onLoaded: root.capacity = parseInt(text(), 10) || 0
+    }
+
+    // Read status ("Charging", "Discharging", "Full", "Unknown")
+    FileView {
+        id: statusFile
+        path: root.batteryPath !== "" ? root.batteryPath + "/status" : ""
+        watchChanges: false
+        onLoaded: root.status = text().trim()
+    }
+
+    // Refresh every 30 seconds
+    Timer {
+        interval: 30000
+        running: true
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: refresh()
+    }
+
+    function refresh() {
+        if (root.batteryPath !== "") {
+            // Force reload of sysfs files
+            capacityFile.reload()
+            statusFile.reload()
+        }
+    }
+}
+</file>
+
+<file path="BrightnessController.qml">
+import QtQuick
+import Quickshell.Io
+
+// Reads brightness from sysfs via FileView; writes via brightnessctl.
+Item {
+	id: root
+
+	property string devicePath: ""
+	property int current: 0
+	property int max: 1
+	readonly property int pct: max > 0 ? Math.round(current * 100 / max) : 0
+
+	readonly property bool available: devicePath !== ""
+
+	readonly property int step: 5
+
+	readonly property string icon: pct >= 100 ? "󰛨"
+		: pct >= 90 ? "󱩖"
+		: pct >= 80 ? "󱩖"
+		: pct >= 70 ? "󱩕"
+		: pct >= 60 ? "󱩔"
+		: pct >= 50 ? "󱩓"
+		: pct >= 40 ? "󱩒"
+		: pct >= 30 ? "󱩑"
+		: pct >= 20 ? "󱩐"
+		: pct >= 10 ? "󱩏"
+		: "󱩎"
+	readonly property string text: pct + "%"
+
+	signal changed()
+	onPctChanged: changed()
+
+	Process {
+		id: discoverProc
+		command: ["sh", "-c", "ls /sys/class/backlight 2>/dev/null | head -n1"]
+		running: true
+		stdout: StdioCollector {
+			onStreamFinished: {
+				const name = text.trim()
+				if (name !== "") root.devicePath = "/sys/class/backlight/" + name
+			}
+		}
+	}
+
+	FileView {
+		id: maxFile
+		path: root.devicePath !== "" ? root.devicePath + "/max_brightness" : ""
+		onLoaded: root.max = parseInt(text(), 10) || 1
+	}
+
+	FileView {
+		id: curFile
+		path: root.devicePath !== "" ? root.devicePath + "/brightness" : ""
+		watchChanges: true
+		onFileChanged: reload()
+		onLoaded: root.current = parseInt(text(), 10) || 0
+	}
+
+	Process { id: changeProc }
+
+	function up(): int {
+		if (!available) return -1
+		const target = Math.min(100, pct + step)
+		changeProc.command = ["brightnessctl", "set", step + "%+"]
+		changeProc.running = false
+		changeProc.running = true
+		return target
+	}
+	function down(): int {
+		if (!available) return -1
+		const target = Math.max(0, pct - step)
+		changeProc.command = ["brightnessctl", "set", step + "%-"]
+		changeProc.running = false
+		changeProc.running = true
+		return target
+	}
+}
+</file>
+
+<file path="MediaController.qml">
+import QtQuick
+import Quickshell.Io
+import Quickshell.Services.Mpris
+
+// MPRIS media controller. Reacts to DBus signals, no polling.
+Item {
+	id: root
+
+	readonly property var browserIdentities: ["firefox", "chromium", "chrome", "brave", "vivaldi", "zen", "edge"]
+	readonly property var songIdentities: ["spotify", "subsonic", "feishin", "supersonic", "mpd", "mopidy", "elisa", "rhythmbox", "vlc"]
+
+	function classify(p) {
+		if (!p) return "none"
+		const id = ((p.desktopEntry || "") + " " + (p.identity || "") + " " + (p.dbusName || "")).toLowerCase()
+		for (let i = 0; i < browserIdentities.length; i++) if (id.includes(browserIdentities[i])) return "browser"
+		for (let i = 0; i < songIdentities.length; i++) if (id.includes(songIdentities[i])) return "song"
+		return "none"
+	}
+
+	readonly property var activePlayer: {
+		const list = Mpris.players.values
+		let browserPlaying = null, songPlaying = null, browserPaused = null, songPaused = null
+		for (let i = 0; i < list.length; i++) {
+			const p = list[i]
+			const type = classify(p)
+			if (type === "none") continue
+			if (p.playbackState === MprisPlaybackState.Playing) {
+				if (type === "browser" && !browserPlaying) browserPlaying = p
+				else if (type === "song" && !songPlaying) songPlaying = p
+			} else if (p.playbackState === MprisPlaybackState.Paused) {
+				if (type === "browser" && !browserPaused) browserPaused = p
+				else if (type === "song" && !songPaused) songPaused = p
+			}
+		}
+		return browserPlaying || songPlaying || browserPaused || songPaused || null
+	}
+
+	readonly property string activeType: classify(activePlayer)
+	readonly property bool showMedia: activePlayer !== null
+	readonly property bool isPlaying: activePlayer ? activePlayer.isPlaying : false
+	readonly property string icon: isPlaying ? "\uf04c" : "\uf04b"
+
+	readonly property string title: activePlayer ? (activePlayer.trackTitle || "Unknown Title") : ""
+	readonly property string artist: activePlayer ? (activePlayer.trackArtist || "") : ""
+
+	function looksLikeArtPath(val) {
+		if (!val) return false
+		return val.startsWith("file://") || /\.(png|jpe?g|gif|bmp|webp)$/i.test(val)
+	}
+
+	readonly property string rawAlbum: activePlayer ? (activePlayer.trackAlbum || "") : ""
+
+	readonly property string album: {
+		if (looksLikeArtPath(rawAlbum)) return ""
+		const a = rawAlbum.trim()
+		if (a === "" || a.toLowerCase().includes("unknown album")) return ""
+		return rawAlbum
+	}
+
+	readonly property string rawArtUrl: {
+		if (!activePlayer) return ""
+		if (activePlayer.trackArtUrl) return activePlayer.trackArtUrl
+		return looksLikeArtPath(rawAlbum) ? rawAlbum : ""
+	}
+	readonly property string artUrl: rawArtUrl === "" ? "" : (rawArtUrl.includes("://") ? rawArtUrl : "file://" + rawArtUrl)
+
+	property string stableArtUrl: ""
+	readonly property string displayArtUrl: artUrl.startsWith("file://") ? stableArtUrl : artUrl
+
+	property var tempArtFiles: []
+	property int _artRequestId: 0
+
+	Process {
+		id: artSnapshotProc
+		property string pendingDest: ""
+		property int requestId: 0
+		onExited: (exitCode, exitStatus) => {
+			if (exitCode === 0 && pendingDest !== "" && requestId === root._artRequestId)
+				root.stableArtUrl = "file://" + pendingDest
+		}
+	}
+	onArtUrlChanged: {
+		if (artUrl.startsWith("file://")) {
+			// Invalidate any pending copy
+			++root._artRequestId
+			const src = artUrl.substring("file://".length)
+			const dot = src.lastIndexOf(".")
+			const ext = dot >= 0 ? src.substring(dot) : ".img"
+			const dest = "/tmp/qs-mediaosd-art-" + (activePlayer ? activePlayer.uniqueId : 0) + ext
+
+			// Cleanup old files (keep max 10)
+			if (tempArtFiles.length >= 10) {
+				const oldest = tempArtFiles.shift()
+				cleanupProc.command = ["rm", "-f", oldest]
+				cleanupProc.running = false
+				cleanupProc.running = true
+			}
+			tempArtFiles.push(dest)
+
+			artSnapshotProc.pendingDest = dest
+			artSnapshotProc.requestId = root._artRequestId
+			artSnapshotProc.command = ["cp", "-f", src, dest]
+			artSnapshotProc.running = false
+			artSnapshotProc.running = true
+		} else {
+			stableArtUrl = artUrl
+		}
+	}
+
+	Process {
+		id: cleanupProc
+	}
+
+	property int positionUpdateCounter: 0
+	readonly property real positionSec: {
+		positionUpdateCounter // dummy dependency to force reevaluation
+		return activePlayer ? activePlayer.position : 0
+	}
+	readonly property real lengthSec: activePlayer ? activePlayer.length : 0
+	readonly property bool hasLength: activePlayer ? activePlayer.lengthSupported : false
+	readonly property int progressPct: (activePlayer && hasLength && lengthSec > 0)
+		? Math.max(0, Math.min(100, Math.round(positionSec / lengthSec * 100))) : -1
+	readonly property string progressTime: (activePlayer && hasLength)
+		? formatDuration(positionSec) + " / " + formatDuration(lengthSec) : ""
+
+	function formatDuration(sec) {
+		if (!isFinite(sec) || sec < 0) sec = 0
+		const total = Math.floor(sec)
+		const m = Math.floor(total / 60)
+		const s = total % 60
+		return m + ":" + (s < 10 ? "0" + s : s)
+	}
+
+	property bool ticking: false
+	Timer {
+		interval: 1000
+		repeat: true
+		running: root.ticking && root.isPlaying
+		onTriggered: {
+			if (root.activePlayer && root.isPlaying)
+				root.positionUpdateCounter++
+		}
+	}
+
+	function playPause() { if (activePlayer && activePlayer.canTogglePlaying) activePlayer.togglePlaying() }
+	function next()      { if (activePlayer && activePlayer.canGoNext) activePlayer.next() }
+	function previous()  { if (activePlayer && activePlayer.canGoPrevious) activePlayer.previous() }
+	function seekForward() {
+		if (activePlayer && activePlayer.canSeek) activePlayer.seek(5)
+	}
+	function seekBackward() {
+		if (activePlayer && activePlayer.canSeek) activePlayer.seek(-5)
+	}
+
+	signal nowPlaying()
+	property string _lastKey: ""
+	function _currentKey() {
+		return activePlayer ? (activeType + "|" + title + "|" + artist + "|" + isPlaying) : ""
+	}
+	function _checkKey() {
+		const key = _currentKey()
+		if (key !== "" && key !== _lastKey) nowPlaying()
+		_lastKey = key
+	}
+	onActivePlayerChanged: _checkKey()
+	onTitleChanged: _checkKey()
+	onArtistChanged: _checkKey()
+	onIsPlayingChanged: _checkKey()
+}
+</file>
+
+<file path="NotificationController.qml">
+import QtQuick
+import Quickshell
+import Quickshell.Services.Notifications
+
+// Notification daemon + history store.
+Item {
+	id: root
+
+	readonly property int historyLimit: 25
+
+	property var history: []
+
+	function pushHistory(n, reason) {
+		const snapshot = {
+			appName: n.appName,
+			summary: n.summary,
+			body: n.body,
+			appIcon: n.appIcon,
+			image: n.image,
+			urgency: n.urgency,
+			time: Date.now(),
+			closeReason: reason
+		}
+		root.history = [snapshot, ...root.history]
+		if (root.history.length > root.historyLimit)
+			root.history = root.history.slice(0, root.historyLimit)
+	}
+
+	function clearHistory() { root.history = [] }
+
+	function removeHistory(index) {
+		if (index < 0 || index >= root.history.length) return
+		root.history = root.history.filter((_, i) => i !== index)
+	}
+
+	NotificationServer {
+		id: server
+
+		imageSupported: true
+		bodyMarkupSupported: true
+		bodyImagesSupported: true
+		actionsSupported: true
+		actionIconsSupported: false
+		persistenceSupported: true
+		keepOnReload: true
+
+		onNotification: notification => {
+			notification.tracked = true
+			notification.closed.connect(reason => root.pushHistory(notification, reason))
+		}
+	}
+
+	readonly property alias popups: server.trackedNotifications
+
+	function dismissAll() {
+		const list = server.trackedNotifications.values.slice()
+		list.forEach(n => n.dismiss())
+	}
+
+	function invokeDefaultAction(n) {
+		if (!n.actions || n.actions.length === 0) return
+		let def = null
+		for (let i = 0; i < n.actions.length; i++) {
+			if (n.actions[i].identifier === "default") {
+				def = n.actions[i]
+				break
+			}
+		}
+		if (!def) def = n.actions[0]
+		def.invoke()
+	}
+
+	function hasProgress(n) {
+		return n.hints && n.hints.value !== undefined && !isNaN(n.hints.value)
+	}
+}
+</file>
+
+<file path="PowerButton.qml">
+import QtQuick
+import QtQuick.Layouts
+
+Rectangle {
+    id: btnRoot
+
+    property string icon: ""
+    property string label: ""
+    property color bgColor: "#504945"
+    property color hoverColor: "#7c6f64"
+    property color iconColor: "#fe8019"
+    property color textColor: "#ebdbb2"
+    property string fontFamily: "JetBrainsMono Nerd Font"
+    property int fontSize: 13
+
+    signal clicked
+
+    Layout.fillWidth: true
+    Layout.preferredHeight: 64
+    radius: 12
+    color: bgColor
+
+    ColumnLayout {
+        anchors.centerIn: parent
+        spacing: 4
+
+        Text {
+            text: btnRoot.icon
+            color: btnRoot.iconColor
+            font.family: btnRoot.fontFamily
+            font.pixelSize: btnRoot.fontSize + 8
+            anchors.horizontalCenter: parent.horizontalCenter
+        }
+        Text {
+            text: btnRoot.label
+            color: btnRoot.textColor
+            font.family: btnRoot.fontFamily
+            font.pixelSize: btnRoot.fontSize - 2
+            anchors.horizontalCenter: parent.horizontalCenter
+        }
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        cursorShape: Qt.PointingHandCursor
+        hoverEnabled: true
+        onEntered: btnRoot.color = btnRoot.hoverColor
+        onExited: btnRoot.color = btnRoot.bgColor
+        onClicked: btnRoot.clicked()
+    }
+}
+</file>
+
+<file path="PowerController.qml">
+import QtQuick
+import Quickshell
+
+Item {
+    id: root
+
+    Process {
+        id: pwrProc
+        onExited: (code, status) => {
+            // optional: show error if non‑zero exit
+            if (code !== 0) {
+                console.warn("Power action failed with exit code", code)
+            }
+        }
+    }
+
+    function run(cmd) {
+        pwrProc.command = cmd
+        pwrProc.running = false
+        pwrProc.running = true
+    }
+
+    function lock() {
+        run(["loginctl", "lock-session"])
+    }
+
+    function suspend() {
+        run(["systemctl", "suspend"])
+    }
+
+    function hibernate() {
+        run(["systemctl", "hibernate"])
+    }
+
+    function reboot() {
+        run(["systemctl", "reboot"])
+    }
+
+    function shutdown() {
+        run(["systemctl", "poweroff"])
+    }
+
+    function logout() {
+        // For Hyprland, use hyprctl dispatch exit
+        run(["hyprctl", "dispatch", "exit"])
+    }
+}
+</file>
+
+<file path="shell.qml">
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
@@ -1476,94 +2153,55 @@ ShellRoot {
         }
     }
 
-    // Power menu overlay (per‑monitor blurred background)
-    Variants {
-        model: Quickshell.screens
+    // Power menu overlay
+    PanelWindow {
+        id: powerMenuWindow
+        screen: Quickshell.screens[0]
+        visible: root.powerMenuVisible
+        color: "transparent"
+        exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.layer: WlrLayer.Overlay
 
-        PanelWindow {
-            id: powerMenuWindow
-            required property var modelData
-            screen: modelData
-            visible: root.powerMenuVisible
-            color: "transparent"
-            exclusionMode: ExclusionMode.Ignore
-            WlrLayershell.layer: WlrLayer.Overlay
+        anchors { top: true; bottom: true; left: true; right: true }
 
-            anchors { top: true; bottom: true; left: true; right: true }
+        Rectangle {
+            width: 360
+            height: powerMenuContent.implicitHeight + 32
+            anchors.centerIn: parent
+            radius: 16
+            color: root.cal0
+            border.width: 2
+            border.color: root.cal3
 
-            property string bgUrl: ""
-
-            Process {
-                id: captureProc
-                command: ["grim", "-o", modelData.name, "/tmp/qs-power-bg-" + modelData.name + ".png"]
-                onExited: (code, status) => {
-                    if (code === 0) {
-                        bgUrl = "file:///tmp/qs-power-bg-" + modelData.name + ".png"
-                    } else {
-                        bgUrl = ""
-                    }
-                }
-            }
-
-            onVisibleChanged: {
-                if (visible) {
-                    captureProc.running = false
-                    captureProc.running = true
-                }
-            }
-
-            // Background blur and darkening
-            Rectangle {
-                anchors.fill: parent
-                color: "black"   // fallback
-
-                Image {
-                    id: powerBgImage
-                    anchors.fill: parent
-                    source: bgUrl
-                    fillMode: Image.PreserveAspectCrop
-                    visible: bgUrl !== ""
-                    asynchronous: true
-                }
-
-                FastBlur {
-                    anchors.fill: powerBgImage
-                    source: powerBgImage
-                    radius: 64
-                    visible: powerBgImage.visible
-                }
-
-                Rectangle {
-                    anchors.fill: parent
-                    color: Qt.rgba(0, 0, 0, 0.6)
-                }
-            }
-
-            // Centered content with large buttons
             ColumnLayout {
-                anchors.centerIn: parent
-                spacing: 20
-                width: 420
+                id: powerMenuContent
+                anchors.fill: parent
+                anchors.margins: 16
+                spacing: 12
 
                 Text {
                     text: "Power Menu"
                     color: root.cal6
                     font.family: root.fontFamily
-                    font.pixelSize: root.fontSize * 2
+                    font.pixelSize: root.fontSize + 2
                     font.bold: true
                     Layout.alignment: Qt.AlignHCenter
-                    Layout.bottomMargin: 10
                 }
 
+                // Row 1: Lock, Suspend, Hibernate
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: 16
+                    spacing: 10
 
                     PowerButton {
                         icon: "󰍁"
                         label: "Lock"
-                        fontSize: root.fontSize + 6
-                        Layout.preferredHeight: 100
+                        bgColor: root.cal2
+                        hoverColor: root.cal3
+                        iconColor: root.cal14
+                        textColor: root.cal6
+                        fontFamily: root.fontFamily
+                        fontSize: root.fontSize
                         onClicked: {
                             powerController.lock()
                             root.powerMenuVisible = false
@@ -1572,50 +2210,61 @@ ShellRoot {
                     PowerButton {
                         icon: "󰤄"
                         label: "Suspend"
-                        fontSize: root.fontSize + 6
-                        Layout.preferredHeight: 100
+                        bgColor: root.cal2
+                        hoverColor: root.cal3
+                        iconColor: root.cal14
+                        textColor: root.cal6
+                        fontFamily: root.fontFamily
+                        fontSize: root.fontSize
                         onClicked: {
                             powerController.suspend()
                             root.powerMenuVisible = false
                         }
                     }
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 16
-
                     PowerButton {
                         icon: "󰒲"
                         label: "Hibernate"
-                        fontSize: root.fontSize + 6
-                        Layout.preferredHeight: 100
+                        bgColor: root.cal2
+                        hoverColor: root.cal3
+                        iconColor: root.cal14
+                        textColor: root.cal6
+                        fontFamily: root.fontFamily
+                        fontSize: root.fontSize
                         onClicked: {
                             powerController.hibernate()
                             root.powerMenuVisible = false
                         }
                     }
+                }
+
+                // Row 2: Logout, Reboot, Shutdown
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 10
+
                     PowerButton {
                         icon: "󰗽"
                         label: "Logout"
-                        fontSize: root.fontSize + 6
-                        Layout.preferredHeight: 100
+                        bgColor: root.cal2
+                        hoverColor: root.cal3
+                        iconColor: root.cal14
+                        textColor: root.cal6
+                        fontFamily: root.fontFamily
+                        fontSize: root.fontSize
                         onClicked: {
                             powerController.logout()
                             root.powerMenuVisible = false
                         }
                     }
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 16
-
                     PowerButton {
                         icon: "󰜉"
                         label: "Reboot"
-                        fontSize: root.fontSize + 6
-                        Layout.preferredHeight: 100
+                        bgColor: root.cal2
+                        hoverColor: root.cal3
+                        iconColor: root.cal14
+                        textColor: root.cal6
+                        fontFamily: root.fontFamily
+                        fontSize: root.fontSize
                         onClicked: {
                             powerController.reboot()
                             root.powerMenuVisible = false
@@ -1624,8 +2273,12 @@ ShellRoot {
                     PowerButton {
                         icon: "󰐥"
                         label: "Shutdown"
-                        fontSize: root.fontSize + 6
-                        Layout.preferredHeight: 100
+                        bgColor: root.cal2
+                        hoverColor: root.cal3
+                        iconColor: root.cal14
+                        textColor: root.cal6
+                        fontFamily: root.fontFamily
+                        fontSize: root.fontSize
                         onClicked: {
                             powerController.shutdown()
                             root.powerMenuVisible = false
@@ -1633,50 +2286,32 @@ ShellRoot {
                     }
                 }
 
-                // Cancel button with hover highlight
+                // Cancel button
                 Rectangle {
-                    id: cancelButton
-                    Layout.preferredWidth: 200
-                    Layout.preferredHeight: 50
+                    Layout.preferredWidth: 120
+                    Layout.preferredHeight: 36
                     Layout.alignment: Qt.AlignHCenter
-                    Layout.topMargin: 20
-                    radius: 25
+                    radius: 18
                     color: root.cal2
-                    border.width: 2
-                    border.color: root.cal3
 
                     Text {
                         anchors.centerIn: parent
                         text: "Cancel"
                         color: root.cal6
                         font.family: root.fontFamily
-                        font.pixelSize: root.fontSize + 4
-                        font.bold: true
+                        font.pixelSize: root.fontSize
                     }
 
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        hoverEnabled: true
-                        onEntered: {
-                            cancelButton.color = root.cal3
-                            cancelButton.border.color = root.cal6
-                        }
-                        onExited: {
-                            cancelButton.color = root.cal2
-                            cancelButton.border.color = root.cal3
-                        }
                         onClicked: root.powerMenuVisible = false
                     }
                 }
             }
-
-            // Invisible full‑screen click area to close (behind the content)
-            MouseArea {
-                anchors.fill: parent
-                z: -1
-                onClicked: root.powerMenuVisible = false
-            }
         }
     }
 }
+</file>
+
+</files>
