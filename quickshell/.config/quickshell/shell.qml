@@ -140,8 +140,16 @@ ShellRoot {
 					root.showBat = false;
 					return
 				}
-				root.showBat = true;
 				root.parseSysstats(data, "batIcon", "batText")
+
+				// Hide if battery percentage is 0% or can't be parsed
+				const pct = parseInt(root.batText, 10)
+				if (isNaN(pct) || pct <= 0) {
+					root.showBat = false;
+					return
+				}
+
+				root.showBat = true;
 			}
 		}
 	}
