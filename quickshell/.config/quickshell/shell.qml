@@ -81,6 +81,10 @@ ShellRoot {
 	WifiManager { id: wifiManager }
 	WeatherController { id: weather }
 	ScreenshotController { id: screenshot }
+	EmojiPicker { id: emojiPicker }
+	NerdFontPicker { id: nerdFontPicker }
+	NotesPicker { id: notesPicker }
+	AudioSwitcher { id: audioSwitcher }
 
 	property var notifBorder: (urgency) => {
 		switch (urgency) {
@@ -188,6 +192,7 @@ ShellRoot {
 
 	Timer { id: osdHideTimer; interval: root.osdTimeoutMs; onTriggered: root.osdVisible = false }
 
+	// Osd's IPC
 	IpcHandler {
 		target: "osd"
 		function volUp(): void     { const l = audio.volUp();     if (l >= 0) root.osdShow("VOL", l, root.cal14) }
@@ -214,7 +219,10 @@ ShellRoot {
 
 	Connections { target: media; function onNowPlaying() { if (media.showMedia) root.mosdShow() } }
 
+	// Media OSD
 	IpcHandler { target: "mediaosd"; function show(): void { root.mosdShow() } }
+
+	// Notification center
 	IpcHandler {
 		target: "notifcenter"
 		function toggle(): void { root.notifCenterVisible = !root.notifCenterVisible }
@@ -223,36 +231,48 @@ ShellRoot {
 		function dismissAll(): void { notifs.dismissAll() }
 		function clearHistory(): void { notifs.clearHistory() }
 	}
+
+  // Power Menu
 	IpcHandler {
 		target: "powermenu"
 		function toggle(): void { root.powerMenuVisible = !root.powerMenuVisible }
 		function show(): void { root.powerMenuVisible = true }
 		function hide(): void { root.powerMenuVisible = false }
 	}
+
+  // System Monitor
 	IpcHandler {
 		target: "sysmon"
 		function toggle(): void { root.sysMonVisible = !root.sysMonVisible }
 		function show(): void { root.sysMonVisible = true }
 		function hide(): void { root.sysMonVisible = false }
 	}
+
+  // Clipboard
 	IpcHandler {
 		target: "clipboard"
 		function toggle(): void { clipboard.active = !clipboard.active }
 		function show(): void { clipboard.active = true }
 		function hide(): void { clipboard.active = false }
 	}
+
+  // Wifi
 	IpcHandler {
 		target: "wifi"
 		function toggle(): void { wifiManager.active = !wifiManager.active }
 		function show(): void { wifiManager.active = true }
 		function hide(): void { wifiManager.active = false }
 	}
+
+  // Weather
 	IpcHandler {
 		target: "weather"
 		function toggle(): void { weather.active = !weather.active }
 		function show(): void { weather.active = true }
 		function hide(): void { weather.active = false }
 	}
+
+  // Screenshot
 	IpcHandler {
 		target: "screenshot"
 		function full(): void    { screenshot.screenshotFull() }
@@ -260,6 +280,15 @@ ShellRoot {
 		function monitor(): void { screenshot.screenshotMonitor() }
 		function region(): void  { screenshot.screenshotRegion() }
 		function color(): void   { screenshot.colorPicker() }
+	}
+
+	// Pickers
+	IpcHandler {
+    target: "pick"
+    function emoji(): void  { emojiPicker.active = !emojiPicker.active }
+    function icon(): void   { nerdFontPicker.active = !nerdFontPicker.active }
+    function notes(): void  { notesPicker.active = !notesPicker.active }
+    function audio(): void  { audioSwitcher.active = !audioSwitcher.active }
 	}
 
 	// Bar
@@ -595,7 +624,7 @@ ShellRoot {
 								Item { height: 20; width: parent.expanded ? micTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
 								Text { id: micTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: audio.micText; color: root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
 							}
-							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: micRow.hovered = true; onExited: micRow.hovered = false; onWheel: (wheel) => { if (wheel.angleDelta.y > 0) audio.micUp(); else audio.micDown() }; onClicked: (m) => { if(m.button === Qt.MiddleButton) micRow.pinned = !micRow.pinned; else if (m.button === Qt.LeftButton) { audio.micToggle() } else if (m.button === Qt.RightButton) { shellCmd.command = ["pavucontrol", "-t", "4"]; shellCmd.running = false; shellCmd.running = true } } }
+							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: micRow.hovered = true; onExited: micRow.hovered = false; onWheel: (wheel) => { if (wheel.angleDelta.y > 0) audio.micUp(); else audio.micDown() }; onClicked: (m) => { if(m.button === Qt.MiddleButton) micRow.pinned = !micRow.pinned; else if (m.button === Qt.LeftButton) { audio.micToggle() } else if (m.button === Qt.RightButton) { audioSwitcher.active = true } } }
 						}
 
 						// Volume
@@ -607,7 +636,7 @@ ShellRoot {
 								Item { height: 20; width: parent.expanded ? volTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
 								Text { id: volTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: audio.volText; color: root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
 							}
-							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: volRow.hovered = true; onExited: volRow.hovered = false; onWheel: (wheel) => { if (wheel.angleDelta.y > 0) audio.volUp(); else audio.volDown() }; onClicked: (m) => { if(m.button === Qt.MiddleButton) volRow.pinned = !volRow.pinned; else if (m.button === Qt.LeftButton) { audio.volToggle() } else if (m.button === Qt.RightButton) { shellCmd.command = ["pavucontrol", "-t", "3"]; shellCmd.running = false; shellCmd.running = true } } }
+							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: volRow.hovered = true; onExited: volRow.hovered = false; onWheel: (wheel) => { if (wheel.angleDelta.y > 0) audio.volUp(); else audio.volDown() }; onClicked: (m) => { if(m.button === Qt.MiddleButton) volRow.pinned = !volRow.pinned; else if (m.button === Qt.LeftButton) { audio.volToggle() } else if (m.button === Qt.RightButton) { audioSwitcher.active = true } } }
 						}
 					}
 				}
@@ -932,12 +961,13 @@ ShellRoot {
 
 							Text {
 								Layout.fillWidth: true
-								text: notifCard.modelData.summary
-								color: root.notifAccentText(notifCard.modelData.urgency)
+								text: modelData.summary
+								textFormat: Text.StyledText
+								color: root.cal6
 								font.family: root.fontFamily
-								font.pixelSize: root.fontSize
+								font.pixelSize: root.fontSize - 1
 								font.bold: true
-								horizontalAlignment: Text.AlignLeft
+								horizontalAlignment: Text.AlignHCenter
 								wrapMode: Text.Wrap
 								elide: Text.ElideRight
 								maximumLineCount: 2
@@ -945,16 +975,16 @@ ShellRoot {
 
 							Text {
 								Layout.fillWidth: true
-								visible: notifCard.modelData.body !== ""
-								text: notifCard.modelData.body
+								visible: modelData.body !== ""
+								text: modelData.body
 								textFormat: Text.StyledText
 								color: root.cal15
 								font.family: root.fontFamily
 								font.pixelSize: root.fontSize - 2
-								horizontalAlignment: Text.AlignLeft
+								horizontalAlignment: Text.AlignHCenter
 								wrapMode: Text.Wrap
-								elide: Text.ElideRight
 								maximumLineCount: 4
+								elide: Text.ElideRight
 							}
 
 							// Progress bar (if present)
@@ -1270,7 +1300,6 @@ ShellRoot {
 						font.family: root.fontFamily
 						font.pixelSize: root.fontSize - 1
 					}
-
 					delegate: Rectangle {
 						required property var modelData
 						required property int index
@@ -1325,7 +1354,7 @@ ShellRoot {
 									font.family: root.fontFamily
 									font.pixelSize: root.fontSize - 1
 									font.bold: true
-									horizontalAlignment: Text.AlignLeft
+									horizontalAlignment: Text.AlignHCenter        // centered
 									wrapMode: Text.Wrap
 									elide: Text.ElideRight
 									maximumLineCount: 2
@@ -1339,17 +1368,33 @@ ShellRoot {
 									color: root.cal15
 									font.family: root.fontFamily
 									font.pixelSize: root.fontSize - 2
-									horizontalAlignment: Text.AlignLeft
+									horizontalAlignment: Text.AlignHCenter        // centered
 									wrapMode: Text.Wrap
 									maximumLineCount: 4
 									elide: Text.ElideRight
 								}
 							}
+
+							// Delete button (✕)
+							Text {
+								text: "✕"
+								color: root.cal8
+								font.family: root.fontFamily
+								font.pixelSize: root.fontSize + 2
+								Layout.alignment: Qt.AlignVCenter
+
+								MouseArea {
+									anchors.fill: parent
+									cursorShape: Qt.PointingHandCursor
+									onClicked: notifs.removeHistory(index)
+								}
+							}
 						}
 
+						// Background click area (behind the RowLayout)
 						MouseArea {
-							z: 10
 							anchors.fill: parent
+							z: -1
 							cursorShape: Qt.PointingHandCursor
 							acceptedButtons: Qt.LeftButton
 							onClicked: notifs.removeHistory(index)

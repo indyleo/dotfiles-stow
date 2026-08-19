@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
 import QtQuick.Layouts
+import QtCore
 
 Item {
     id: root
@@ -14,7 +15,7 @@ Item {
     property string fontFamily: "sans-serif"
     property int fontSize: 14
 
-    readonly property string cacheDir: "/home/indy/.cache/quickshell-clipboard"
+		readonly property string cacheDir: StandardPaths.writableLocation(StandardPaths.HomeLocation).toString().replace("file://", "") + "/.cache/quickshell-clipboard"
     readonly property string historyFile: cacheDir + "/history.json"
     readonly property string pinnedFile: cacheDir + "/pinned.json"
     readonly property string imageDir: cacheDir + "/images"
@@ -263,6 +264,22 @@ Item {
         savePinned()
     }
 
+    // New: remove a single clip from whichever array it's in
+    function removeClip(clip) {
+        if (isPinned(clip)) {
+            pinned = pinned.filter(p =>
+                !(p.type === clip.type &&
+                  (clip.type === "text" ? p.content === clip.content : p.imagePath === clip.imagePath))
+            )
+        }
+        history = history.filter(h =>
+            !(h.type === clip.type &&
+              (clip.type === "text" ? h.content === clip.content : h.imagePath === clip.imagePath))
+        )
+        saveHistory()
+        savePinned()
+    }
+
     function pasteClip(clip) {
         if (clip.type === "text") {
             copyProc.command = ["wl-copy", "--", clip.content]
@@ -369,6 +386,7 @@ Item {
                                 Layout.fillWidth: true
                             }
 
+                            // Pin button
                             Text {
                                 text: root.isPinned(modelData) ? "" : ""
                                 color: root.isPinned(modelData) ? "#fabd2f" : "#7c6f64"
@@ -381,6 +399,7 @@ Item {
                                 }
                             }
 
+                            // Copy button
                             Text {
                                 text: ""
                                 color: "#83a598"
@@ -392,8 +411,22 @@ Item {
                                     onClicked: root.pasteClip(modelData)
                                 }
                             }
+
+                            // Delete button
+                            Text {
+                                text: "✕"
+                                color: "#fb4934"
+                                font.family: root.fontFamily
+                                font.pixelSize: root.fontSize + 1
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.removeClip(modelData)
+                                }
+                            }
                         }
 
+                        // Outer MouseArea for click-to-paste (behind the buttons)
                         MouseArea {
                             anchors.fill: parent
                             z: -1
@@ -408,10 +441,14 @@ Item {
                     Layout.fillWidth: true
 
                     Rectangle {
+                        id: clearBtn
                         Layout.fillWidth: true
                         height: 30
                         radius: 8
                         color: "#504945"
+                        border.width: 2
+                        border.color: "#7c6f64"
+
                         Text {
                             anchors.centerIn: parent
                             text: "Clear"
@@ -419,9 +456,19 @@ Item {
                             font.family: root.fontFamily
                             font.pixelSize: root.fontSize
                         }
+
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
+                            hoverEnabled: true
+                            onEntered: {
+                                clearBtn.color = "#7c6f64"
+                                clearBtn.border.color = "#ebdbb2"
+                            }
+                            onExited: {
+                                clearBtn.color = "#504945"
+                                clearBtn.border.color = "#7c6f64"
+                            }
                             onClicked: {
                                 root.history = []
                                 root.saveHistory()
@@ -430,10 +477,14 @@ Item {
                     }
 
                     Rectangle {
+                        id: closeBtn
                         Layout.fillWidth: true
                         height: 30
                         radius: 8
                         color: "#504945"
+                        border.width: 2
+                        border.color: "#7c6f64"
+
                         Text {
                             anchors.centerIn: parent
                             text: "Close"
@@ -441,9 +492,19 @@ Item {
                             font.family: root.fontFamily
                             font.pixelSize: root.fontSize
                         }
+
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
+                            hoverEnabled: true
+                            onEntered: {
+                                closeBtn.color = "#7c6f64"
+                                closeBtn.border.color = "#ebdbb2"
+                            }
+                            onExited: {
+                                closeBtn.color = "#504945"
+                                closeBtn.border.color = "#7c6f64"
+                            }
                             onClicked: root.active = false
                         }
                     }

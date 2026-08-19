@@ -77,14 +77,32 @@ PanelWindow {
 	Process { id: gpuProc; command: ["sysstats", "gpu"]; stdout: SplitParser { onRead: data => root.parseSysstats(data, "gpuIcon", "gpuText") } }
 	Process { id: memProc; command: ["sysstats", "mem"]; stdout: SplitParser { onRead: data => root.parseSysstats(data, "memIcon", "memText") } }
 	Process { id: diskProc; command: ["sysstats", "disk"]; stdout: SplitParser { onRead: data => root.parseSysstats(data, "diskIcon", "diskText") } }
-	Process { id: batProc; command: ["sysstats", "battery"]; stdout: SplitParser { onRead: data => {
-		if (!data || data.trim() === "" || data.includes("N/A") || data.startsWith("No") || data.trim() === "0%") {
-			root.batVisible = false;
-			return;
+
+	// Updated battery process – hides when percentage is 0 or unparseable
+	Process {
+		id: batProc
+		command: ["sysstats", "battery"]
+		stdout: SplitParser {
+			onRead: data => {
+				if (!data || data.trim() === "" || data.includes("N/A") || data.startsWith("No")) {
+					root.batVisible = false;
+					return;
+				}
+				root.parseSysstats(data, "batIcon", "batText");
+				// Extract numeric percentage from batText
+				var match = root.batText.match(/(\d+(?:\.\d+)?)%/);
+				if (match && match[1]) {
+					var pct = parseFloat(match[1]);
+					if (isFinite(pct) && pct > 0) {
+						root.batVisible = true;
+						return;
+					}
+				}
+				root.batVisible = false;
+			}
 		}
-		root.parseSysstats(data, "batIcon", "batText");
-		root.batVisible = true;
-	} } }
+	}
+
 	Process { id: ethProc; command: ["sysstats", "ethernet"]; stdout: SplitParser { onRead: data => {
 		if (!data) return;
 		root.parseSysstats(data, "ethIcon", "ethText")
@@ -238,6 +256,7 @@ PanelWindow {
 
 		// Close button
 		Rectangle {
+			id: sysMonCloseBtn
 			Layout.preferredWidth: 160
 			Layout.preferredHeight: 40
 			Layout.alignment: Qt.AlignHCenter
@@ -259,8 +278,14 @@ PanelWindow {
 				anchors.fill: parent
 				cursorShape: Qt.PointingHandCursor
 				hoverEnabled: true
-				onEntered: parent.color = "#7c6f64"
-				onExited: parent.color = "#504945"
+				onEntered: {
+					sysMonCloseBtn.color = "#7c6f64"
+					sysMonCloseBtn.border.color = "#ebdbb2"
+				}
+				onExited: {
+					sysMonCloseBtn.color = "#504945"
+					sysMonCloseBtn.border.color = "#7c6f64"
+				}
 				onClicked: root.active = false
 			}
 		}

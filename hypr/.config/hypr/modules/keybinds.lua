@@ -18,10 +18,10 @@ hl.bind(mainMod .. " + SHIFT + G", hl.dsp.exec_cmd("signal-desktop"))
 
 -- --- Launchers ---
 hl.bind(mainMod .. " + R", hl.dsp.exec_cmd(menu))
-hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("notebook"))
+hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("qs ipc call pick notes"))
 hl.bind(mainMod .. " + SHIFT + C", hl.dsp.exec_cmd("qs ipc call clipboard toggle"))
-hl.bind(mainMod .. " + SHIFT + E", hl.dsp.exec_cmd("emoji"))
-hl.bind(mainMod .. " + ALT + E", hl.dsp.exec_cmd("nerdfont"))
+hl.bind(mainMod .. " + SHIFT + E", hl.dsp.exec_cmd("qs ipc call pick emoji"))
+hl.bind(mainMod .. " + ALT + E", hl.dsp.exec_cmd("qs ipc call pick icon"))
 hl.bind(mainMod .. " + SHIFT + P", hl.dsp.exec_cmd("qs ipc call powermenu toggle"))
 hl.bind(mainMod .. " + ALT + R", hl.dsp.exec_cmd("recorder"))
 

@@ -12,6 +12,9 @@ Item {
     property bool wifiEnabled: true
     property string connectedSsid: ""
 
+    property string fontFamily: "JetBrainsMono Nerd Font"
+    property int fontSize: 13
+
     Process {
         id: nmcliProc
         property var callback
@@ -71,7 +74,6 @@ Item {
         nmcliProc.run(["nmcli", "device", "disconnect", "wlan0"])
     }
 
-    // Overlay - full-screen panel with centered rectangle
     PanelWindow {
         id: wifiWindow
         screen: Quickshell.screens[0]
@@ -79,7 +81,7 @@ Item {
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Overlay
-
+				WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
         anchors { top: true; bottom: true; left: true; right: true }
 
         Rectangle {
@@ -106,11 +108,15 @@ Item {
                         font.bold: true
                     }
                     Item { Layout.fillWidth: true }
+
                     Rectangle {
+                        id: wifiToggle
                         width: 60
                         height: 30
                         radius: 15
                         color: root.wifiEnabled ? "#83a598" : "#fb4934"
+                        border.width: 2
+                        border.color: "#7c6f64"
                         Text {
                             anchors.centerIn: parent
                             text: root.wifiEnabled ? "On" : "Off"
@@ -121,6 +127,10 @@ Item {
                         }
                         MouseArea {
                             anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            hoverEnabled: true
+                            onEntered: wifiToggle.border.color = "#ebdbb2"
+                            onExited: wifiToggle.border.color = "#7c6f64"
                             onClicked: root.toggleWifi()
                         }
                     }
@@ -131,12 +141,13 @@ Item {
                     Layout.fillHeight: true
                     clip: true
                     model: root.networks
-
                     delegate: Rectangle {
                         width: ListView.view.width
                         height: 40
                         radius: 8
                         color: modelData.inUse ? "#3c3836" : "#504945"
+                        border.width: 1
+                        border.color: modelData.inUse ? "#7c6f64" : "#504945"
                         RowLayout {
                             anchors.fill: parent
                             anchors.margins: 4
@@ -158,23 +169,27 @@ Item {
                         }
                         MouseArea {
                             anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            hoverEnabled: true
+                            onEntered: parent.border.color = "#ebdbb2"
+                            onExited: parent.border.color = modelData.inUse ? "#7c6f64" : "#504945"
                             onClicked: {
-                                if (modelData.inUse) {
-                                    root.disconnectCurrent()
-                                } else {
-                                    root.connectTo(modelData.ssid, "")
-                                }
+                                if (modelData.inUse) root.disconnectCurrent()
+                                else root.connectTo(modelData.ssid, "")
                             }
                         }
                     }
                 }
 
                 Rectangle {
+                    id: wifiCloseBtn
                     Layout.preferredWidth: 120
                     Layout.preferredHeight: 30
                     Layout.alignment: Qt.AlignHCenter
                     radius: 15
                     color: "#504945"
+                    border.width: 2
+                    border.color: "#7c6f64"
                     Text {
                         anchors.centerIn: parent
                         text: "Close"
@@ -184,6 +199,16 @@ Item {
                     }
                     MouseArea {
                         anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        hoverEnabled: true
+                        onEntered: {
+                            wifiCloseBtn.color = "#7c6f64"
+                            wifiCloseBtn.border.color = "#ebdbb2"
+                        }
+                        onExited: {
+                            wifiCloseBtn.color = "#504945"
+                            wifiCloseBtn.border.color = "#7c6f64"
+                        }
                         onClicked: root.active = false
                     }
                 }
