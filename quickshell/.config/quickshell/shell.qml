@@ -78,6 +78,8 @@ ShellRoot {
 	PowerController { id: powerController }
 	ClipboardController { id: clipboard }
 	WifiManager { id: wifiManager }
+	AppLauncher { id: appLauncher }
+	Dmenu { id: dmenu }
 	WeatherController { id: weather }
 	ScreenshotController { id: screenshot }
 	ScreenRecorder { id: screenRecorder }
@@ -287,6 +289,10 @@ ShellRoot {
 		function icon(): void   { nerdFontPicker.active = !nerdFontPicker.active }
 		function notes(): void  { notesPicker.active = !notesPicker.active }
 		function audio(): void  { audioSwitcher.active = !audioSwitcher.active }
+		function apps(): void { appLauncher.active = !appLauncher.active }
+		function dmenu(inputFile: string, outputFile: string, prompt: string): void {
+			dmenu.open(inputFile, outputFile, prompt)
+		}
 	}
 
 	// Screen Recorder IPC
@@ -386,10 +392,10 @@ ShellRoot {
 						onClicked: (m) => {
 							if (media.showMedia) {
 								if (m.button === Qt.LeftButton) media.playPause()
-								else if (m.button === Qt.RightButton) {  }
+								else if (m.button === Qt.RightButton) { appLauncher.active = true }
 								else if (m.button === Qt.MiddleButton) root.powerMenuVisible = true
 							} else {
-								if (m.button === Qt.LeftButton) {  }
+								if (m.button === Qt.LeftButton) { appLauncher.active = true }
 								else root.powerMenuVisible = true
 							}
 						}
