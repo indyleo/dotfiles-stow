@@ -1,0 +1,372 @@
+import QtQuick
+import Quickshell
+import Quickshell.Wayland
+import Quickshell.Io
+import Quickshell.Widgets
+import QtQuick.Layouts
+import QtCore
+
+PanelWindow {
+    id: root
+
+    property bool active: false
+    visible: active
+
+    property var allApps: []
+    property string searchText: ""
+    property int selectedIndex: 0
+    property var usage: ({})
+
+    property string fontFamily: "JetBrainsMono Nerd Font"
+    property int fontSize: 13
+    readonly property color cal0: "#282828"
+    readonly property color cal2: "#504945"
+    readonly property color cal3: "#7c6f64"
+    readonly property color cal6: "#ebdbb2"
+    readonly property color cal14: "#fe8019"
+
+    readonly property string cacheDir: StandardPaths.writableLocation(StandardPaths.HomeLocation).toString().replace("file://", "") + "/.cache/quickshell-launcher"
+    readonly property string usageFile: cacheDir + "/usage.json"
+
+    screen: Quickshell.screens[0]
+    color: "transparent"
+    exclusionMode: ExclusionMode.Normal
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+    anchors { top: true; bottom: true; left: true; right: true }
+
+    // ------------------------------------------------------------
+    // App discovery
+    // ------------------------------------------------------------
+
+    readonly property string listScript: [
+        "DIRS=\"$HOME/.local/share/applications /usr/local/share/applications /usr/share/applications /var/lib/flatpak/exports/share/applications $HOME/.local/share/flatpak/exports/share/applications /var/lib/snapd/desktop/applications\"",
+        "SEEN=$(mktemp)",
+        "for d in $DIRS; do",
+        "  [ -d \"$d\" ] || continue",
+        "  for f in \"$d\"/*.desktop; do",
+        "    [ -f \"$f\" ] || continue",
+        "    base=$(basename \"$f\")",
+        "    grep -qxF \"$base\" \"$SEEN\" 2>/dev/null && continue",
+        "    echo \"$base\" >> \"$SEEN\"",
+        "    nodisplay=$(grep -m1 '^NoDisplay=' \"$f\" | cut -d= -f2)",
+        "    hidden=$(grep -m1 '^Hidden=' \"$f\" | cut -d= -f2)",
+        "    [ \"$nodisplay\" = \"true\" ] && continue",
+        "    [ \"$hidden\" = \"true\" ] && continue",
+        "    name=$(grep -m1 '^Name=' \"$f\" | cut -d= -f2-)",
+        "    [ -z \"$name\" ] && continue",
+        "    icon=$(grep -m1 '^Icon=' \"$f\" | cut -d= -f2-)",
+        "    printf '%s\\x1f%s\\x1f%s\\n' \"$name\" \"$icon\" \"$f\"",
+        "  done",
+        "done",
+        "rm -f \"$SEEN\""
+    ].join("\n")
+
+    Process {
+        id: listProc
+        command: ["bash", "-c", root.listScript]
+        stdout: StdioCollector {}
+        onExited: (code, status) => {
+            if (code !== 0) {
+                console.warn("[AppLauncher] Failed to list applications:", code)
+                return
+            }
+            var lines = listProc.stdout.text.split("\n").filter(l => l !== "")
+            var apps = lines.map(function(line) {
+                var parts = line.split("\u001F")
+                return { name: parts[0] || "", icon: parts[1] || "", path: parts[2] || "" }
+            }).filter(a => a.name !== "")
+            root.allApps = apps
+        }
+    }
+
+    function refreshApps() {
+        listProc.running = false
+        listProc.running = true
+    }
+
+    // ------------------------------------------------------------
+    // Usage / frecency (mirrors ClipboardController's file pattern)
+    // ------------------------------------------------------------
+
+    Process {
+        id: fileProc
+        property var callback
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (!fileProc.callback) return
+                var cb = fileProc.callback
+                fileProc.callback = null
+                cb(fileProc.exitCode, text)
+            }
+        }
+        function run(cmd) {
+            command = cmd
+            running = false
+            running = true
+        }
+    }
+
+    function loadUsage() {
+        fileProc.callback = function(code, out) {
+            if (code === 0) {
+                try {
+                    var parsed = JSON.parse(out)
+                    root.usage = (parsed && typeof parsed === "object") ? parsed : {}
+                } catch (e) {
+                    root.usage = {}
+                }
+            } else {
+                root.usage = {}
+            }
+        }
+        fileProc.run(["sh", "-c", "cat '" + root.usageFile + "' 2>/dev/null || echo '{}'"])
+    }
+
+    function saveUsage() {
+        var data = JSON.stringify(root.usage)
+        fileProc.run([
+            "sh", "-c",
+            "mkdir -p '" + root.cacheDir + "' && printf '%s' '" + data.replace(/'/g, "'\\''") + "' > '" + root.usageFile + "'"
+        ])
+    }
+
+    function bumpUsage(path) {
+        var u = root.usage
+        u[path] = (u[path] || 0) + 1
+        root.usage = u
+        saveUsage()
+    }
+
+    // ------------------------------------------------------------
+    // Launching
+    // ------------------------------------------------------------
+
+    Process { id: launchProc }
+
+    function launchApp(app) {
+        if (!app) return
+        launchProc.command = ["gio", "launch", app.path]
+        launchProc.running = false
+        launchProc.running = true
+        root.bumpUsage(app.path)
+        root.active = false
+    }
+
+    function launchSelected() {
+        var list = root.filteredApps
+        if (list.length === 0) return
+        var idx = Math.max(0, Math.min(root.selectedIndex, list.length - 1))
+        root.launchApp(list[idx])
+    }
+
+    // ------------------------------------------------------------
+    // Filtering / sorting (name match first, then frecency)
+    // ------------------------------------------------------------
+
+    readonly property var filteredApps: {
+        var q = searchText.trim().toLowerCase()
+        var list = allApps
+
+        if (q !== "") {
+            list = list.filter(function(a) { return a.name.toLowerCase().includes(q) })
+        }
+
+        list = list.slice().sort(function(a, b) {
+            if (q !== "") {
+                var aStarts = a.name.toLowerCase().startsWith(q) ? 0 : 1
+                var bStarts = b.name.toLowerCase().startsWith(q) ? 0 : 1
+                if (aStarts !== bStarts) return aStarts - bStarts
+            }
+            var au = root.usage[a.path] || 0
+            var bu = root.usage[b.path] || 0
+            if (au !== bu) return bu - au
+            return a.name.localeCompare(b.name)
+        })
+
+        return list
+    }
+
+    onFilteredAppsChanged: {
+        if (root.selectedIndex >= filteredApps.length) root.selectedIndex = Math.max(0, filteredApps.length - 1)
+    }
+
+    onActiveChanged: {
+        if (active) {
+            searchText = ""
+            selectedIndex = 0
+            refreshApps()
+            loadUsage()
+            focusTimer.start()
+        }
+    }
+
+    Timer {
+        id: focusTimer
+        interval: 50
+        repeat: false
+        onTriggered: searchInput.forceActiveFocus()
+    }
+
+    // ------------------------------------------------------------
+    // UI
+    // ------------------------------------------------------------
+
+    Rectangle {
+        width: 480
+        height: 560
+        anchors.centerIn: parent
+        radius: 16
+        color: cal0
+        border.width: 2
+        border.color: cal3
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 16
+            spacing: 12
+
+            Text {
+                text: "Launch"
+                color: cal6
+                font.family: root.fontFamily
+                font.pixelSize: root.fontSize + 4
+                font.bold: true
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 36
+                radius: 10
+                color: cal2
+                border.width: 2
+                border.color: cal3
+
+                Text {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 10
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "Search applications..."
+                    color: cal3
+                    font.family: root.fontFamily
+                    font.pixelSize: root.fontSize
+                    visible: searchInput.text === ""
+                }
+
+                TextInput {
+                    id: searchInput
+                    anchors.fill: parent
+                    anchors.margins: 10
+                    color: cal6
+                    font.family: root.fontFamily
+                    font.pixelSize: root.fontSize
+                    verticalAlignment: TextInput.AlignVCenter
+                    focus: true
+                    onTextChanged: {
+                        root.searchText = text
+                        root.selectedIndex = 0
+                    }
+                    Keys.onEscapePressed: root.active = false
+                    Keys.onReturnPressed: root.launchSelected()
+                    Keys.onUpPressed: {
+                        if (root.filteredApps.length === 0) return
+                        root.selectedIndex = Math.max(0, root.selectedIndex - 1)
+                        appList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
+                    }
+                    Keys.onDownPressed: {
+                        if (root.filteredApps.length === 0) return
+                        root.selectedIndex = Math.min(root.filteredApps.length - 1, root.selectedIndex + 1)
+                        appList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
+                    }
+                }
+            }
+
+            ListView {
+                id: appList
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                spacing: 4
+                model: root.filteredApps
+
+                Text {
+                    visible: root.filteredApps.length === 0
+                    anchors.centerIn: parent
+                    text: "No applications found"
+                    color: cal3
+                    font.family: root.fontFamily
+                    font.pixelSize: root.fontSize - 1
+                }
+
+                delegate: Rectangle {
+                    id: appDelegate
+                    required property var modelData
+                    required property int index
+                    width: ListView.view.width
+                    height: 44
+                    radius: 10
+                    color: index === root.selectedIndex ? cal2 : "transparent"
+                    border.width: 1
+                    border.color: index === root.selectedIndex ? cal14 : "transparent"
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 6
+                        spacing: 10
+
+                        IconImage {
+                            Layout.preferredWidth: 28
+                            Layout.preferredHeight: 28
+                            source: Quickshell.iconPath(appDelegate.modelData.icon, "application-x-executable")
+                        }
+
+                        Text {
+                            text: appDelegate.modelData.name
+                            color: cal6
+                            font.family: root.fontFamily
+                            font.pixelSize: root.fontSize
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        hoverEnabled: true
+                        onEntered: root.selectedIndex = appDelegate.index
+                        onClicked: root.launchApp(appDelegate.modelData)
+                    }
+                }
+            }
+
+            Rectangle {
+                id: closeBtn
+                Layout.preferredWidth: 120
+                Layout.preferredHeight: 30
+                Layout.alignment: Qt.AlignHCenter
+                radius: 15
+                color: cal2
+                border.width: 2
+                border.color: cal3
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "Close"
+                    color: cal6
+                    font.family: root.fontFamily
+                    font.pixelSize: root.fontSize
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    hoverEnabled: true
+                    onEntered: { closeBtn.color = cal3; closeBtn.border.color = cal6 }
+                    onExited: { closeBtn.color = cal2; closeBtn.border.color = cal3 }
+                    onClicked: root.active = false
+                }
+            }
+        }
+    }
+}

@@ -8,6 +8,24 @@ import Qt5Compat.GraphicalEffects
 PanelWindow {
 	id: root
 
+	    // Colors (same as shell)
+    readonly property color cal0:  "#282828"
+    readonly property color cal1:  "#3c3836"
+    readonly property color cal2:  "#504945"
+    readonly property color cal3:  "#7c6f64"
+    readonly property color cal4:  "#a89984"
+    readonly property color cal5:  "#d5c4a1"
+    readonly property color cal6:  "#ebdbb2"
+    readonly property color cal7:  "#83a598"
+    readonly property color cal8:  "#fb4934"
+    readonly property color cal9:  "#d3869b"
+    readonly property color cal10: "#fabd2f"
+    readonly property color cal11: "#cc241d"
+    readonly property color cal12: "#458588"
+    readonly property color cal13: "#b8bb26"
+    readonly property color cal14: "#fe8019"
+    readonly property color cal15: "#bdae93"
+
 	property bool active: false
 	visible: active
 
@@ -19,7 +37,8 @@ PanelWindow {
 	anchors { top: true; bottom: true; left: true; right: true }
 
 	property string bgUrl: ""
-	property var screenshotProvider: null   // Set from shell.qml to the ScreenshotController instance
+	property var screenshotProvider: null
+	property var screenRecorder: null
 
 	onActiveChanged: {
 		if (root.active && root.screenshotProvider) {
@@ -121,7 +140,6 @@ PanelWindow {
 	} } }
 	Process { id: uptimeProc; command: ["sysstats", "uptime"]; stdout: SplitParser { onRead: data => root.parseSysstats(data, "uptimeIcon", "uptimeText") } }
 	Process { id: kernelProc; command: ["sysstats", "kernel"]; stdout: SplitParser { onRead: data => root.parseSysstats(data, "kernelIcon", "kernelText") } }
-	Process { id: mediaProc; command: ["sysstats", "media"]; stdout: SplitParser { onRead: data => root.parseSysstats(data, "mediaIcon", "mediaText") } }
 	Process { id: weatherProc; command: ["sysstats", "weather"]; stdout: SplitParser { onRead: data => {
 		if (!data || data.trim() === "") {
 			root.weatherIcon = "󰖐";
@@ -145,7 +163,6 @@ PanelWindow {
 			ethProc.running = false; ethProc.running = true
 			tailProc.running = false; tailProc.running = true
 			batProc.running = false; batProc.running = true
-			mediaProc.running = false; mediaProc.running = true
 			uptimeProc.running = false; uptimeProc.running = true
 		}
 	}
@@ -245,7 +262,12 @@ PanelWindow {
 		RowLayout {
 			Layout.fillWidth: true
 			spacing: 16
-			StatCard { icon: root.mediaIcon; text: root.mediaText; accent: "#fe8019" }
+			StatCard {
+				icon: root.screenRecorder ? (root.screenRecorder.recording ? "󰑊" : (root.screenRecorder.streaming ? "󰐊" : "")) : "󰝚"
+				text: root.screenRecorder ? (root.screenRecorder.recording ? "REC" : (root.screenRecorder.streaming ? "LIVE" : "Idle")) : "Idle"
+				accent: root.screenRecorder && (root.screenRecorder.recording || root.screenRecorder.streaming) ? root.cal10 : root.cal10
+			}
+
 			StatCard { visible: root.weatherText !== ""; icon: root.weatherIcon; text: root.weatherText; accent: "#83a598" }
 		}
 

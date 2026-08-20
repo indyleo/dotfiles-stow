@@ -63,7 +63,6 @@ ShellRoot {
 	property string tailText: "Not connected"
 	property bool showTail: false
 
-	property string sysMediaIcon: ""
 	property string sysMediaText: ""
 
 	property bool notifCenterVisible: false
@@ -75,12 +74,13 @@ ShellRoot {
 	BrightnessController { id: bright }
 	NotificationController { id: notifs }
 	BatteryController { id: battery }
-	SystemMonitor { id: sysMon; active: root.sysMonVisible; screenshotProvider: screenshot }
+	SystemMonitor { id: sysMon; active: root.sysMonVisible; screenshotProvider: screenshot; screenRecorder: screenRecorder }
 	PowerController { id: powerController }
 	ClipboardController { id: clipboard }
 	WifiManager { id: wifiManager }
 	WeatherController { id: weather }
 	ScreenshotController { id: screenshot }
+	ScreenRecorder { id: screenRecorder }
 	EmojiPicker { id: emojiPicker }
 	NerdFontPicker { id: nerdFontPicker }
 	NotesPicker { id: notesPicker }
@@ -153,7 +153,6 @@ ShellRoot {
 			}
 		}
 	}
-	Process { id: sysMediaProc; command: ["sysstats", "media"]; stdout: SplitParser { onRead: data => root.parseSysstats(data, "sysMediaIcon", "sysMediaText") } }
 
 	Timer {
 		interval: 2000; running: true; repeat: true; triggeredOnStart: true
@@ -164,7 +163,6 @@ ShellRoot {
 			wifiProc.running = false; wifiProc.running = true
 			ethProc.running = false; ethProc.running = true
 			tailProc.running = false; tailProc.running = true
-			sysMediaProc.running = false; sysMediaProc.running = true
 		}
 	}
 	Timer {
@@ -232,7 +230,7 @@ ShellRoot {
 		function clearHistory(): void { notifs.clearHistory() }
 	}
 
-  // Power Menu
+	// Power Menu
 	IpcHandler {
 		target: "powermenu"
 		function toggle(): void { root.powerMenuVisible = !root.powerMenuVisible }
@@ -240,7 +238,7 @@ ShellRoot {
 		function hide(): void { root.powerMenuVisible = false }
 	}
 
-  // System Monitor
+	// System Monitor
 	IpcHandler {
 		target: "sysmon"
 		function toggle(): void { root.sysMonVisible = !root.sysMonVisible }
@@ -248,7 +246,7 @@ ShellRoot {
 		function hide(): void { root.sysMonVisible = false }
 	}
 
-  // Clipboard
+	// Clipboard
 	IpcHandler {
 		target: "clipboard"
 		function toggle(): void { clipboard.active = !clipboard.active }
@@ -256,7 +254,7 @@ ShellRoot {
 		function hide(): void { clipboard.active = false }
 	}
 
-  // Wifi
+	// Wifi
 	IpcHandler {
 		target: "wifi"
 		function toggle(): void { wifiManager.active = !wifiManager.active }
@@ -264,7 +262,7 @@ ShellRoot {
 		function hide(): void { wifiManager.active = false }
 	}
 
-  // Weather
+	// Weather
 	IpcHandler {
 		target: "weather"
 		function toggle(): void { weather.active = !weather.active }
@@ -272,7 +270,7 @@ ShellRoot {
 		function hide(): void { weather.active = false }
 	}
 
-  // Screenshot
+	// Screenshot
 	IpcHandler {
 		target: "screenshot"
 		function full(): void    { screenshot.screenshotFull() }
@@ -284,11 +282,19 @@ ShellRoot {
 
 	// Pickers
 	IpcHandler {
-    target: "pick"
-    function emoji(): void  { emojiPicker.active = !emojiPicker.active }
-    function icon(): void   { nerdFontPicker.active = !nerdFontPicker.active }
-    function notes(): void  { notesPicker.active = !notesPicker.active }
-    function audio(): void  { audioSwitcher.active = !audioSwitcher.active }
+		target: "pick"
+		function emoji(): void  { emojiPicker.active = !emojiPicker.active }
+		function icon(): void   { nerdFontPicker.active = !nerdFontPicker.active }
+		function notes(): void  { notesPicker.active = !notesPicker.active }
+		function audio(): void  { audioSwitcher.active = !audioSwitcher.active }
+	}
+
+	// Screen Recorder IPC
+	IpcHandler {
+		target: "recorder"
+		function toggleRecord(): void { screenRecorder.toggleRecord() }
+		function toggleStream(): void { screenRecorder.toggleStream() }
+		function actionPicker(): void { screenRecorder.showActionPicker() }
 	}
 
 	// Bar
@@ -407,24 +413,82 @@ ShellRoot {
 					}
 				}
 
-				// Screen/Media status
+				// Recording / Screencast pill
 				Rectangle {
-					visible: isPrimary; Layout.preferredHeight: 26; Layout.preferredWidth: sysMediaRow.implicitWidth + 24; color: root.cal2; radius: 13
+					visible: isPrimary
+					Layout.preferredHeight: 26
+					Layout.preferredWidth: recordRow.implicitWidth + 20
+					color: root.cal2
+					radius: 13
+
 					Row {
-						id: sysMediaRow; anchors.centerIn: parent; spacing: 0
-						property bool pinned: false; property bool hovered: false
+						id: recordRow
+						anchors.centerIn: parent
+						spacing: 0
+						property bool pinned: false
+						property bool hovered: false
 						readonly property bool expanded: pinned || hovered
-						Text { text: root.sysMediaIcon; color: root.cal10; font.pixelSize: root.fontSize+2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+						property bool active: screenRecorder.recording || screenRecorder.streaming
+
+						// Icon (always visible)
+						Text {
+							text: recordRow.active ? (screenRecorder.recording ? "󰑊" : "󰐊") : ""
+							color: recordRow.active ? root.cal10 : root.cal10
+							font.pixelSize: root.fontSize + 2
+							font.family: root.fontFamily
+							anchors.verticalCenter: parent.verticalCenter
+						}
+
+						// Expanding text (hidden by default)
 						Item {
-							height: 20; width: parent.expanded ? sysMediaTxt.implicitWidth+8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter
+							width: recordRow.expanded ? recTxt.implicitWidth + 8 : 0
+							height: 20
+							clip: true
+							anchors.verticalCenter: parent.verticalCenter
 							Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-							Text { id: sysMediaTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.sysMediaText; color: root.cal10; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } }
+
+							Text {
+								id: recTxt
+								anchors.left: parent.left
+								anchors.leftMargin: 6
+								anchors.verticalCenter: parent.verticalCenter
+								text: recordRow.active ? (screenRecorder.recording ? "REC" : "LIVE") : "Idle"
+								color: recordRow.active ? root.cal10 : root.cal10
+								font.pixelSize: root.fontSize
+								font.family: root.fontFamily
+								font.bold: true
+								opacity: parent.width > 5 ? 1 : 0
+								Behavior on opacity { NumberAnimation { duration: 200 } }
+							}
 						}
 					}
+
 					MouseArea {
-						anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton; hoverEnabled: true
-						onEntered: sysMediaRow.hovered = true; onExited: sysMediaRow.hovered = false
-						onClicked: (m) => { if (m.button === Qt.MiddleButton) sysMediaRow.pinned = !sysMediaRow.pinned; else if (m.button === Qt.LeftButton) { shellCmd.command = ["sh", "-c", "recorder"]; shellCmd.running = false; shellCmd.running = true } }
+						anchors.fill: parent
+						cursorShape: Qt.PointingHandCursor
+						acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+						hoverEnabled: true
+
+						onEntered: recordRow.hovered = true
+						onExited: recordRow.hovered = false
+
+						onClicked: (m) => {
+							if (m.button === Qt.MiddleButton) {
+								// Toggle permanent pin state
+								recordRow.pinned = !recordRow.pinned
+							} else if (m.button === Qt.LeftButton) {
+								// Show action picker (start/stop selection)
+								screenRecorder.showActionPicker()
+							} else if (m.button === Qt.RightButton) {
+								// Stop all active sessions, or show picker if none
+								if (screenRecorder.recording || screenRecorder.streaming) {
+									if (screenRecorder.recording) screenRecorder.stopRecord()
+									if (screenRecorder.streaming) screenRecorder.stopStream()
+								} else {
+									screenRecorder.showActionPicker()
+								}
+							}
+						}
 					}
 				}
 

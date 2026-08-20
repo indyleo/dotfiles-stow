@@ -1,6 +1,6 @@
 terminal = "footclient"
 fileManager = "thunar"
-menu = "rofi -show drun"
+menu = "qs ipc call pick apps"
 browser = "librewolf"
 scrPath = os.getenv("HOME") .. "/.config/hypr/scripts"
 barLaunch = scrPath .. "/bar-launch.sh"
