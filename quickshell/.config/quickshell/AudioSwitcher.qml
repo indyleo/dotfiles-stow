@@ -1,16 +1,13 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
-import Quickshell.Io
+import Quickshell.Services.Pipewire
 import QtQuick.Layouts
 
 PanelWindow {
     id: root
     property bool active: false
     visible: active
-
-    property var sinks: []
-    property var sources: []
 
     property string fontFamily: "JetBrainsMono Nerd Font"
     property int fontSize: 13
@@ -26,66 +23,34 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Overlay
     anchors { top: true; bottom: true; left: true; right: true }
 
-    Process {
-        id: sinkProc
-        command: ["pactl", "list", "short", "sinks"]
-        stdout: StdioCollector {}
-        onExited: (code, status) => {
-            console.warn("[AudioSwitcher] sinkProc exited, code:", code)
-            if (code === 0) {
-                var text = sinkProc.stdout.text
-                var lines = text.trim().split("\n").filter(s => s !== "")
-                var arr = []
-                for (var i = 0; i < lines.length; i++) {
-                    var parts = lines[i].split(/\s+/)
-                    if (parts.length >= 2)
-                        arr.push({ name: parts[1], desc: parts.slice(2).join(" ") || parts[1] })
-                }
-                root.sinks = arr
-                console.warn("[AudioSwitcher] Sinks loaded:", arr.length)
-            }
-        }
+    // Previously this parsed `pactl list short sinks` by splitting on
+    // whitespace. That short format is index/name/driver/sample-spec/state -
+    // there is no human-readable description field in it at all, so what
+    // was labelled "desc" was actually just the driver name or blank. It
+    // also broke outright on any device whose driver field happened to
+    // contain extra whitespace-separated tokens.
+    //
+    // Quickshell ships a native PipeWire binding (already used in
+    // AudioController.qml) that exposes real node metadata directly, so
+    // there's no text format to misparse and no subprocess that can fail
+    // silently.
+    readonly property var sinks: Pipewire.nodes.values.filter(function(n) {
+        return n.audio && !n.isStream && n.isSink
+    })
+    readonly property var sources: Pipewire.nodes.values.filter(function(n) {
+        return n.audio && !n.isStream && !n.isSink
+    })
+
+    PwObjectTracker { objects: root.sinks.concat(root.sources) }
+
+    function deviceLabel(node) {
+        return node.description || node.nickname || node.name
     }
 
-    Process {
-        id: sourceProc
-        command: ["pactl", "list", "short", "sources"]
-        stdout: StdioCollector {}
-        onExited: (code, status) => {
-            console.warn("[AudioSwitcher] sourceProc exited, code:", code)
-            if (code === 0) {
-                var text = sourceProc.stdout.text
-                var lines = text.trim().split("\n").filter(s => s !== "")
-                var arr = []
-                for (var i = 0; i < lines.length; i++) {
-                    var parts = lines[i].split(/\s+/)
-                    if (parts.length >= 2)
-                        arr.push({ name: parts[1], desc: parts.slice(2).join(" ") || parts[1] })
-                }
-                root.sources = arr
-                console.warn("[AudioSwitcher] Sources loaded:", arr.length)
-            }
-        }
-    }
-
-    function refreshDevices() {
-        sinkProc.running = false
-        sinkProc.running = true
-        sourceProc.running = false
-        sourceProc.running = true
-        console.warn("[AudioSwitcher] refreshDevices called")
-    }
-
-    Process { id: setProc }
-    function setDefault(device, type) {
-        setProc.command = (type === "sink") ? ["pactl", "set-default-sink", device] : ["pactl", "set-default-source", device]
-        setProc.running = false
-        setProc.running = true
+    function setDefault(node, type) {
+        if (type === "sink") Pipewire.preferredDefaultAudioSink = node
+        else Pipewire.preferredDefaultAudioSource = node
         root.active = false
-    }
-
-    onActiveChanged: {
-        if (active) refreshDevices()
     }
 
     Rectangle {
@@ -126,25 +91,39 @@ PanelWindow {
                         spacing: 6
                         model: root.sinks
                         delegate: Rectangle {
+                            id: sinkDelegate
+                            required property var modelData
+                            readonly property bool isDefault: modelData === Pipewire.defaultAudioSink
                             width: ListView.view.width
                             height: 50
                             radius: 10
                             color: cal2
-                            border.width: 1
-                            border.color: cal3
-                            ColumnLayout {
+                            border.width: isDefault ? 2 : 1
+                            border.color: isDefault ? cal14 : cal3
+                            RowLayout {
                                 anchors.fill: parent
                                 anchors.margins: 8
-                                Text { text: modelData.desc; color: cal6; font.family: root.fontFamily; font.pixelSize: root.fontSize }
-                                Text { text: modelData.name; color: cal3; font.family: root.fontFamily; font.pixelSize: root.fontSize - 2 }
+                                spacing: 8
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: root.deviceLabel(sinkDelegate.modelData); color: cal6; font.family: root.fontFamily; font.pixelSize: root.fontSize }
+                                    Text { text: sinkDelegate.modelData.name; color: cal3; font.family: root.fontFamily; font.pixelSize: root.fontSize - 2 }
+                                }
+                                Text {
+                                    visible: sinkDelegate.isDefault
+                                    text: "\uf00c"
+                                    color: cal14
+                                    font.family: root.fontFamily
+                                    font.pixelSize: root.fontSize
+                                }
                             }
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
                                 hoverEnabled: true
-                                onEntered: parent.border.color = cal14
-                                onExited: parent.border.color = cal3
-                                onClicked: root.setDefault(modelData.name, "sink")
+                                onEntered: if (!sinkDelegate.isDefault) parent.border.color = cal14
+                                onExited: if (!sinkDelegate.isDefault) parent.border.color = cal3
+                                onClicked: root.setDefault(sinkDelegate.modelData, "sink")
                             }
                         }
                     }
@@ -161,25 +140,39 @@ PanelWindow {
                         spacing: 6
                         model: root.sources
                         delegate: Rectangle {
+                            id: sourceDelegate
+                            required property var modelData
+                            readonly property bool isDefault: modelData === Pipewire.defaultAudioSource
                             width: ListView.view.width
                             height: 50
                             radius: 10
                             color: cal2
-                            border.width: 1
-                            border.color: cal3
-                            ColumnLayout {
+                            border.width: isDefault ? 2 : 1
+                            border.color: isDefault ? cal14 : cal3
+                            RowLayout {
                                 anchors.fill: parent
                                 anchors.margins: 8
-                                Text { text: modelData.desc; color: cal6; font.family: root.fontFamily; font.pixelSize: root.fontSize }
-                                Text { text: modelData.name; color: cal3; font.family: root.fontFamily; font.pixelSize: root.fontSize - 2 }
+                                spacing: 8
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: root.deviceLabel(sourceDelegate.modelData); color: cal6; font.family: root.fontFamily; font.pixelSize: root.fontSize }
+                                    Text { text: sourceDelegate.modelData.name; color: cal3; font.family: root.fontFamily; font.pixelSize: root.fontSize - 2 }
+                                }
+                                Text {
+                                    visible: sourceDelegate.isDefault
+                                    text: "\uf00c"
+                                    color: cal14
+                                    font.family: root.fontFamily
+                                    font.pixelSize: root.fontSize
+                                }
                             }
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
                                 hoverEnabled: true
-                                onEntered: parent.border.color = cal14
-                                onExited: parent.border.color = cal3
-                                onClicked: root.setDefault(modelData.name, "source")
+                                onEntered: if (!sourceDelegate.isDefault) parent.border.color = cal14
+                                onExited: if (!sourceDelegate.isDefault) parent.border.color = cal3
+                                onClicked: root.setDefault(sourceDelegate.modelData, "source")
                             }
                         }
                     }

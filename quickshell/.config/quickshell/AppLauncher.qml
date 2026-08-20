@@ -86,49 +86,54 @@ PanelWindow {
     }
 
     // ------------------------------------------------------------
-    // Usage / frecency (mirrors ClipboardController's file pattern)
+    // Usage / frecency
     // ------------------------------------------------------------
+    // Previously this shelled out via `sh -c "cat '<path>' ..."` with the
+    // path interpolated straight into a quoted shell string. If the cache
+    // directory ever contained a single quote (an apostrophe in the
+    // username, for instance) the command broke. FileView talks to the
+    // filesystem directly and sidesteps shell quoting entirely.
 
+    FileView {
+        id: usageFileObj
+        path: root.usageFile
+    }
+
+    // Directory creation is a real argv array, not a shell string, so no
+    // quoting is needed here either.
     Process {
-        id: fileProc
+        id: mkdirProc
         property var callback
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (!fileProc.callback) return
-                var cb = fileProc.callback
-                fileProc.callback = null
-                cb(fileProc.exitCode, text)
+        onExited: (code, status) => {
+            if (mkdirProc.callback) {
+                var cb = mkdirProc.callback
+                mkdirProc.callback = null
+                cb(code)
             }
-        }
-        function run(cmd) {
-            command = cmd
-            running = false
-            running = true
         }
     }
 
     function loadUsage() {
-        fileProc.callback = function(code, out) {
-            if (code === 0) {
-                try {
-                    var parsed = JSON.parse(out)
-                    root.usage = (parsed && typeof parsed === "object") ? parsed : {}
-                } catch (e) {
-                    root.usage = {}
-                }
-            } else {
-                root.usage = {}
-            }
+        try {
+            var parsed = JSON.parse(usageFileObj.text())
+            root.usage = (parsed && typeof parsed === "object") ? parsed : {}
+        } catch (e) {
+            root.usage = {}
         }
-        fileProc.run(["sh", "-c", "cat '" + root.usageFile + "' 2>/dev/null || echo '{}'"])
     }
 
     function saveUsage() {
         var data = JSON.stringify(root.usage)
-        fileProc.run([
-            "sh", "-c",
-            "mkdir -p '" + root.cacheDir + "' && printf '%s' '" + data.replace(/'/g, "'\\''") + "' > '" + root.usageFile + "'"
-        ])
+        mkdirProc.callback = function(code) {
+            if (code === 0) {
+                usageFileObj.setText(data)
+            } else {
+                console.warn("[AppLauncher] Failed to create cache dir:", code)
+            }
+        }
+        mkdirProc.command = ["mkdir", "-p", root.cacheDir]
+        mkdirProc.running = false
+        mkdirProc.running = true
     }
 
     function bumpUsage(path) {
@@ -141,6 +146,27 @@ PanelWindow {
     // ------------------------------------------------------------
     // Launching
     // ------------------------------------------------------------
+
+    // dex isn't installed on every system. Detect once at startup and fall
+    // back to gtk-launch or gio so app launches don't silently no-op.
+    property string launchMethod: "dex"
+
+    Process {
+        id: detectLauncherProc
+        command: ["sh", "-c",
+            "command -v dex >/dev/null 2>&1 && echo dex || " +
+            "{ command -v gtk-launch >/dev/null 2>&1 && echo gtk-launch || " +
+            "{ command -v gio >/dev/null 2>&1 && echo gio || echo none; }; }"
+        ]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.launchMethod = text.trim()
+                if (root.launchMethod === "none") {
+                    console.warn("[AppLauncher] No desktop-file launcher found (checked dex, gtk-launch, gio) - launching apps will not work")
+                }
+            }
+        }
+    }
 
     Process {
         id: launchProc
@@ -159,10 +185,23 @@ PanelWindow {
     function launchApp(app) {
         if (!app || !app.path) return
 
-				// Use Quickshell's native detached execution to safely launch via dex
-        Quickshell.execDetached({
-            command: ["dex", app.path]
-        })
+        var cmd
+        if (root.launchMethod === "dex") {
+            cmd = ["dex", app.path]
+        } else if (root.launchMethod === "gtk-launch") {
+            // gtk-launch wants a desktop-file *id* (basename, no extension,
+            // no directory), resolved against XDG_DATA_DIRS.
+            var base = app.path.split("/").pop().replace(/\.desktop$/, "")
+            cmd = ["gtk-launch", base]
+        } else if (root.launchMethod === "gio") {
+            cmd = ["gio", "launch", app.path]
+        } else {
+            console.warn("[AppLauncher] Cannot launch, no launcher available:", app.path)
+            return
+        }
+
+        // Use Quickshell's native detached execution to safely launch the app
+        Quickshell.execDetached({ command: cmd })
         root.bumpUsage(app.path)
         root.active = false
     }
@@ -223,6 +262,10 @@ PanelWindow {
         interval: 50
         repeat: false
         onTriggered: searchInput.forceActiveFocus()
+    }
+
+    Component.onCompleted: {
+        detectLauncherProc.running = true
     }
 
     // ------------------------------------------------------------
