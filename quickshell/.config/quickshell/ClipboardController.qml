@@ -328,8 +328,8 @@ Item {
         }
     }
 
-    // ------------------------------------------------------------
-    // Overlay UI (uses font properties)
+		// ------------------------------------------------------------
+    // Overlay UI (uses fixed font and pixel size)
     // ------------------------------------------------------------
 
     PanelWindow {
@@ -342,27 +342,76 @@ Item {
 
         anchors { top: true; right: true; bottom: true }
         margins.top: 42; margins.right: 12; margins.bottom: 12
-        implicitWidth: 400
+        implicitWidth: 340
 
         Rectangle {
             anchors.fill: parent
             radius: 13
             color: "#282828"
             border.width: 2
-            border.color: "#7c6f64"
+            border.color: "#504945"
 
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 8
                 spacing: 8
 
-                Text {
-                    text: "Clipboard"
-                    color: "#ebdbb2"
-                    font.family: root.fontFamily
-                    font.pixelSize: root.fontSize + 4
-                    font.bold: true
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    Rectangle {
+                        Layout.preferredHeight: 26
+                        Layout.preferredWidth: clipHeaderText.implicitWidth + 20
+                        radius: 13
+                        color: "#3c3836"
+
+                        Text {
+                            id: clipHeaderText
+                            anchors.centerIn: parent
+                            text: "📋 Clipboard"
+                            color: "#d5c4a1"
+                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: 13
+                            font.bold: true
+                        }
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    Rectangle {
+                        Layout.preferredHeight: 26
+                        Layout.preferredWidth: clearText.implicitWidth + 20
+                        radius: 13
+                        color: "#3c3836"
+
+                        Text {
+                            id: clearText
+                            anchors.centerIn: parent
+                            text: "Clear"
+                            color: "#fb4934"
+                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: 13
+                            font.bold: true
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                var cleared = root.history
+                                root.history = []
+                                root.saveHistory()
+                                for (var i = 0; i < cleared.length; i++) {
+                                    if (cleared[i].type === "image")
+                                        root.deleteImageIfUnreferenced(cleared[i].imagePath)
+                                }
+                            }
+                        }
+                    }
                 }
+
+                Rectangle { Layout.fillWidth: true; height: 1; color: "#504945" }
 
                 ListView {
                     Layout.fillWidth: true
@@ -376,15 +425,16 @@ Item {
                         anchors.centerIn: parent
                         text: "No clipboard items"
                         color: "#bdae93"
-                        font.family: root.fontFamily
-                        font.pixelSize: root.fontSize - 1
+                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: 13
                     }
 
                     delegate: Rectangle {
+                        required property var modelData
                         width: ListView.view.width
                         height: clipRow.implicitHeight + 12
                         radius: 13
-                        color: "#504945"
+                        color: "#3c3836"
 
                         RowLayout {
                             id: clipRow
@@ -392,27 +442,26 @@ Item {
                             anchors.margins: 8
                             spacing: 8
 
-                            Rectangle {
+                            Item {
                                 visible: modelData.type === "image"
-                                Layout.preferredWidth: 48
-                                Layout.preferredHeight: 48
-                                radius: 6
-                                color: "#3c3836"
-                                border.width: 1
-                                border.color: "#7c6f64"
-                                clip: true
+                                Layout.preferredWidth: 32
+                                Layout.preferredHeight: 32
+                                Layout.alignment: Qt.AlignVCenter
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: 6
+                                    color: "#282828"
+                                }
 
                                 Image {
                                     id: thumb
                                     anchors.fill: parent
-                                    anchors.margins: 1
                                     source: modelData.type === "image" && modelData.imagePath
                                             ? "file://" + modelData.imagePath : ""
                                     fillMode: Image.PreserveAspectCrop
                                     asynchronous: true
                                     cache: false
-                                    sourceSize.width: 96
-                                    sourceSize.height: 96
                                 }
 
                                 Text {
@@ -420,30 +469,42 @@ Item {
                                     visible: thumb.status !== Image.Ready
                                     text: ""
                                     color: "#bdae93"
-                                    font.pixelSize: root.fontSize
+                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: 13
                                 }
                             }
 
-                            Text {
-                                text: {
-                                    if (modelData.type === "text")
-                                        return modelData.content !== undefined ? modelData.content.substring(0, 50) : ""
-                                    if (modelData.type === "image")
-                                        return " " + (modelData.imagePath !== undefined ? modelData.imagePath.split("/").pop() : "Image")
-                                    return ""
-                                }
-                                color: "#ebdbb2"
-                                font.family: root.fontFamily
-                                font.pixelSize: root.fontSize - 1
-                                elide: Text.ElideRight
+                            ColumnLayout {
                                 Layout.fillWidth: true
+                                spacing: 2
+
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: {
+                                        if (modelData.type === "text")
+                                            return modelData.content !== undefined ? modelData.content.substring(0, 60) : ""
+                                        if (modelData.type === "image")
+                                            return "Image: " + (modelData.imagePath !== undefined ? modelData.imagePath.split("/").pop() : "")
+                                        return ""
+                                    }
+                                    color: "#ebdbb2"
+                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: 13
+                                    font.bold: false
+                                    horizontalAlignment: Text.AlignHCenter
+                                    wrapMode: Text.Wrap
+                                    elide: Text.ElideRight
+                                    maximumLineCount: 3
+                                }
                             }
 
+                            // Pin Button
                             Text {
                                 text: root.isPinned(modelData) ? "" : ""
                                 color: root.isPinned(modelData) ? "#fabd2f" : "#7c6f64"
-                                font.family: root.fontFamily
-                                font.pixelSize: root.fontSize
+                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: 13
+                                Layout.alignment: Qt.AlignVCenter
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
@@ -451,11 +512,13 @@ Item {
                                 }
                             }
 
+                            // Paste Button
                             Text {
                                 text: ""
                                 color: "#83a598"
-                                font.family: root.fontFamily
-                                font.pixelSize: root.fontSize
+                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: 13
+                                Layout.alignment: Qt.AlignVCenter
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
@@ -463,11 +526,13 @@ Item {
                                 }
                             }
 
+                            // Delete Button
                             Text {
                                 text: "✕"
                                 color: "#fb4934"
-                                font.family: root.fontFamily
-                                font.pixelSize: root.fontSize + 1
+                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: 13
+                                Layout.alignment: Qt.AlignVCenter
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
@@ -482,84 +547,6 @@ Item {
                             acceptedButtons: Qt.LeftButton
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.pasteClip(modelData)
-                        }
-                    }
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-
-                    Rectangle {
-                        id: clearBtn
-                        Layout.fillWidth: true
-                        height: 30
-                        radius: 8
-                        color: "#504945"
-                        border.width: 2
-                        border.color: "#7c6f64"
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "Clear"
-                            color: "#fb4934"
-                            font.family: root.fontFamily
-                            font.pixelSize: root.fontSize
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            hoverEnabled: true
-                            onEntered: {
-                                clearBtn.color = "#7c6f64"
-                                clearBtn.border.color = "#ebdbb2"
-                            }
-                            onExited: {
-                                clearBtn.color = "#504945"
-                                clearBtn.border.color = "#7c6f64"
-                            }
-                            onClicked: {
-                                var cleared = root.history
-                                root.history = []
-                                root.saveHistory()
-                                for (var i = 0; i < cleared.length; i++) {
-                                    if (cleared[i].type === "image")
-                                        root.deleteImageIfUnreferenced(cleared[i].imagePath)
-                                }
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        id: closeBtn
-                        Layout.fillWidth: true
-                        height: 30
-                        radius: 8
-                        color: "#504945"
-                        border.width: 2
-                        border.color: "#7c6f64"
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "Close"
-                            color: "#ebdbb2"
-                            font.family: root.fontFamily
-                            font.pixelSize: root.fontSize
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            hoverEnabled: true
-                            onEntered: {
-                                closeBtn.color = "#7c6f64"
-                                closeBtn.border.color = "#ebdbb2"
-                            }
-                            onExited: {
-                                closeBtn.color = "#504945"
-                                closeBtn.border.color = "#7c6f64"
-                            }
-                            onClicked: root.active = false
                         }
                     }
                 }
