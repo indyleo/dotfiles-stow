@@ -12,6 +12,10 @@ Item {
     property var history: []
     property var pinned: []
 
+    // Maximum number of image entries (history + pinned) before old ones are removed.
+    // Only unpinned history images are removed automatically.
+    property int maxImages: 25
+
     property string fontFamily: "sans-serif"
     property int fontSize: 14
 
@@ -20,114 +24,81 @@ Item {
     readonly property string pinnedFile: cacheDir + "/pinned.json"
     readonly property string imageDir: cacheDir + "/images"
 
+		// ------------------------------------------------------------
+    // Synchronous file handling – prevents data loss on reload
     // ------------------------------------------------------------
-    // File operations
-    // ------------------------------------------------------------
 
-    // Each load/save operation gets its own Process. Previously a single
-    // shared "fileProc" was reused for loadHistory(), loadPinned(),
-    // saveHistory() and savePinned(). Since these can be called back-to-back
-    // (e.g. loadHistory() immediately followed by loadPinned() at startup),
-    // the second call overwrote fileProc.callback and restarted the process
-    // before the first one finished, so history frequently never loaded.
-    Process {
-        id: historyLoadProc
-        property var callback
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (!historyLoadProc.callback) return
-                var cb = historyLoadProc.callback
-                historyLoadProc.callback = null
-                cb(historyLoadProc.exitCode, text)
-            }
-        }
-        function run(cmd) { command = cmd; running = false; running = true }
+    FileView {
+        id: historyFileObj
+        path: root.historyFile
     }
 
-    Process {
-        id: pinnedLoadProc
-        property var callback
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (!pinnedLoadProc.callback) return
-                var cb = pinnedLoadProc.callback
-                pinnedLoadProc.callback = null
-                cb(pinnedLoadProc.exitCode, text)
-            }
-        }
-        function run(cmd) { command = cmd; running = false; running = true }
-    }
-
-    Process {
-        id: historySaveProc
-        function run(cmd) { command = cmd; running = false; running = true }
-        onExited: function(code, status) {
-            if (code !== 0) console.warn("[Clipboard] History save failed:", code, status)
-        }
-    }
-
-    Process {
-        id: pinnedSaveProc
-        function run(cmd) { command = cmd; running = false; running = true }
-        onExited: function(code, status) {
-            if (code !== 0) console.warn("[Clipboard] Pinned save failed:", code, status)
-        }
+    FileView {
+        id: pinnedFileObj
+        path: root.pinnedFile
     }
 
     function loadHistory() {
-        historyLoadProc.callback = function(code, out) {
-            if (code === 0) {
-                try {
-                    var parsed = JSON.parse(out)
-                    history = Array.isArray(parsed) ? parsed : []
-                    console.log("[Clipboard] History loaded:", history.length)
-                } catch (e) {
-                    console.warn("[Clipboard] Failed to parse history:", e)
-                    history = []
-                }
-            } else {
-                history = []
-                saveHistory()
-            }
+        try {
+            var parsed = JSON.parse(historyFileObj.text())
+            history = Array.isArray(parsed) ? parsed : []
+            console.log("[Clipboard] History loaded:", history.length)
+        } catch (e) {
+            console.warn("[Clipboard] Failed to parse history:", e)
+            history = []
+            saveHistory()
         }
-        historyLoadProc.run(["sh", "-c", "cat '" + historyFile + "' 2>/dev/null || echo '[]'"])
     }
 
     function loadPinned() {
-        pinnedLoadProc.callback = function(code, out) {
-            if (code === 0) {
-                try {
-                    var parsed = JSON.parse(out)
-                    pinned = Array.isArray(parsed) ? parsed : []
-                } catch (e) {
-                    console.warn("[Clipboard] Failed to parse pinned:", e)
-                    pinned = []
-                }
-            } else {
-                pinned = []
-                savePinned()
-            }
+        try {
+            var parsed = JSON.parse(pinnedFileObj.text())
+            pinned = Array.isArray(parsed) ? parsed : []
+        } catch (e) {
+            console.warn("[Clipboard] Failed to parse pinned:", e)
+            pinned = []
+            savePinned()
         }
-        pinnedLoadProc.run(["sh", "-c", "cat '" + pinnedFile + "' 2>/dev/null || echo '[]'"])
     }
 
     function saveHistory() {
         var data = JSON.stringify(history, null, 2)
-        historySaveProc.run([
-            "sh", "-c",
-            "mkdir -p '" + cacheDir + "' && " +
-            "printf '%s\\n' '" + data.replace(/'/g, "'\\''") + "' > '" + historyFile + "'"
-        ])
+        historyFileObj.setText(data)
         console.log("[Clipboard] History saved, entries:", history.length)
     }
 
     function savePinned() {
         var data = JSON.stringify(pinned, null, 2)
-        pinnedSaveProc.run([
-            "sh", "-c",
-            "mkdir -p '" + cacheDir + "' && " +
-            "printf '%s\\n' '" + data.replace(/'/g, "'\\''") + "' > '" + pinnedFile + "'"
-        ])
+        pinnedFileObj.setText(data)
+    }
+
+    // ------------------------------------------------------------
+    // Image limit enforcement
+    // ------------------------------------------------------------
+
+    function enforceImageLimit() {
+        if (root.maxImages <= 0) return
+
+        // Count all images (history + pinned)
+        var imageCount = 0
+        for (var i = 0; i < history.length; i++)
+            if (history[i].type === "image") imageCount++
+        for (var j = 0; j < pinned.length; j++)
+            if (pinned[j].type === "image") imageCount++
+
+        var excess = imageCount - root.maxImages
+        if (excess <= 0) return
+
+        // Remove oldest unpinned images from history (from the end)
+        for (var k = history.length - 1; k >= 0 && excess > 0; k--) {
+            if (history[k].type === "image") {
+                var removed = history[k]
+                history.splice(k, 1)
+                deleteImageIfUnreferenced(removed.imagePath)
+                excess--
+            }
+        }
+        saveHistory()
     }
 
     // ------------------------------------------------------------
@@ -265,7 +236,8 @@ Item {
 
         history = [entry, ...history].slice(0, 150)
 
-        saveHistory()
+        // Enforce image limit (saves history as well)
+        enforceImageLimit()
         console.log("[Clipboard] Added to history, total:", history.length)
     }
 
@@ -311,7 +283,6 @@ Item {
             deleteFileProc.run(["rm", "-f", imagePath])
     }
 
-    // New: remove a single clip from whichever array it's in
     function removeClip(clip) {
         if (isPinned(clip)) {
             pinned = pinned.filter(p =>
@@ -421,7 +392,6 @@ Item {
                             anchors.margins: 8
                             spacing: 8
 
-                            // Thumbnail preview for image clips
                             Rectangle {
                                 visible: modelData.type === "image"
                                 Layout.preferredWidth: 48
@@ -445,8 +415,6 @@ Item {
                                     sourceSize.height: 96
                                 }
 
-                                // Simple placeholder while the thumbnail decodes
-                                // or if the file failed to load.
                                 Text {
                                     anchors.centerIn: parent
                                     visible: thumb.status !== Image.Ready
@@ -471,7 +439,6 @@ Item {
                                 Layout.fillWidth: true
                             }
 
-                            // Pin button
                             Text {
                                 text: root.isPinned(modelData) ? "" : ""
                                 color: root.isPinned(modelData) ? "#fabd2f" : "#7c6f64"
@@ -484,7 +451,6 @@ Item {
                                 }
                             }
 
-                            // Copy button
                             Text {
                                 text: ""
                                 color: "#83a598"
@@ -497,7 +463,6 @@ Item {
                                 }
                             }
 
-                            // Delete button
                             Text {
                                 text: "✕"
                                 color: "#fb4934"
@@ -511,7 +476,6 @@ Item {
                             }
                         }
 
-                        // Outer MouseArea for click-to-paste (behind the buttons)
                         MouseArea {
                             anchors.fill: parent
                             z: -1
@@ -607,15 +571,19 @@ Item {
     // Startup
     // ------------------------------------------------------------
 
+    Process {
+        id: shellProc
+        onExited: {
+            // Directory should now exist, so loading and saving are safe
+            loadHistory()
+            loadPinned()
+            enforceImageLimit()          // cleanup if previous run exceeded the limit
+            clipboardWatch.running = true
+        }
+    }
+
     Component.onCompleted: {
         shellProc.command = ["mkdir", "-p", cacheDir, imageDir]
         shellProc.running = true
-
-        loadHistory()
-        loadPinned()
-
-        clipboardWatch.running = true
     }
-
-    Process { id: shellProc }
 }
