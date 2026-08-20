@@ -7,7 +7,7 @@ import Quickshell.Widgets
 PanelWindow {
     id: root
 
-    // Keep the window hidden normally; it only appears for region selection
+    // Keep the window hidden normally; it only appears for selection
     visible: false
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
@@ -30,7 +30,7 @@ PanelWindow {
     function screenshotWindow()  { captureWindow() }
     function screenshotMonitor() { captureMonitor() }
     function screenshotRegion()  { showRegionSelector() }
-    function colorPicker()       { pickColor() }
+    function colorPicker()       { showColorPicker() }
 
     // Timestamp helper
     function getTimestamp() {
@@ -67,18 +67,25 @@ PanelWindow {
         saveImageProc.running = true
     }
 
-    // --- Region selection overlay ---
-    property bool regionSelectorVisible: false
+    // --- Selection overlay (region + color) ---
+    property string selectorMode: ""   // "region" or "color"
 
     function showRegionSelector() {
-        regionSelectorVisible = true
+        selectorMode = "region"
         root.visible = true
         selectionRect.visible = false
         regionMouseArea.selecting = false
     }
 
-    function hideRegionSelector() {
-        regionSelectorVisible = false
+    function showColorPicker() {
+        selectorMode = "color"
+        root.visible = true
+        selectionRect.visible = false
+        regionMouseArea.selecting = false
+    }
+
+    function hideSelector() {
+        selectorMode = ""
         root.visible = false
         selectionRect.visible = false
     }
@@ -87,11 +94,11 @@ PanelWindow {
     Rectangle {
         id: regionOverlay
         anchors.fill: parent
-        visible: regionSelectorVisible
+        visible: root.visible
         color: Qt.rgba(0, 0, 0, 0.3)
         focus: true
 
-        // Rectangle showing the selection
+        // Rectangle showing the selection (only used in region mode)
         Rectangle {
             id: selectionRect
             color: Qt.rgba(1, 1, 1, 0.2)
@@ -100,44 +107,69 @@ PanelWindow {
             visible: false
         }
 
+        // Crosshair cursor indicator (for color mode)
+        Rectangle {
+            id: colorCursor
+            width: 2
+            height: 2
+            color: "white"
+            visible: selectorMode === "color"
+            x: -1
+            y: -1
+        }
+
         MouseArea {
             id: regionMouseArea
             anchors.fill: parent
             hoverEnabled: true
             acceptedButtons: Qt.LeftButton
-            cursorShape: Qt.CrossCursor
+            cursorShape: selectorMode === "color" ? Qt.CrossCursor : Qt.CrossCursor
 
             property real startX: 0
             property real startY: 0
             property bool selecting: false
 
-            onPressed: (mouse) => {
-                if (mouse.button !== Qt.LeftButton) return
-                selecting = true
-                startX = mouse.x
-                startY = mouse.y
-                selectionRect.x = startX
-                selectionRect.y = startY
-                selectionRect.width = 0
-                selectionRect.height = 0
-                selectionRect.visible = true
+            // Track mouse position for color cursor
+            onPositionChanged: (mouse) => {
+                if (selectorMode === "color") {
+                    colorCursor.x = mouse.x
+                    colorCursor.y = mouse.y
+                } else if (selecting) {
+                    var x = Math.min(startX, mouse.x)
+                    var y = Math.min(startY, mouse.y)
+                    var w = Math.abs(mouse.x - startX)
+                    var h = Math.abs(mouse.y - startY)
+
+                    selectionRect.x = x
+                    selectionRect.y = y
+                    selectionRect.width = w
+                    selectionRect.height = h
+                }
             }
 
-            onPositionChanged: (mouse) => {
-                if (!selecting) return
-                var x = Math.min(startX, mouse.x)
-                var y = Math.min(startY, mouse.y)
-                var w = Math.abs(mouse.x - startX)
-                var h = Math.abs(mouse.y - startY)
+            onPressed: (mouse) => {
+                if (mouse.button !== Qt.LeftButton) return
 
-                selectionRect.x = x
-                selectionRect.y = y
-                selectionRect.width = w
-                selectionRect.height = h
+                if (selectorMode === "color") {
+                    // Single click: capture pixel under cursor
+                    var x = Math.round(mouse.x)
+                    var y = Math.round(mouse.y)
+                    hideSelector()
+                    capturePixel(x, y)
+                } else if (selectorMode === "region") {
+                    selecting = true
+                    startX = mouse.x
+                    startY = mouse.y
+                    selectionRect.x = startX
+                    selectionRect.y = startY
+                    selectionRect.width = 0
+                    selectionRect.height = 0
+                    selectionRect.visible = true
+                }
             }
 
             onReleased: (mouse) => {
-                if (!selecting || mouse.button !== Qt.LeftButton) return
+                if (selectorMode !== "region" || !selecting || mouse.button !== Qt.LeftButton) return
                 selecting = false
 
                 // Get geometry relative to the overlay (full-screen)
@@ -147,7 +179,7 @@ PanelWindow {
                 var h = Math.round(selectionRect.height)
 
                 // Hide the overlay first so it doesn't appear in the screenshot
-                hideRegionSelector()
+                hideSelector()
 
                 if (w < 5 || h < 5) {
                     root.screenshotFailed("Region too small")
@@ -160,16 +192,16 @@ PanelWindow {
 
             onCanceled: {
                 selecting = false
-                hideRegionSelector()
+                hideSelector()
             }
         }
 
         Keys.onEscapePressed: {
-            hideRegionSelector()
+            hideSelector()
         }
     }
 
-    // Capture a region with the given geometry (already in screen coordinates)
+    // Capture a region with the given geometry
     function captureRegionWithGeometry(geometry) {
         var temp = "/tmp/qs-region-" + Date.now() + ".png"
         regionGrimProc._tempPath = temp
@@ -186,6 +218,41 @@ PanelWindow {
                 root.finalizeImage(_tempPath)
             } else {
                 root.screenshotFailed("grim region screenshot failed (exit " + code + ")")
+            }
+        }
+    }
+
+    // Capture a single pixel at (x, y) and extract its color
+    function capturePixel(x, y) {
+        colorPixelProc.command = [
+            "sh", "-c",
+            "grim -g '" + x + "," + y + " 1x1' -t ppm - | magick - -format '%[pixel:p{0,0}]' txt:- | grep -E -o '#[0-9A-Fa-f]{6}'"
+        ]
+        colorPixelProc.running = false
+        colorPixelProc.running = true
+    }
+
+    Process {
+        id: colorPixelProc
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var hex = text.trim()
+                if (hex) {
+                    root.colorPicked(hex)
+                    copyTextProc.command = ["wl-copy", hex]
+                    copyTextProc.running = false
+                    copyTextProc.running = true
+                    colorNotifyProc.command = ["notify-send", "Color Picked", hex + " copied to clipboard."]
+                    colorNotifyProc.running = false
+                    colorNotifyProc.running = true
+                } else {
+                    root.screenshotFailed("Color picker: no color captured")
+                }
+            }
+        }
+        onExited: (code, status) => {
+            if (code !== 0) {
+                root.screenshotFailed("Color picker failed (exit " + code + ")")
             }
         }
     }
@@ -354,38 +421,6 @@ PanelWindow {
                 root.finalizeImage(_tempPath)
             } else {
                 root.screenshotFailed("grim window screenshot failed (exit " + code + ")")
-            }
-        }
-    }
-
-    // --- Color picker (kept as before; it works) ---
-    function pickColor() {
-        colorSelectProc.running = false
-        colorSelectProc.running = true
-    }
-
-    Process {
-        id: colorSelectProc
-        command: ["sh", "-c", "grim -g \"$(slurp -p -b '#00000044')\" -t ppm - | magick - -format '%[pixel:p{0,0}]' txt:- | grep -E -o '#[0-9A-Fa-f]{6}'"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var hex = text.trim()
-                if (hex) {
-                    root.colorPicked(hex)
-                    copyTextProc.command = ["wl-copy", hex]
-                    copyTextProc.running = false
-                    copyTextProc.running = true
-                    colorNotifyProc.command = ["notify-send", "Color Picked", hex + " copied to clipboard."]
-                    colorNotifyProc.running = false
-                    colorNotifyProc.running = true
-                } else {
-                    root.screenshotFailed("Color picker: no color captured")
-                }
-            }
-        }
-        onExited: (code, status) => {
-            if (code !== 0) {
-                root.screenshotFailed("Color picker failed (exit " + code + ")")
             }
         }
     }

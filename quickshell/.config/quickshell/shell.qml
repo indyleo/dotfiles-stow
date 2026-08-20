@@ -386,10 +386,10 @@ ShellRoot {
 						onClicked: (m) => {
 							if (media.showMedia) {
 								if (m.button === Qt.LeftButton) media.playPause()
-								else if (m.button === Qt.RightButton) { shellCmd.command = ["rofi", "-show", "drun"]; shellCmd.running = false; shellCmd.running = true }
+								else if (m.button === Qt.RightButton) {  }
 								else if (m.button === Qt.MiddleButton) root.powerMenuVisible = true
 							} else {
-								if (m.button === Qt.LeftButton) { shellCmd.command = ["rofi", "-show", "drun"]; shellCmd.running = false; shellCmd.running = true }
+								if (m.button === Qt.LeftButton) {  }
 								else root.powerMenuVisible = true
 							}
 						}
