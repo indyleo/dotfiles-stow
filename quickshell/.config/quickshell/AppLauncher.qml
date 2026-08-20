@@ -39,25 +39,24 @@ PanelWindow {
     // App discovery
     // ------------------------------------------------------------
 
+    // NUL-delimited discovery keeps desktop filenames intact, including spaces.
     readonly property string listScript: [
-        "DIRS=\"$HOME/.local/share/applications /usr/local/share/applications /usr/share/applications /var/lib/flatpak/exports/share/applications $HOME/.local/share/flatpak/exports/share/applications /var/lib/snapd/desktop/applications\"",
         "SEEN=$(mktemp)",
-        "for d in $DIRS; do",
+        "for d in \"$HOME/.local/share/applications\" \"/usr/local/share/applications\" \"/usr/share/applications\" \"/var/lib/flatpak/exports/share/applications\" \"$HOME/.local/share/flatpak/exports/share/applications\" \"/var/lib/snapd/desktop/applications\"; do",
         "  [ -d \"$d\" ] || continue",
-        "  for f in \"$d\"/*.desktop; do",
-        "    [ -f \"$f\" ] || continue",
+        "  while IFS= read -r -d '' f; do",
         "    base=$(basename \"$f\")",
-        "    grep -qxF \"$base\" \"$SEEN\" 2>/dev/null && continue",
-        "    echo \"$base\" >> \"$SEEN\"",
-        "    nodisplay=$(grep -m1 '^NoDisplay=' \"$f\" | cut -d= -f2)",
-        "    hidden=$(grep -m1 '^Hidden=' \"$f\" | cut -d= -f2)",
+        "    nodisplay=$(grep -m1 '^NoDisplay=' \"$f\" | cut -d= -f2-)",
+        "    hidden=$(grep -m1 '^Hidden=' \"$f\" | cut -d= -f2-)",
         "    [ \"$nodisplay\" = \"true\" ] && continue",
         "    [ \"$hidden\" = \"true\" ] && continue",
+        "    grep -qxF \"$base\" \"$SEEN\" 2>/dev/null && continue",
+        "    echo \"$base\" >> \"$SEEN\"",
         "    name=$(grep -m1 '^Name=' \"$f\" | cut -d= -f2-)",
         "    [ -z \"$name\" ] && continue",
         "    icon=$(grep -m1 '^Icon=' \"$f\" | cut -d= -f2-)",
-        "    printf '%s\\x1f%s\\x1f%s\\n' \"$name\" \"$icon\" \"$f\"",
-        "  done",
+        "    printf '%s\\x1f%s\\x1f%s\\0' \"$name\" \"$icon\" \"$f\"",
+        "  done < <(find \"$d\" -maxdepth 1 -type f -name '*.desktop' -print0 2>/dev/null)",
         "done",
         "rm -f \"$SEEN\""
     ].join("\n")
@@ -71,11 +70,12 @@ PanelWindow {
                 console.warn("[AppLauncher] Failed to list applications:", code)
                 return
             }
-            var lines = listProc.stdout.text.split("\n").filter(l => l !== "")
-            var apps = lines.map(function(line) {
-                var parts = line.split("\u001F")
-                return { name: parts[0] || "", icon: parts[1] || "", path: parts[2] || "" }
-            }).filter(a => a.name !== "")
+            // Records are NUL-delimited so whitespace in filenames is preserved.
+            var records = listProc.stdout.text.split("\u0000").filter(r => r !== "")
+            var apps = records.map(function(record) {
+                var parts = record.split("\u001F")
+                return { name: parts[0] || "", icon: parts[1] || "", path: parts.slice(2).join("\u001F") || "" }
+            }).filter(a => a.name !== "" && a.path !== "")
             root.allApps = apps
         }
     }
@@ -142,13 +142,27 @@ PanelWindow {
     // Launching
     // ------------------------------------------------------------
 
-    Process { id: launchProc }
+    Process {
+        id: launchProc
+        property string launchPath: ""
+        stdout: StdioCollector {}
+        stderr: StdioCollector {}
+        onExited: (code, status) => {
+            if (code !== 0) {
+                console.warn("[AppLauncher] Failed to launch:", code, launchProc.stderr.text)
+            } else {
+                console.log("[AppLauncher] Launched:", launchProc.launchPath)
+            }
+        }
+    }
 
     function launchApp(app) {
-        if (!app) return
-        launchProc.command = ["gio", "launch", app.path]
-        launchProc.running = false
-        launchProc.running = true
+        if (!app || !app.path) return
+
+				// Use Quickshell's native detached execution to safely launch via dex
+        Quickshell.execDetached({
+            command: ["dex", app.path]
+        })
         root.bumpUsage(app.path)
         root.active = false
     }
@@ -198,6 +212,9 @@ PanelWindow {
             refreshApps()
             loadUsage()
             focusTimer.start()
+        } else {
+          searchText = ""
+          if (searchInput) searchInput.text = ""
         }
     }
 
