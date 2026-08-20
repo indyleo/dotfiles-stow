@@ -13,7 +13,7 @@ Item {
 
     readonly property bool available: batteryPath !== ""
     readonly property int percentage: capacity
-    readonly property bool show: available && percentage > 0   // hides 0% automatically
+    readonly property bool show: available   // stays visible even at 0%, which is the most critical state
 
     readonly property string text: show ? percentage + "%" : ""
 
@@ -71,22 +71,26 @@ Item {
     FileView {
         id: capacityFile
         path: root.batteryPath !== "" ? root.batteryPath + "/capacity" : ""
-        watchChanges: false
+        watchChanges: true
         onLoaded: root.capacity = parseInt(text(), 10) || 0
+        onFileChanged: reload()
     }
 
     // Read status ("Charging", "Discharging", "Full", "Unknown")
     FileView {
         id: statusFile
         path: root.batteryPath !== "" ? root.batteryPath + "/status" : ""
-        watchChanges: false
+        watchChanges: true
         onLoaded: root.status = text().trim()
+        onFileChanged: reload()
     }
 
-    // Refresh every 30 seconds
+    // Fallback poll every 30 seconds (in addition to watchChanges above),
+    // since some sysfs attributes don't reliably emit inotify events.
+    // Only runs once a battery has actually been found.
     Timer {
         interval: 30000
-        running: true
+        running: root.available
         repeat: true
         triggeredOnStart: true
         onTriggered: refresh()

@@ -142,7 +142,7 @@ Item {
 
                     decodeProc.command = [
                         "sh", "-c",
-                        "echo \"$1\" | base64 -d",
+                        "printf '%s' \"$1\" | base64 -d",
                         "decode",
                         encoded
                     ]
