@@ -93,20 +93,54 @@ Item {
             for (var i = 0; i < lines.length; i++) {
                 if (!lines[i]) continue
 
-                var parts = lines[i].split(':')
+                var parts = splitNmcliFields(lines[i])
                 if (parts.length >= 4) {
                     list.push({
                         inUse: parts[0] === '*',
                         ssid: parts[1],
                         security: parts[2],
-                        signal: parseInt(parts[3])
+                        signal: parseInt(parts[3]),
+                        saved: false
                     })
                     if (parts[0] === '*') root.connectedSsid = parts[1]
                 }
             }
             networks = list
+            fetchSavedConnections()
         }
         nmcliScanProc.run(["nmcli", "-t", "-f", "IN-USE,SSID,SECURITY,SIGNAL", "device", "wifi", "list"])
+    }
+
+    // Cross-references the scanned network list against nmcli's saved
+    // connection profiles so the UI knows which entries can be "forgotten".
+    // Chained after scanNetworks() on the same process rather than run in
+    // parallel, since nmcliScanProc only has one callback slot at a time.
+    function fetchSavedConnections() {
+        nmcliScanProc.callback = function(code, out) {
+            if (code !== 0) return
+            var saved = {}
+            var lines = out.trim().split('\n')
+            for (var i = 0; i < lines.length; i++) {
+                if (!lines[i]) continue
+                var parts = splitNmcliFields(lines[i])
+                if (parts.length >= 2 && parts[1] === '802-11-wireless') {
+                    saved[parts[0]] = true
+                }
+            }
+            var updated = []
+            for (var j = 0; j < root.networks.length; j++) {
+                var n = root.networks[j]
+                updated.push({
+                    inUse: n.inUse,
+                    ssid: n.ssid,
+                    security: n.security,
+                    signal: n.signal,
+                    saved: !!saved[n.ssid]
+                })
+            }
+            root.networks = updated
+        }
+        nmcliScanProc.run(["nmcli", "-t", "-f", "NAME,TYPE", "connection", "show"])
     }
 
     function toggleWifi() {
@@ -172,6 +206,42 @@ Item {
         root.pendingSsid = ""
     }
 
+    // Forget-network state: tap-to-confirm since deleting a saved profile
+    // can't be undone. First tap arms it, a second tap within the window
+    // confirms; anything else (timeout, tapping elsewhere) disarms it.
+    property string pendingForgetSsid: ""
+
+    Timer {
+        id: forgetConfirmTimer
+        interval: 2500
+        onTriggered: root.pendingForgetSsid = ""
+    }
+
+    function requestForget(ssid) {
+        if (root.pendingForgetSsid === ssid) {
+            forgetConfirmTimer.stop()
+            root.pendingForgetSsid = ""
+            doForget(ssid)
+        } else {
+            root.pendingForgetSsid = ssid
+            forgetConfirmTimer.restart()
+        }
+    }
+
+    function doForget(ssid) {
+        showStatus("Forgetting " + ssid + "\u2026", false)
+        nmcliActionProc.callback = function(code, out) {
+            if (code === 0) {
+                showStatus("Forgot " + ssid)
+                if (root.connectedSsid === ssid) root.connectedSsid = ""
+            } else {
+                showStatus("Failed to forget " + ssid)
+            }
+            scanNetworks()
+        }
+        nmcliActionProc.run(["nmcli", "connection", "delete", "id", ssid])
+    }
+
     function disconnectCurrent() {
         var ssid = root.connectedSsid
         if (!ssid) return
@@ -194,6 +264,30 @@ Item {
         root.statusMessage = message
         statusClearTimer.stop()
         if (autoClear !== false) statusClearTimer.start()
+    }
+
+    // nmcli's terse (-t) output escapes literal ':' as '\:' and '\' as '\\'
+    // within a field (e.g. an SSID that contains a colon). A plain
+    // line.split(':') breaks on that escaped colon too, shifting every
+    // field after it by one. This splits only on *unescaped* colons and
+    // un-escapes the result.
+    function splitNmcliFields(line) {
+        var fields = []
+        var current = ""
+        for (var i = 0; i < line.length; i++) {
+            var ch = line[i]
+            if (ch === '\\' && i + 1 < line.length) {
+                current += line[i + 1]
+                i++
+            } else if (ch === ':') {
+                fields.push(current)
+                current = ""
+            } else {
+                current += ch
+            }
+        }
+        fields.push(current)
+        return fields
     }
 
     PanelWindow {
@@ -270,6 +364,19 @@ Item {
                         color: modelData.inUse ? "#3c3836" : "#504945"
                         border.width: 1
                         border.color: modelData.inUse ? "#7c6f64" : "#504945"
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            hoverEnabled: true
+                            onEntered: parent.border.color = "#ebdbb2"
+                            onExited: parent.border.color = modelData.inUse ? "#7c6f64" : "#504945"
+                            onClicked: {
+                                if (modelData.inUse) root.disconnectCurrent()
+                                else root.requestConnect(modelData.ssid, modelData.security)
+                            }
+                        }
+
                         RowLayout {
                             anchors.fill: parent
                             anchors.margins: 4
@@ -289,16 +396,21 @@ Item {
                                 font.family: root.fontFamily
                                 font.pixelSize: root.fontSize - 2
                             }
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            hoverEnabled: true
-                            onEntered: parent.border.color = "#ebdbb2"
-                            onExited: parent.border.color = modelData.inUse ? "#7c6f64" : "#504945"
-                            onClicked: {
-                                if (modelData.inUse) root.disconnectCurrent()
-                                else root.requestConnect(modelData.ssid, modelData.security)
+                            Text {
+                                // Forget button: only for saved, not-currently-in-use
+                                // networks. Tap once to arm, again to confirm.
+                                visible: modelData.saved && !modelData.inUse
+                                text: root.pendingForgetSsid === modelData.ssid ? "Sure?" : "\uf1f8"
+                                color: root.pendingForgetSsid === modelData.ssid ? "#fb4934" : "#928374"
+                                font.family: root.fontFamily
+                                font.pixelSize: root.fontSize - 2
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    anchors.margins: -6
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.requestForget(modelData.ssid)
+                                }
                             }
                         }
                     }
