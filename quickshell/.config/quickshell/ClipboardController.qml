@@ -369,7 +369,7 @@ Item {
                         Text {
                             id: clipHeaderText
                             anchors.centerIn: parent
-                            text: "📋 Clipboard"
+                            text: " Clipboard"
                             color: "#d5c4a1"
                             font.family: "JetBrainsMono Nerd Font"
                             font.pixelSize: 13
