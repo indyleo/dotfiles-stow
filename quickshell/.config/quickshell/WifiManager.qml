@@ -15,6 +15,11 @@ Item {
     property string fontFamily: "JetBrainsMono Nerd Font"
     property int fontSize: 13
 
+    // Fetch networks immediately when the panel is opened
+    onActiveChanged: {
+        if (active) scanNetworks()
+    }
+
     Process {
         id: nmcliProc
         property var callback
@@ -44,14 +49,18 @@ Item {
             if (code !== 0) return
             var lines = out.trim().split('\n')
             var list = []
-            for (var i = 1; i < lines.length; i++) {
+
+            // Start at 0; terse mode (-t) does not output a header row
+            for (var i = 0; i < lines.length; i++) {
+                if (!lines[i]) continue
+
                 var parts = lines[i].split(':')
                 if (parts.length >= 4) {
                     list.push({
+                        inUse: parts[0] === '*',
                         ssid: parts[1],
-                        signal: parseInt(parts[3]),
                         security: parts[2],
-                        inUse: parts[0] === '*'
+                        signal: parseInt(parts[3])
                     })
                 }
             }
@@ -81,7 +90,7 @@ Item {
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Overlay
-				WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
         anchors { top: true; bottom: true; left: true; right: true }
 
         Rectangle {
