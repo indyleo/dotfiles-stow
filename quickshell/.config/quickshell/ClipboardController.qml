@@ -15,7 +15,7 @@ Item {
     property string fontFamily: "sans-serif"
     property int fontSize: 14
 
-		readonly property string cacheDir: StandardPaths.writableLocation(StandardPaths.HomeLocation).toString().replace("file://", "") + "/.cache/quickshell-clipboard"
+    readonly property string cacheDir: StandardPaths.writableLocation(StandardPaths.HomeLocation).toString().replace("file://", "") + "/.cache/quickshell-clipboard"
     readonly property string historyFile: cacheDir + "/history.json"
     readonly property string pinnedFile: cacheDir + "/pinned.json"
     readonly property string imageDir: cacheDir + "/images"
@@ -24,26 +24,58 @@ Item {
     // File operations
     // ------------------------------------------------------------
 
+    // Each load/save operation gets its own Process. Previously a single
+    // shared "fileProc" was reused for loadHistory(), loadPinned(),
+    // saveHistory() and savePinned(). Since these can be called back-to-back
+    // (e.g. loadHistory() immediately followed by loadPinned() at startup),
+    // the second call overwrote fileProc.callback and restarted the process
+    // before the first one finished, so history frequently never loaded.
     Process {
-        id: fileProc
+        id: historyLoadProc
         property var callback
         stdout: StdioCollector {
             onStreamFinished: {
-                if (!fileProc.callback) return
-                var cb = fileProc.callback
-                fileProc.callback = null
-                cb(fileProc.exitCode, text)
+                if (!historyLoadProc.callback) return
+                var cb = historyLoadProc.callback
+                historyLoadProc.callback = null
+                cb(historyLoadProc.exitCode, text)
             }
         }
-        function run(cmd) {
-            command = cmd
-            running = false
-            running = true
+        function run(cmd) { command = cmd; running = false; running = true }
+    }
+
+    Process {
+        id: pinnedLoadProc
+        property var callback
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (!pinnedLoadProc.callback) return
+                var cb = pinnedLoadProc.callback
+                pinnedLoadProc.callback = null
+                cb(pinnedLoadProc.exitCode, text)
+            }
+        }
+        function run(cmd) { command = cmd; running = false; running = true }
+    }
+
+    Process {
+        id: historySaveProc
+        function run(cmd) { command = cmd; running = false; running = true }
+        onExited: function(code, status) {
+            if (code !== 0) console.warn("[Clipboard] History save failed:", code, status)
+        }
+    }
+
+    Process {
+        id: pinnedSaveProc
+        function run(cmd) { command = cmd; running = false; running = true }
+        onExited: function(code, status) {
+            if (code !== 0) console.warn("[Clipboard] Pinned save failed:", code, status)
         }
     }
 
     function loadHistory() {
-        fileProc.callback = function(code, out) {
+        historyLoadProc.callback = function(code, out) {
             if (code === 0) {
                 try {
                     var parsed = JSON.parse(out)
@@ -58,11 +90,11 @@ Item {
                 saveHistory()
             }
         }
-        fileProc.run(["sh", "-c", "cat '" + historyFile + "' 2>/dev/null || echo '[]'"])
+        historyLoadProc.run(["sh", "-c", "cat '" + historyFile + "' 2>/dev/null || echo '[]'"])
     }
 
     function loadPinned() {
-        fileProc.callback = function(code, out) {
+        pinnedLoadProc.callback = function(code, out) {
             if (code === 0) {
                 try {
                     var parsed = JSON.parse(out)
@@ -76,12 +108,12 @@ Item {
                 savePinned()
             }
         }
-        fileProc.run(["sh", "-c", "cat '" + pinnedFile + "' 2>/dev/null || echo '[]'"])
+        pinnedLoadProc.run(["sh", "-c", "cat '" + pinnedFile + "' 2>/dev/null || echo '[]'"])
     }
 
     function saveHistory() {
         var data = JSON.stringify(history, null, 2)
-        fileProc.run([
+        historySaveProc.run([
             "sh", "-c",
             "mkdir -p '" + cacheDir + "' && " +
             "printf '%s\\n' '" + data.replace(/'/g, "'\\''") + "' > '" + historyFile + "'"
@@ -91,7 +123,7 @@ Item {
 
     function savePinned() {
         var data = JSON.stringify(pinned, null, 2)
-        fileProc.run([
+        pinnedSaveProc.run([
             "sh", "-c",
             "mkdir -p '" + cacheDir + "' && " +
             "printf '%s\\n' '" + data.replace(/'/g, "'\\''") + "' > '" + pinnedFile + "'"
@@ -264,6 +296,21 @@ Item {
         savePinned()
     }
 
+    Process {
+        id: deleteFileProc
+        function run(cmd) { command = cmd; running = false; running = true }
+    }
+
+    // Deletes an image file from disk, but only if it's no longer
+    // referenced by any remaining history/pinned entry.
+    function deleteImageIfUnreferenced(imagePath) {
+        if (!imagePath) return
+        var stillReferenced = history.some(h => h.type === "image" && h.imagePath === imagePath) ||
+                               pinned.some(p => p.type === "image" && p.imagePath === imagePath)
+        if (!stillReferenced)
+            deleteFileProc.run(["rm", "-f", imagePath])
+    }
+
     // New: remove a single clip from whichever array it's in
     function removeClip(clip) {
         if (isPinned(clip)) {
@@ -278,6 +325,9 @@ Item {
         )
         saveHistory()
         savePinned()
+
+        if (clip.type === "image")
+            deleteImageIfUnreferenced(clip.imagePath)
     }
 
     function pasteClip(clip) {
@@ -370,6 +420,41 @@ Item {
                             anchors.fill: parent
                             anchors.margins: 8
                             spacing: 8
+
+                            // Thumbnail preview for image clips
+                            Rectangle {
+                                visible: modelData.type === "image"
+                                Layout.preferredWidth: 48
+                                Layout.preferredHeight: 48
+                                radius: 6
+                                color: "#3c3836"
+                                border.width: 1
+                                border.color: "#7c6f64"
+                                clip: true
+
+                                Image {
+                                    id: thumb
+                                    anchors.fill: parent
+                                    anchors.margins: 1
+                                    source: modelData.type === "image" && modelData.imagePath
+                                            ? "file://" + modelData.imagePath : ""
+                                    fillMode: Image.PreserveAspectCrop
+                                    asynchronous: true
+                                    cache: false
+                                    sourceSize.width: 96
+                                    sourceSize.height: 96
+                                }
+
+                                // Simple placeholder while the thumbnail decodes
+                                // or if the file failed to load.
+                                Text {
+                                    anchors.centerIn: parent
+                                    visible: thumb.status !== Image.Ready
+                                    text: ""
+                                    color: "#bdae93"
+                                    font.pixelSize: root.fontSize
+                                }
+                            }
 
                             Text {
                                 text: {
@@ -470,8 +555,13 @@ Item {
                                 clearBtn.border.color = "#7c6f64"
                             }
                             onClicked: {
+                                var cleared = root.history
                                 root.history = []
                                 root.saveHistory()
+                                for (var i = 0; i < cleared.length; i++) {
+                                    if (cleared[i].type === "image")
+                                        root.deleteImageIfUnreferenced(cleared[i].imagePath)
+                                }
                             }
                         }
                     }
