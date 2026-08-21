@@ -73,10 +73,19 @@ Item {
 	Process {
 		id: artSnapshotProc
 		property string pendingDest: ""
+		property string pendingSrc: ""
 		property int requestId: 0
 		onExited: (exitCode, exitStatus) => {
-			if (exitCode === 0 && pendingDest !== "" && requestId === root._artRequestId)
+			if (requestId !== root._artRequestId) return // superseded by a newer track change
+			if (exitCode === 0 && pendingDest !== "") {
 				root.stableArtUrl = "file://" + pendingDest
+			} else {
+				// Previously a failed copy just left stableArtUrl at
+				// whatever it was before (stale art from a prior track, or
+				// blank), with no warning at all.
+				console.warn("[MediaController] Failed to copy artwork (exit " + exitCode + ") from", pendingSrc)
+				root.stableArtUrl = ""
+			}
 		}
 	}
 	onArtUrlChanged: {
@@ -88,16 +97,30 @@ Item {
 			const ext = dot >= 0 ? src.substring(dot) : ".img"
 			const dest = "/tmp/qs-mediaosd-art-" + (activePlayer ? activePlayer.uniqueId : 0) + ext
 
-			// Cleanup old files (keep max 10)
-			if (tempArtFiles.length >= 10) {
+			// The same player reuses the same destination filename across
+			// track changes, so pushing unconditionally on every change let
+			// duplicate entries for the same still-active file pile up in
+			// tempArtFiles. That meant the eviction below (which removes
+			// whatever's oldest in the list) could end up deleting the
+			// active player's *current* artwork file just because an older
+			// duplicate entry for that same path happened to be oldest.
+			// De-duplicate by moving this path to the end instead.
+			const idx = tempArtFiles.indexOf(dest)
+			if (idx !== -1) tempArtFiles.splice(idx, 1)
+			tempArtFiles.push(dest)
+
+			// Cleanup old files (keep max 10), but never delete the path
+			// we're about to write to.
+			while (tempArtFiles.length > 10) {
 				const oldest = tempArtFiles.shift()
+				if (oldest === dest) continue
 				cleanupProc.command = ["rm", "-f", oldest]
 				cleanupProc.running = false
 				cleanupProc.running = true
 			}
-			tempArtFiles.push(dest)
 
 			artSnapshotProc.pendingDest = dest
+			artSnapshotProc.pendingSrc = src
 			artSnapshotProc.requestId = root._artRequestId
 			artSnapshotProc.command = ["cp", "-f", src, dest]
 			artSnapshotProc.running = false

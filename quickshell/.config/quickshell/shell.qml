@@ -63,6 +63,14 @@ ShellRoot {
 	property string tailText: "Not connected"
 	property bool showTail: false
 
+	// All the stat pills above depend on an external "sysstats" script.
+	// Previously, if it wasn't installed, every pill just kept showing its
+	// initial placeholder ("0%", "Disconnected", etc.) forever with no
+	// indication those were placeholders and not real readings - "0%" in
+	// particular looks exactly like a genuine zero reading. This flag lets
+	// the pills distinguish "not checked yet" from "confirmed missing".
+	property bool sysstatsAvailable: true
+
 	property string sysMediaText: ""
 
 	property bool notifCenterVisible: false
@@ -104,6 +112,28 @@ ShellRoot {
 	}
 
 	Process { id: shellCmd }
+
+	Process {
+		id: detectSysstatsProc
+		running: true
+		command: ["sh", "-c", "command -v sysstats >/dev/null 2>&1 && echo yes || echo no"]
+		stdout: StdioCollector {
+			onStreamFinished: {
+				root.sysstatsAvailable = text.trim() === "yes"
+				if (!root.sysstatsAvailable) {
+					console.warn("[shell] 'sysstats' not found on PATH - stat pills (CPU, GPU, memory, disk, network) will show N/A")
+					root.cpuText = "N/A"
+					root.gpuText = "N/A"
+					root.memText = "N/A"
+					root.diskText = "N/A"
+					root.ethText = "N/A"
+					root.wifiText = "N/A"
+					root.tailText = "N/A"
+					root.kernelVersion = "N/A"
+				}
+			}
+		}
+	}
 
 	function parseSysstats(data, iconProp, textProp) {
 		if (!data) return;
@@ -157,7 +187,7 @@ ShellRoot {
 	}
 
 	Timer {
-		interval: 2000; running: true; repeat: true; triggeredOnStart: true
+		interval: 2000; running: root.sysstatsAvailable; repeat: true; triggeredOnStart: true
 		onTriggered: {
 			cpuProc.running = false; cpuProc.running = true
 			memProc.running = false; memProc.running = true
@@ -168,7 +198,7 @@ ShellRoot {
 		}
 	}
 	Timer {
-		interval: 60000; running: true; repeat: true; triggeredOnStart: true
+		interval: 60000; running: root.sysstatsAvailable; repeat: true; triggeredOnStart: true
 		onTriggered: {
 			kernelProc.running = false; kernelProc.running = true
 			gpuProc.running = false; gpuProc.running = true
@@ -1151,7 +1181,14 @@ ShellRoot {
 						MouseArea {
 							anchors.fill: parent
 							cursorShape: Qt.PointingHandCursor
-							onClicked: notifs.clearHistory()
+							onClicked: {
+								// "Clear" previously only wiped history, leaving any
+								// still-active popup on screen (and the bell icon
+								// still showing its "unread" state) even though the
+								// button reads as a clear-everything action.
+								notifs.dismissAll()
+								notifs.clearHistory()
+							}
 						}
 					}
 				}
@@ -1486,13 +1523,25 @@ ShellRoot {
 		anchors { top: true; bottom: true; left: true; right: true }
 
 		property string bgUrl: ""
+		property real _lastCaptureTime: 0
 
 		Connections {
 			target: screenshot
 			function onBackgroundCaptured(filePath) { powerMenuWindow.bgUrl = "file://" + filePath }
 		}
 		onVisibleChanged: {
-			if (visible) screenshot.captureFullForBackground()
+			// Previously this re-ran hyprctl+grim on every single open. It's
+			// only used as a blurred backdrop, so reusing a capture that's
+			// less than a minute old is visually indistinguishable and
+			// avoids spawning two processes every time someone opens the
+			// power menu.
+			if (visible) {
+				const now = Date.now()
+				if (powerMenuWindow.bgUrl === "" || (now - powerMenuWindow._lastCaptureTime) > 60000) {
+					screenshot.captureFullForBackground()
+					powerMenuWindow._lastCaptureTime = now
+				}
+			}
 		}
 
 		Rectangle {
