@@ -55,7 +55,7 @@ PanelWindow {
 
     Rectangle {
         width: 700
-        height: 500
+        height: 560
         anchors.centerIn: parent
         radius: 16
         color: cal0
@@ -95,28 +95,12 @@ PanelWindow {
                             required property var modelData
                             readonly property bool isDefault: modelData === Pipewire.defaultAudioSink
                             width: ListView.view.width
-                            height: 50
+                            height: 64
                             radius: 10
                             color: cal2
                             border.width: isDefault ? 2 : 1
                             border.color: isDefault ? cal14 : cal3
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.margins: 8
-                                spacing: 8
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    Text { text: root.deviceLabel(sinkDelegate.modelData); color: cal6; font.family: root.fontFamily; font.pixelSize: root.fontSize }
-                                    Text { text: sinkDelegate.modelData.name; color: cal3; font.family: root.fontFamily; font.pixelSize: root.fontSize - 2 }
-                                }
-                                Text {
-                                    visible: sinkDelegate.isDefault
-                                    text: "\uf00c"
-                                    color: cal14
-                                    font.family: root.fontFamily
-                                    font.pixelSize: root.fontSize
-                                }
-                            }
+
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
@@ -124,6 +108,58 @@ PanelWindow {
                                 onEntered: if (!sinkDelegate.isDefault) parent.border.color = cal14
                                 onExited: if (!sinkDelegate.isDefault) parent.border.color = cal3
                                 onClicked: root.setDefault(sinkDelegate.modelData, "sink")
+                            }
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 8
+                                spacing: 4
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 0
+                                        Text { text: root.deviceLabel(sinkDelegate.modelData); color: cal6; font.family: root.fontFamily; font.pixelSize: root.fontSize }
+                                        Text { text: sinkDelegate.modelData.name; color: cal3; font.family: root.fontFamily; font.pixelSize: root.fontSize - 2 }
+                                    }
+                                    Text {
+                                        visible: sinkDelegate.isDefault
+                                        text: "\uf00c"
+                                        color: cal14
+                                        font.family: root.fontFamily
+                                        font.pixelSize: root.fontSize
+                                    }
+                                }
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+                                    Text {
+                                        text: sinkDelegate.modelData.audio.muted ? "\uf6a9" : "\uf028"
+                                        color: sinkDelegate.modelData.audio.muted ? cal3 : cal6
+                                        font.family: root.fontFamily
+                                        font.pixelSize: root.fontSize
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            anchors.margins: -6
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: sinkDelegate.modelData.audio.muted = !sinkDelegate.modelData.audio.muted
+                                        }
+                                    }
+                                    VolumeSlider {
+                                        Layout.fillWidth: true
+                                        value: sinkDelegate.modelData.audio.volume
+                                        muted: sinkDelegate.modelData.audio.muted
+                                        onMoved: (v) => sinkDelegate.modelData.audio.volume = v
+                                    }
+                                    Text {
+                                        Layout.preferredWidth: 36
+                                        text: Math.round(sinkDelegate.modelData.audio.volume * 100) + "%"
+                                        color: cal6
+                                        font.family: root.fontFamily
+                                        font.pixelSize: root.fontSize - 2
+                                    }
+                                }
                             }
                         }
                     }
@@ -144,28 +180,12 @@ PanelWindow {
                             required property var modelData
                             readonly property bool isDefault: modelData === Pipewire.defaultAudioSource
                             width: ListView.view.width
-                            height: 50
+                            height: 64
                             radius: 10
                             color: cal2
                             border.width: isDefault ? 2 : 1
                             border.color: isDefault ? cal14 : cal3
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.margins: 8
-                                spacing: 8
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    Text { text: root.deviceLabel(sourceDelegate.modelData); color: cal6; font.family: root.fontFamily; font.pixelSize: root.fontSize }
-                                    Text { text: sourceDelegate.modelData.name; color: cal3; font.family: root.fontFamily; font.pixelSize: root.fontSize - 2 }
-                                }
-                                Text {
-                                    visible: sourceDelegate.isDefault
-                                    text: "\uf00c"
-                                    color: cal14
-                                    font.family: root.fontFamily
-                                    font.pixelSize: root.fontSize
-                                }
-                            }
+
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
@@ -173,6 +193,58 @@ PanelWindow {
                                 onEntered: if (!sourceDelegate.isDefault) parent.border.color = cal14
                                 onExited: if (!sourceDelegate.isDefault) parent.border.color = cal3
                                 onClicked: root.setDefault(sourceDelegate.modelData, "source")
+                            }
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 8
+                                spacing: 4
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 0
+                                        Text { text: root.deviceLabel(sourceDelegate.modelData); color: cal6; font.family: root.fontFamily; font.pixelSize: root.fontSize }
+                                        Text { text: sourceDelegate.modelData.name; color: cal3; font.family: root.fontFamily; font.pixelSize: root.fontSize - 2 }
+                                    }
+                                    Text {
+                                        visible: sourceDelegate.isDefault
+                                        text: "\uf00c"
+                                        color: cal14
+                                        font.family: root.fontFamily
+                                        font.pixelSize: root.fontSize
+                                    }
+                                }
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+                                    Text {
+                                        text: sourceDelegate.modelData.audio.muted ? "\uf131" : "\uf130"
+                                        color: sourceDelegate.modelData.audio.muted ? cal3 : cal6
+                                        font.family: root.fontFamily
+                                        font.pixelSize: root.fontSize
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            anchors.margins: -6
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: sourceDelegate.modelData.audio.muted = !sourceDelegate.modelData.audio.muted
+                                        }
+                                    }
+                                    VolumeSlider {
+                                        Layout.fillWidth: true
+                                        value: sourceDelegate.modelData.audio.volume
+                                        muted: sourceDelegate.modelData.audio.muted
+                                        onMoved: (v) => sourceDelegate.modelData.audio.volume = v
+                                    }
+                                    Text {
+                                        Layout.preferredWidth: 36
+                                        text: Math.round(sourceDelegate.modelData.audio.volume * 100) + "%"
+                                        color: cal6
+                                        font.family: root.fontFamily
+                                        font.pixelSize: root.fontSize - 2
+                                    }
+                                }
                             }
                         }
                     }

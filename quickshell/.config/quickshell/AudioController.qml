@@ -21,7 +21,8 @@ Item {
 	readonly property bool micMuted: sourceReady ? source.audio.muted : true
 	readonly property int micVolumePct: Math.round(micVolume * 100)
 
-	readonly property real step: 0.05
+	readonly property real step: root.stepSize
+	property real stepSize: 0.05   // configurable: e.g. set to 0.02 for finer 2% steps
 
 	function volUp(): int {
 		if (!sinkReady) return -1

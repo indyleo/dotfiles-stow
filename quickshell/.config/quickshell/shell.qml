@@ -95,6 +95,7 @@ ShellRoot {
 	NerdFontPicker { id: nerdFontPicker }
 	NotesPicker { id: notesPicker }
 	AudioSwitcher { id: audioSwitcher }
+	AudioMixer { id: audioMixer }
 
 	property var notifBorder: (urgency) => {
 		switch (urgency) {
@@ -319,6 +320,7 @@ ShellRoot {
 		function icon(): void   { nerdFontPicker.active = !nerdFontPicker.active }
 		function notes(): void  { notesPicker.active = !notesPicker.active }
 		function audio(): void  { audioSwitcher.active = !audioSwitcher.active }
+		function mixer(): void  { audioMixer.active = !audioMixer.active }
 		function apps(): void { appLauncher.active = !appLauncher.active }
 		function dmenu(inputFile: string, outputFile: string, prompt: string): void {
 			dmenu.open(inputFile, outputFile, prompt)
@@ -724,7 +726,7 @@ ShellRoot {
 								Item { height: 20; width: parent.expanded ? micTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
 								Text { id: micTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: audio.micText; color: root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
 							}
-							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: micRow.hovered = true; onExited: micRow.hovered = false; onWheel: (wheel) => { if (wheel.angleDelta.y > 0) audio.micUp(); else audio.micDown() }; onClicked: (m) => { if(m.button === Qt.MiddleButton) micRow.pinned = !micRow.pinned; else if (m.button === Qt.LeftButton) { audio.micToggle() } else if (m.button === Qt.RightButton) { audioSwitcher.active = true } } }
+							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: micRow.hovered = true; onExited: micRow.hovered = false; onWheel: (wheel) => { if (wheel.angleDelta.y > 0) audio.micUp(); else audio.micDown() }; onClicked: (m) => { if(m.button === Qt.MiddleButton) micRow.pinned = !micRow.pinned; else if (m.button === Qt.LeftButton) { audio.micToggle() } else if (m.button === Qt.RightButton) { if (m.modifiers & Qt.ControlModifier) audioMixer.active = true; else audioSwitcher.active = true } } }
 						}
 
 						// Volume
@@ -736,7 +738,7 @@ ShellRoot {
 								Item { height: 20; width: parent.expanded ? volTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
 								Text { id: volTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: audio.volText; color: root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
 							}
-							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: volRow.hovered = true; onExited: volRow.hovered = false; onWheel: (wheel) => { if (wheel.angleDelta.y > 0) audio.volUp(); else audio.volDown() }; onClicked: (m) => { if(m.button === Qt.MiddleButton) volRow.pinned = !volRow.pinned; else if (m.button === Qt.LeftButton) { audio.volToggle() } else if (m.button === Qt.RightButton) { audioSwitcher.active = true } } }
+							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: volRow.hovered = true; onExited: volRow.hovered = false; onWheel: (wheel) => { if (wheel.angleDelta.y > 0) audio.volUp(); else audio.volDown() }; onClicked: (m) => { if(m.button === Qt.MiddleButton) volRow.pinned = !volRow.pinned; else if (m.button === Qt.LeftButton) { audio.volToggle() } else if (m.button === Qt.RightButton) { if (m.modifiers & Qt.ControlModifier) audioMixer.active = true; else audioSwitcher.active = true } } }
 						}
 					}
 				}
