@@ -504,6 +504,7 @@ Item {
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
 
         anchors { top: true; right: true; bottom: true }
         margins.top: 42; margins.right: 12; margins.bottom: 12
