@@ -17,15 +17,32 @@ Item {
     property string humidity: "--"
     property string wind: "--"
 
+    // Optional custom location (e.g. "Paris" or "New York"). Empty means
+    // wttr.in's default IP-based auto-detection, which is the only option
+    // the previous version supported.
+    property string location: ""
+
+    // Surfaced in the UI instead of leaving stale "--" placeholders forever
+    // with no indication that the fetch or parse actually failed.
+    property bool hasError: false
+    property string errorMessage: ""
+
     property string fontFamily: "JetBrainsMono Nerd Font"
     property int fontSize: 13
 
     Process {
         id: weatherProc
-        // Replaced sysstats with curl fetching JSON
-        command: ["curl", "-s", "wttr.in/?format=j1"]
+        // Replaced sysstats with curl fetching JSON.
+        // --max-time avoids hanging forever if the network is down; -f
+        // makes curl itself report failure on HTTP error responses instead
+        // of happily returning an error page that JSON.parse would then
+        // choke on with a confusing error.
+        command: ["curl", "-s", "-f", "--max-time", "10",
+            "wttr.in/" + encodeURIComponent(root.location) + "?format=j1"]
+        stderr: StdioCollector {}
         stdout: StdioCollector {
             onStreamFinished: {
+                if (text.trim() === "") return // handled in onExited via exit code
                 try {
                     var data = JSON.parse(text.trim())
                     var current = data.current_condition[0]
@@ -45,9 +62,20 @@ Item {
                     else if (condLow.includes("thunder") || condLow.includes("storm")) root.weatherIcon = "󰖓"
                     else root.weatherIcon = "󰖐"
 
+                    root.hasError = false
+                    root.errorMessage = ""
                 } catch(e) {
                     console.log("Weather parse error: " + e)
+                    root.hasError = true
+                    root.errorMessage = "Couldn't read weather data"
                 }
+            }
+        }
+        onExited: (code, status) => {
+            if (code !== 0) {
+                console.warn("[WeatherController] curl failed with exit code", code, weatherProc.stderr.text)
+                root.hasError = true
+                root.errorMessage = code === 28 ? "Weather request timed out" : "Couldn't reach weather service"
             }
         }
     }
@@ -109,6 +137,18 @@ Item {
                     font.family: root.fontFamily
                     font.pixelSize: root.fontSize
                     Layout.alignment: Qt.AlignHCenter
+                }
+
+                Text {
+                    visible: root.hasError
+                    text: root.errorMessage
+                    color: "#fb4934"
+                    font.family: root.fontFamily
+                    font.pixelSize: root.fontSize - 1
+                    Layout.alignment: Qt.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    Layout.maximumWidth: 240
+                    horizontalAlignment: Text.AlignHCenter
                 }
 
                 // Grid layout for secondary details

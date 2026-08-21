@@ -56,9 +56,11 @@ PanelWindow {
         var filename = timestamp + ".png"
         var saveDir = "$HOME/Pictures/Screenshots"
 
+        saveImageProc._filename = filename
+        saveImageProc._saveDir = saveDir
         saveImageProc.command = [
             "sh", "-c",
-            "mkdir -p \"" + saveDir + "\" && cp \"$1\" \"" + saveDir + "/$2\" && notify-send 'Screenshot Captured' \"Saved to: $2\" -i \"" + saveDir + "/$2\"",
+            "mkdir -p \"" + saveDir + "\" && cp \"$1\" \"" + saveDir + "/$2\"",
             "sh",
             filePath,
             filename
@@ -222,11 +224,37 @@ PanelWindow {
         }
     }
 
+    // ImageMagick 7 renamed its CLI to `magick`; many systems still only
+    // have IM6's `convert`. Detect which is available once at startup so
+    // the color picker doesn't just fail on IM6-only systems.
+    property string magickBin: "magick"
+
+    Process {
+        id: detectMagickProc
+        running: true
+        command: ["sh", "-c",
+            "command -v magick >/dev/null 2>&1 && echo magick || " +
+            "{ command -v convert >/dev/null 2>&1 && echo convert || echo none; }"
+        ]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.magickBin = text.trim()
+                if (root.magickBin === "none") {
+                    console.warn("[Screenshot] Neither 'magick' nor 'convert' found - color picker will not work")
+                }
+            }
+        }
+    }
+
     // Capture a single pixel at (x, y) and extract its color
     function capturePixel(x, y) {
+        if (root.magickBin === "none") {
+            root.screenshotFailed("Color picker requires ImageMagick (magick or convert), which isn't installed")
+            return
+        }
         colorPixelProc.command = [
             "sh", "-c",
-            "grim -g '" + x + "," + y + " 1x1' -t ppm - | magick - -format '%[pixel:p{0,0}]' txt:- | grep -E -o '#[0-9A-Fa-f]{6}'"
+            "grim -g '" + x + "," + y + " 1x1' -t ppm - | " + root.magickBin + " - -format '%[pixel:p{0,0}]' txt:- | grep -E -o '#[0-9A-Fa-f]{6}'"
         ]
         colorPixelProc.running = false
         colorPixelProc.running = true
@@ -443,9 +471,34 @@ PanelWindow {
 
     Process {
         id: saveImageProc
+        property string _filename: ""
+        property string _saveDir: ""
         onExited: (code, status) => {
-            if (code === 0) console.log("[Screenshot] Saved and notification sent")
-            else console.warn("[Screenshot] Save/notify failed (exit " + code + ")")
+            if (code === 0) {
+                console.log("[Screenshot] Saved to", saveImageProc._saveDir + "/" + saveImageProc._filename)
+                saveNotifyProc.command = [
+                    "sh", "-c",
+                    "notify-send 'Screenshot Captured' \"Saved to: $1\" -i \"" + saveImageProc._saveDir + "/$1\"",
+                    "sh",
+                    saveImageProc._filename
+                ]
+                saveNotifyProc.running = false
+                saveNotifyProc.running = true
+            } else {
+                console.warn("[Screenshot] Save failed (exit " + code + ")")
+                root.screenshotFailed("failed to save screenshot (exit " + code + ")")
+            }
+        }
+    }
+
+    Process {
+        id: saveNotifyProc
+        onExited: (code, status) => {
+            // Only the notification failed here (e.g. notify-send isn't
+            // installed) - the screenshot itself already saved
+            // successfully, so this is a soft warning, not a user-facing
+            // failure.
+            if (code !== 0) console.warn("[Screenshot] notify-send failed or is not installed (exit " + code + "); the screenshot was still saved")
         }
     }
 
