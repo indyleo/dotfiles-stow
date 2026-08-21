@@ -40,6 +40,7 @@ PanelWindow {
     function open(inputFile, outFile, prompt) {
         root.outputPath = outFile
         root.promptText = prompt !== "" ? prompt : "run"
+        root.selectedSet = {}
         inputFileView.path = inputFile
     }
 
@@ -50,6 +51,7 @@ PanelWindow {
             root.items = content !== "" ? content.split("\n").filter(l => l !== "") : []
             root.searchText = ""
             root.selectedIndex = 0
+            root.selectedSet = {}
             root.active = true
             focusTimer.start()
         }
@@ -60,6 +62,24 @@ PanelWindow {
         interval: 50
         repeat: false
         onTriggered: searchInput.forceActiveFocus()
+    }
+
+    // ------------------------------------------------------------
+    // Multi-select — Ctrl+click toggles an item into this set without
+    // submitting. Plain click keeps the original single-select behaviour
+    // (submit immediately) so existing callers are unaffected. Enter
+    // submits everything checked here, or falls back to the single-select
+    // path if nothing's been Ctrl+clicked.
+    // ------------------------------------------------------------
+
+    property var selectedSet: ({})
+    readonly property int selectedCount: Object.keys(root.selectedSet).length
+
+    function toggleSelect(value) {
+        var updated = Object.assign({}, root.selectedSet)
+        if (updated[value]) delete updated[value]
+        else updated[value] = true
+        root.selectedSet = updated
     }
 
     // ------------------------------------------------------------
@@ -76,6 +96,23 @@ PanelWindow {
             writeProc.running = true
         }
         root.active = false
+        root.selectedSet = {}
+    }
+
+    function submitMulti(values) {
+        if (root.outputPath !== "") {
+            // $1 is the output path; shift it off so "$@" is exactly the
+            // selected values (however many there are, however they're
+            // spelled - passed via argv, never interpolated into the
+            // script text, so no quoting concerns even with spaces/quotes
+            // in an item).
+            var script = 'out="$1"; shift; printf "%s\\n" "$@" > "$out"'
+            writeProc.command = ["sh", "-c", script, "write-result-multi", root.outputPath].concat(values)
+            writeProc.running = false
+            writeProc.running = true
+        }
+        root.active = false
+        root.selectedSet = {}
     }
 
     function submitSelected() {
@@ -86,6 +123,16 @@ PanelWindow {
             // No match highlighted — submit the raw typed text,
             // same as dmenu's "free text" behaviour.
             root.submit(root.searchText)
+        }
+    }
+
+    // Enter key entry point: if anything's been Ctrl+click-selected,
+    // submit that whole set; otherwise fall back to normal single-select.
+    function confirm() {
+        if (root.selectedCount > 0) {
+            root.submitMulti(Object.keys(root.selectedSet))
+        } else {
+            root.submitSelected()
         }
     }
 
@@ -125,12 +172,23 @@ PanelWindow {
             anchors.margins: 16
             spacing: 12
 
-            Text {
-                text: root.promptText
-                color: cal6
-                font.family: root.fontFamily
-                font.pixelSize: root.fontSize + 4
-                font.bold: true
+            RowLayout {
+                Layout.fillWidth: true
+                Text {
+                    text: root.promptText
+                    color: cal6
+                    font.family: root.fontFamily
+                    font.pixelSize: root.fontSize + 4
+                    font.bold: true
+                }
+                Item { Layout.fillWidth: true }
+                Text {
+                    visible: root.selectedCount > 0
+                    text: root.selectedCount + " selected"
+                    color: cal14
+                    font.family: root.fontFamily
+                    font.pixelSize: root.fontSize
+                }
             }
 
             Rectangle {
@@ -155,7 +213,7 @@ PanelWindow {
                         root.selectedIndex = 0
                     }
                     Keys.onEscapePressed: root.cancel()
-                    Keys.onReturnPressed: root.submitSelected()
+                    Keys.onReturnPressed: root.confirm()
                     Keys.onUpPressed: {
                         if (root.filteredItems.length === 0) return
                         root.selectedIndex = Math.max(0, root.selectedIndex - 1)
@@ -181,24 +239,38 @@ PanelWindow {
                     id: itemDelegate
                     required property string modelData
                     required property int index
+                    readonly property bool isChecked: !!root.selectedSet[modelData]
                     width: ListView.view.width
                     height: 36
                     radius: 8
                     color: index === root.selectedIndex ? cal2 : "transparent"
                     border.width: 1
-                    border.color: index === root.selectedIndex ? cal14 : "transparent"
+                    border.color: itemDelegate.isChecked ? cal14 : (index === root.selectedIndex ? cal14 : "transparent")
 
-                    Text {
-                        anchors.left: parent.left
-                        anchors.right: parent.right
+                    RowLayout {
+                        anchors.fill: parent
                         anchors.leftMargin: 10
                         anchors.rightMargin: 10
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: itemDelegate.modelData
-                        color: cal6
-                        font.family: root.fontFamily
-                        font.pixelSize: root.fontSize
-                        elide: Text.ElideRight
+                        spacing: 8
+
+                        Text {
+                            // Empty-box / checked-box glyph, only meaningful
+                            // once at least one item has been Ctrl+clicked.
+                            visible: root.selectedCount > 0
+                            text: itemDelegate.isChecked ? "\uf14a" : "\uf0c8"
+                            color: itemDelegate.isChecked ? cal14 : cal3
+                            font.family: root.fontFamily
+                            font.pixelSize: root.fontSize - 1
+                        }
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: itemDelegate.modelData
+                            color: cal6
+                            font.family: root.fontFamily
+                            font.pixelSize: root.fontSize
+                            elide: Text.ElideRight
+                        }
                     }
 
                     MouseArea {
@@ -206,7 +278,13 @@ PanelWindow {
                         cursorShape: Qt.PointingHandCursor
                         hoverEnabled: true
                         onEntered: root.selectedIndex = itemDelegate.index
-                        onClicked: root.submit(itemDelegate.modelData)
+                        onClicked: (mouse) => {
+                            if (mouse.modifiers & Qt.ControlModifier) {
+                                root.toggleSelect(itemDelegate.modelData)
+                            } else {
+                                root.submit(itemDelegate.modelData)
+                            }
+                        }
                     }
                 }
             }

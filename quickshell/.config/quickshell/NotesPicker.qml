@@ -16,6 +16,23 @@ PanelWindow {
     property string searchText: ""
     property string newNoteName: ""
 
+    // Favourites: pinned notes shown at the top of the list, persisted as
+    // a hidden file inside notesDir (the listing already excludes dotfiles,
+    // so this never shows up as a "note" itself).
+    property var favorites: []
+    readonly property string favoritesFile: root.notesDir + "/.favorites.json"
+
+    // Respects $EDITOR if set, falling back to nvim. Known terminal-based
+    // editors get wrapped in footclient -e; anything else (a GUI editor
+    // like "code" or "subl") is launched directly.
+    property string editorCmd: "nvim"
+    readonly property var terminalEditorNames: ["nvim", "vim", "vi", "nano", "micro", "hx", "helix", "emacs"]
+
+    function isTerminalEditor(cmd) {
+        var base = cmd.trim().split(/\s+/)[0].split("/").pop()
+        return root.terminalEditorNames.indexOf(base) !== -1
+    }
+
     property string fontFamily: "JetBrainsMono Nerd Font"
     property int fontSize: 13
     readonly property color cal0: "#282828"
@@ -57,6 +74,7 @@ PanelWindow {
             if (code === 0) {
                 listProc.running = false;
                 listProc.running = true;
+                root.loadFavorites();
             }
         }
     }
@@ -67,11 +85,55 @@ PanelWindow {
         mkdirProc.running = true;
     }
 
-    // Open a note with footclient
+    Process {
+        id: detectEditorProc
+        running: true
+        command: ["sh", "-c", "printf '%s' \"${EDITOR:-nvim}\""]
+        stdout: StdioCollector {
+            onStreamFinished: { root.editorCmd = text.trim() || "nvim" }
+        }
+    }
+
+    FileView {
+        id: favoritesFileObj
+        path: root.favoritesFile
+    }
+
+    function loadFavorites() {
+        try {
+            var parsed = JSON.parse(favoritesFileObj.text());
+            root.favorites = Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            root.favorites = [];
+        }
+    }
+
+    function saveFavorites() {
+        favoritesFileObj.setText(JSON.stringify(root.favorites));
+    }
+
+    function toggleFavorite(note) {
+        var idx = root.favorites.indexOf(note);
+        var updated = root.favorites.slice();
+        if (idx !== -1) updated.splice(idx, 1);
+        else updated.push(note);
+        root.favorites = updated;
+        root.saveFavorites();
+    }
+
+    // Open a note using $EDITOR (detected above), falling back to nvim.
+    // Terminal editors (nvim, vim, nano, etc.) get wrapped in footclient
+    // -e; anything else is assumed to be a GUI editor and launched
+    // directly.
     Process { id: openProc }
 
     function openNote(filePath) {
-        openProc.command = ["footclient", "-e", "nvim", filePath];
+        var parts = root.editorCmd.trim().split(/\s+/);
+        if (root.isTerminalEditor(root.editorCmd)) {
+            openProc.command = ["footclient", "-e"].concat(parts, [filePath]);
+        } else {
+            openProc.command = parts.concat([filePath]);
+        }
         openProc.running = false;
         openProc.running = true;
         root.active = false;
@@ -129,10 +191,16 @@ PanelWindow {
         onTriggered: searchInput.forceActiveFocus()
     }
 
-    // Filtered notes
+    // Favourites first (preserving each group's existing recency order),
+    // then filtered by search text.
+    readonly property var sortedNotes: {
+        var favs = notesList.filter(function(n) { return root.favorites.indexOf(n) !== -1 });
+        var rest = notesList.filter(function(n) { return root.favorites.indexOf(n) === -1 });
+        return favs.concat(rest);
+    }
     readonly property var filteredNotes: {
-        if (searchText === "") return notesList;
-        return notesList.filter(function(n) {
+        if (searchText === "") return sortedNotes;
+        return sortedNotes.filter(function(n) {
             return n.toLowerCase().includes(searchText.toLowerCase());
         });
     }
@@ -265,29 +333,53 @@ PanelWindow {
                 model: root.filteredNotes
 
                 delegate: Rectangle {
+                    id: noteDelegate
+                    required property var modelData
+                    readonly property bool isFavorite: root.favorites.indexOf(modelData) !== -1
                     width: ListView.view.width
                     height: 40
                     radius: 10
                     color: cal2
                     border.width: 1
                     border.color: cal3
-                    Text {
-                        anchors.left: parent.left
-                        anchors.leftMargin: 10
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: modelData.replace(/^\.\//, "")
-                        color: cal6
-                        font.family: root.fontFamily
-                        font.pixelSize: root.fontSize
-                        elide: Text.ElideRight
-                    }
+
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         hoverEnabled: true
                         onEntered: parent.border.color = cal14
                         onExited: parent.border.color = cal3
-                        onClicked: root.openNote(root.notesDir + "/" + modelData.replace(/^\.\//, ""))
+                        onClicked: root.openNote(root.notesDir + "/" + noteDelegate.modelData.replace(/^\.\//, ""))
+                    }
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        spacing: 8
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: noteDelegate.modelData.replace(/^\.\//, "")
+                            color: cal6
+                            font.family: root.fontFamily
+                            font.pixelSize: root.fontSize
+                            elide: Text.ElideRight
+                        }
+
+                        Text {
+                            text: noteDelegate.isFavorite ? "\uf005" : "\uf006" // solid vs outline star
+                            color: noteDelegate.isFavorite ? cal14 : cal3
+                            font.family: root.fontFamily
+                            font.pixelSize: root.fontSize
+
+                            MouseArea {
+                                anchors.fill: parent
+                                anchors.margins: -6
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.toggleFavorite(noteDelegate.modelData)
+                            }
+                        }
                     }
                 }
             }

@@ -759,12 +759,12 @@ ShellRoot {
 					color: root.notifCenterVisible ? root.cal3 : root.cal2
 					Text {
 						anchors.centerIn: parent
-						text: notifs.popups.values.length > 0 ? "\uf0f3" : "\uf0a2"
-						color: root.notifCenterVisible ? root.cal7 : root.cal6
+						text: notifs.dndEnabled ? "\uf1f6" : (notifs.popups.values.length > 0 ? "\uf0f3" : "\uf0a2")
+						color: notifs.dndEnabled ? root.cal14 : (root.notifCenterVisible ? root.cal7 : root.cal6)
 						font.pixelSize: root.fontSize + 2; font.family: root.fontFamily
 					}
 					Rectangle {
-						visible: notifs.popups.values.length > 0; width: 8; height: 8; radius: 4
+						visible: !notifs.dndEnabled && notifs.popups.values.length > 0; width: 8; height: 8; radius: 4
 						color: root.cal11; border.width: 1; border.color: root.cal0
 						anchors.top: parent.top; anchors.right: parent.right; anchors.topMargin: -1; anchors.rightMargin: -1
 					}
@@ -1163,6 +1163,32 @@ ShellRoot {
 					Item { Layout.fillWidth: true }
 
 					Rectangle {
+						id: dndBtn
+						Layout.preferredHeight: 26
+						Layout.preferredWidth: dndText.implicitWidth + 24
+						radius: 13
+						color: notifs.dndEnabled ? root.cal14 : root.cal2
+						border.width: notifs.dndEnabled ? 0 : 1
+						border.color: root.cal3
+
+						Text {
+							id: dndText
+							anchors.centerIn: parent
+							text: "\uf1f6  DND"
+							color: notifs.dndEnabled ? root.cal0 : root.cal6
+							font.family: root.fontFamily
+							font.pixelSize: root.fontSize
+							font.bold: true
+						}
+
+						MouseArea {
+							anchors.fill: parent
+							cursorShape: Qt.PointingHandCursor
+							onClicked: notifs.dndEnabled = !notifs.dndEnabled
+						}
+					}
+
+					Rectangle {
 						Layout.preferredHeight: 26
 						Layout.preferredWidth: clearText.implicitWidth + 20
 						radius: 13
@@ -1541,6 +1567,8 @@ ShellRoot {
 					screenshot.captureFullForBackground()
 					powerMenuWindow._lastCaptureTime = now
 				}
+			} else {
+				powerMenuWindow.pendingConfirm = ""
 			}
 		}
 
@@ -1554,10 +1582,17 @@ ShellRoot {
 			Rectangle { anchors.fill: parent; color: Qt.rgba(0,0,0,0.6) }
 		}
 
-		MouseArea { anchors.fill: parent; z: -1; onClicked: root.powerMenuVisible = false }
+		MouseArea { anchors.fill: parent; z: -1; onClicked: { root.powerMenuVisible = false; powerMenuWindow.pendingConfirm = "" } }
+
+		// Reboot/shutdown are destructive enough (unlike lock/suspend/
+		// hibernate/logout, which are quick to recover from) that an
+		// accidental click deserves a confirmation step first.
+		property string pendingConfirm: ""   // "" | "Reboot" | "Shutdown"
 
 		ColumnLayout {
 			anchors.centerIn: parent; spacing: 20; width: 420; z: 1
+			visible: powerMenuWindow.pendingConfirm === ""
+
 			Text {
 				text: "Power Menu"; color: root.cal6; font.family: root.fontFamily
 				font.pixelSize: root.fontSize * 2; font.bold: true
@@ -1575,8 +1610,8 @@ ShellRoot {
 			}
 			RowLayout {
 				Layout.fillWidth: true; spacing: 16
-				PowerButton { icon: "󰜉"; label: "Reboot"; fontSize: root.fontSize+6; Layout.preferredHeight:100; onClicked: { powerController.reboot(); root.powerMenuVisible = false } }
-				PowerButton { icon: "󰐥"; label: "Shutdown"; fontSize: root.fontSize+6; Layout.preferredHeight:100; onClicked: { powerController.shutdown(); root.powerMenuVisible = false } }
+				PowerButton { icon: "󰜉"; label: "Reboot"; fontSize: root.fontSize+6; Layout.preferredHeight:100; onClicked: powerMenuWindow.pendingConfirm = "Reboot" }
+				PowerButton { icon: "󰐥"; label: "Shutdown"; fontSize: root.fontSize+6; Layout.preferredHeight:100; onClicked: powerMenuWindow.pendingConfirm = "Shutdown" }
 			}
 			Rectangle {
 				id: cancelButton; Layout.preferredWidth:200; Layout.preferredHeight:50; Layout.alignment: Qt.AlignHCenter; Layout.topMargin:20
@@ -1587,6 +1622,57 @@ ShellRoot {
 					onEntered: { cancelButton.color = root.cal3; cancelButton.border.color = root.cal6 }
 					onExited: { cancelButton.color = root.cal2; cancelButton.border.color = root.cal3 }
 					onClicked: root.powerMenuVisible = false
+				}
+			}
+		}
+
+		// Confirmation sub-panel, shown in place of the button grid above
+		// when pendingConfirm is set.
+		ColumnLayout {
+			anchors.centerIn: parent; spacing: 24; width: 380; z: 1
+			visible: powerMenuWindow.pendingConfirm !== ""
+
+			Text {
+				text: powerMenuWindow.pendingConfirm + "?"
+				color: root.cal6; font.family: root.fontFamily
+				font.pixelSize: root.fontSize * 2; font.bold: true
+				Layout.alignment: Qt.AlignHCenter
+			}
+			Text {
+				text: "This will " + powerMenuWindow.pendingConfirm.toLowerCase() + " the system now."
+				color: root.cal4; font.family: root.fontFamily
+				font.pixelSize: root.fontSize
+				Layout.alignment: Qt.AlignHCenter
+			}
+			RowLayout {
+				Layout.fillWidth: true; spacing: 16; Layout.topMargin: 8
+
+				Rectangle {
+					Layout.fillWidth: true; Layout.preferredHeight: 56; radius: 16
+					color: root.cal2; border.width: 2; border.color: root.cal3
+					Text { anchors.centerIn: parent; text: "Cancel"; color: root.cal6; font.family: root.fontFamily; font.pixelSize: root.fontSize+2; font.bold: true }
+					MouseArea {
+						anchors.fill: parent; cursorShape: Qt.PointingHandCursor; hoverEnabled: true
+						onEntered: { parent.color = root.cal3; parent.border.color = root.cal6 }
+						onExited: { parent.color = root.cal2; parent.border.color = root.cal3 }
+						onClicked: powerMenuWindow.pendingConfirm = ""
+					}
+				}
+				Rectangle {
+					Layout.fillWidth: true; Layout.preferredHeight: 56; radius: 16
+					color: root.cal8; border.width: 2; border.color: root.cal11
+					Text { anchors.centerIn: parent; text: "Confirm " + powerMenuWindow.pendingConfirm; color: root.cal0; font.family: root.fontFamily; font.pixelSize: root.fontSize+2; font.bold: true }
+					MouseArea {
+						anchors.fill: parent; cursorShape: Qt.PointingHandCursor; hoverEnabled: true
+						onEntered: parent.border.color = root.cal6
+						onExited: parent.border.color = root.cal11
+						onClicked: {
+							if (powerMenuWindow.pendingConfirm === "Reboot") powerController.reboot()
+							else if (powerMenuWindow.pendingConfirm === "Shutdown") powerController.shutdown()
+							powerMenuWindow.pendingConfirm = ""
+							root.powerMenuVisible = false
+						}
+					}
 				}
 			}
 		}

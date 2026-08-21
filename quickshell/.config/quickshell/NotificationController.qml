@@ -33,6 +33,8 @@ Item {
 		root.history = root.history.filter((_, i) => i !== index)
 	}
 
+	property bool dndEnabled: false
+
 	NotificationServer {
 		id: server
 
@@ -47,6 +49,10 @@ Item {
 		onNotification: notification => {
 			notification.tracked = true
 			notification.closed.connect(reason => root.pushHistory(notification, reason))
+			// DND: still tracked (so it still lands in history via the
+			// closed signal above) but dismissed immediately so it never
+			// actually renders as a visible popup.
+			if (root.dndEnabled) notification.dismiss()
 		}
 	}
 
