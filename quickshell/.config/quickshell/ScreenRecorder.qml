@@ -168,8 +168,22 @@ Item {
     // Recording
     // ------------------------------------------------------------
 
-    Process { id: recordProc }
-    Process { id: killProc }
+    Process { id: killRecordProc }
+    Process { id: killStreamProc }
+
+    // Signals both the recorded PID and anything it spawned (kill -SIGINT
+    // alone only hits the top-level process; wf-recorder shouldn't normally
+    // fork children, but pkill -P covers it if it ever does).
+    function killByPidFile(proc, pidFile) {
+        proc.command = ["sh", "-c",
+            "PID=$(cat \"$1\" 2>/dev/null); " +
+            "if [ -n \"$PID\" ]; then kill -SIGINT \"$PID\" 2>/dev/null; pkill -SIGINT -P \"$PID\" 2>/dev/null; fi; " +
+            "rm -f \"$1\"",
+            "killByPidFile", pidFile
+        ]
+        proc.running = false
+        proc.running = true
+    }
 
     function startRecord(output) {
         root.withAudioSource(function(audioSource) {
@@ -178,7 +192,10 @@ Item {
                 "now=$(date '+%a__%b%d__%H_%M_%S')",
                 "mkdir -p \"$HOME/Videos\"",
                 "outputfile=\"$HOME/Videos/recording_${now}.mkv\"",
-                "wf-recorder -o \"$1\" -a \"$2\" -r \"$3\" -c \"$4\" -x yuv420p " + encoderOptsStr + " -f \"$outputfile\" &",
+                "args=(-o \"$1\")",
+                "if [ -n \"$2\" ]; then args+=(-a \"$2\"); fi",
+                "args+=(-r \"$3\" -c \"$4\" -x yuv420p " + encoderOptsStr + " -f \"$outputfile\")",
+                "wf-recorder \"${args[@]}\" &",
                 "echo $! > \"$5\"",
                 "wait"
             ].join("\n")
@@ -194,10 +211,28 @@ Item {
         })
     }
 
+    Process {
+        id: recordProc
+        onExited: (code, status) => {
+            // If we're still marked as recording when this exits, wf-recorder
+            // died on its own (bad codec, no such device, crash, etc.)
+            // rather than via stopRecord(), which always flips `recording`
+            // to false itself before this fires. Previously nothing checked
+            // this at all, so the UI kept claiming a recording was active
+            // indefinitely after a failed start.
+            if (root.recording) {
+                console.warn("[ScreenRecorder] wf-recorder exited unexpectedly, code:", code)
+                root.recording = false
+                root.recordingOutput = ""
+                root.recordingStopped()
+                root.actionFailed("recording stopped unexpectedly (exit code " + code + ")")
+                notifyProc.send("Recording Error", "wf-recorder exited unexpectedly (code " + code + ").")
+            }
+        }
+    }
+
     function stopRecord() {
-        killProc.command = ["sh", "-c", "kill -SIGINT \"$(cat '" + root.recPidFile + "' 2>/dev/null)\" 2>/dev/null; rm -f '" + root.recPidFile + "'"]
-        killProc.running = false
-        killProc.running = true
+        killByPidFile(killRecordProc, root.recPidFile)
 
         root.recording = false
         root.recordingOutput = ""
@@ -208,8 +243,6 @@ Item {
     // ------------------------------------------------------------
     // Streaming
     // ------------------------------------------------------------
-
-    Process { id: streamProc }
 
     Process {
         id: streamKeyProc
@@ -231,8 +264,11 @@ Item {
             root.withAudioSource(function(audioSource) {
                 var encoderOptsStr = root.hasNvidia ? "-p preset=p4 -p tune=hq" : "-p preset=ultrafast"
                 var script = [
-                    "wf-recorder -o \"$1\" -a \"$2\" -r \"$3\" -c \"$4\" -x yuv420p " + encoderOptsStr +
-                        " -p rc=cbr -p bitrate=4500K -m flv -f \"rtmp://" + root.streamServer + ".live-video.net/app/$5\" &",
+                    "args=(-o \"$1\")",
+                    "if [ -n \"$2\" ]; then args+=(-a \"$2\"); fi",
+                    "args+=(-r \"$3\" -c \"$4\" -x yuv420p " + encoderOptsStr +
+                        " -p rc=cbr -p bitrate=4500K -m flv -f \"rtmp://" + root.streamServer + ".live-video.net/app/$5\")",
+                    "wf-recorder \"${args[@]}\" &",
                     "echo $! > \"$6\"",
                     "wait"
                 ].join("\n")
@@ -252,10 +288,27 @@ Item {
         streamKeyProc.running = true
     }
 
+    Process {
+        id: streamProc
+        onExited: (code, status) => {
+            // Mirrors recordProc's handling: if we're still marked as
+            // streaming when the process exits, it dropped on its own
+            // (network failure, RTMP rejection, etc.) rather than via
+            // stopStream(), and the user deserves to know their stream
+            // isn't actually live anymore instead of finding out later.
+            if (root.streaming) {
+                console.warn("[ScreenRecorder] stream exited unexpectedly, code:", code)
+                root.streaming = false
+                root.streamingOutput = ""
+                root.streamingStopped()
+                root.actionFailed("stream stopped unexpectedly (exit code " + code + ")")
+                notifyProc.send("Stream Error", "Stream exited unexpectedly (code " + code + ").")
+            }
+        }
+    }
+
     function stopStream() {
-        killProc.command = ["sh", "-c", "kill -SIGINT \"$(cat '" + root.streamPidFile + "' 2>/dev/null)\" 2>/dev/null; rm -f '" + root.streamPidFile + "'"]
-        killProc.running = false
-        killProc.running = true
+        killByPidFile(killStreamProc, root.streamPidFile)
 
         root.streaming = false
         root.streamingOutput = ""

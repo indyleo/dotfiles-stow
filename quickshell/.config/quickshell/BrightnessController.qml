@@ -37,7 +37,11 @@ Item {
 		stdout: StdioCollector {
 			onStreamFinished: {
 				const name = text.trim()
-				if (name !== "") root.devicePath = "/sys/class/backlight/" + name
+				if (name !== "") {
+					root.devicePath = "/sys/class/backlight/" + name
+				} else {
+					console.warn("[BrightnessController] No backlight device found in /sys/class/backlight - brightness control will not work")
+				}
 			}
 		}
 	}
@@ -56,22 +60,64 @@ Item {
 		onLoaded: root.current = parseInt(text(), 10) || 0
 	}
 
-	Process { id: changeProc }
+	// brightnessctl isn't installed on every system. Detect once at startup
+	// and fall back to `light`, then finally a direct sysfs write (the same
+	// udev/ACL rules that let brightnessctl run unprivileged generally allow
+	// this too, since it targets the identical file).
+	property string brightnessMethod: "brightnessctl"
+
+	Process {
+		id: detectBrightnessProc
+		running: true
+		command: ["sh", "-c",
+			"command -v brightnessctl >/dev/null 2>&1 && echo brightnessctl || " +
+			"{ command -v light >/dev/null 2>&1 && echo light || echo sysfs; }"
+		]
+		stdout: StdioCollector {
+			onStreamFinished: {
+				root.brightnessMethod = text.trim()
+			}
+		}
+	}
+
+	Process {
+		id: changeProc
+		stderr: StdioCollector {}
+		onExited: (code, status) => {
+			if (code !== 0) {
+				console.warn("[BrightnessController] Failed to set brightness:", code, changeProc.stderr.text)
+			}
+		}
+	}
+
+	function applyBrightness(targetPct) {
+		if (root.brightnessMethod === "brightnessctl") {
+			changeProc.command = ["brightnessctl", "set", targetPct + "%"]
+		} else if (root.brightnessMethod === "light") {
+			changeProc.command = ["light", "-S", String(targetPct)]
+		} else {
+			// Last-resort fallback: write the raw value directly to sysfs.
+			// FileView writes the file directly, so there's no shell
+			// quoting involved even though device names could in theory
+			// contain unusual characters.
+			const newVal = Math.round(root.max * targetPct / 100)
+			curFile.setText(String(newVal))
+			return
+		}
+		changeProc.running = false
+		changeProc.running = true
+	}
 
 	function up(): int {
 		if (!available) return -1
 		const target = Math.min(100, pct + step)
-		changeProc.command = ["brightnessctl", "set", step + "%+"]
-		changeProc.running = false
-		changeProc.running = true
+		applyBrightness(target)
 		return target
 	}
 	function down(): int {
 		if (!available) return -1
 		const target = Math.max(0, pct - step)
-		changeProc.command = ["brightnessctl", "set", step + "%-"]
-		changeProc.running = false
-		changeProc.running = true
+		applyBrightness(target)
 		return target
 	}
 }
