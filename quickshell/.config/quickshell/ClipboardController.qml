@@ -506,6 +506,15 @@ Item {
 		WlrLayershell.layer: WlrLayer.Overlay
 		WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
 
+		onVisibleChanged: {
+			if (visible) {
+				root.searchText = ""
+				searchInput.text = ""
+				newSnippetNameInput.text = ""
+				root.pendingSnippetContent = null
+			}
+		}
+
 		anchors { top: true; right: true; bottom: true }
 		margins.top: 42; margins.right: 12; margins.bottom: 12
 		implicitWidth: 380
@@ -611,14 +620,18 @@ Item {
 						MouseArea {
 							anchors.fill: parent
 							cursorShape: Qt.PointingHandCursor
-              hoverEnabled: true
-							onClicked: root.activeTab = "history"
-              onEntered: {
-                parent.color = "#7c6f64"
-              }
-              onExited: {
-                parent.color = "#504945"
-              }
+							hoverEnabled: true
+							onClicked: {
+								root.activeTab = "history"
+								root.searchText = ""
+								searchInput.text = ""
+							}
+							onEntered: {
+								parent.color = "#7c6f64"
+							}
+							onExited: {
+								parent.color = "#504945"
+							}
 						}
 					}
 					Rectangle {
@@ -640,7 +653,12 @@ Item {
 							anchors.fill: parent
 							cursorShape: Qt.PointingHandCursor
 							hoverEnabled: true
-							onClicked: root.activeTab = "snippets"
+							onClicked: {
+								root.activeTab = "snippets"
+								root.searchText = ""
+								searchInput.text = ""
+								newSnippetNameInput.text = ""
+							}
 							onEntered: {
 								parent.color = "#7c6f64"
 							}
