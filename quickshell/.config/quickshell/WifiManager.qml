@@ -20,8 +20,9 @@ Item {
     property bool passwordDialogVisible: false
     property string pendingSsid: ""
 
-    property string fontFamily: "JetBrainsMono Nerd Font"
-    property int fontSize: 13
+    // Font sourced from the central Theme singleton (Theme.qml)
+    property string fontFamily: Theme.fontFamily
+    property int fontSize: Theme.fontSize
 
     // Fetch networks immediately when the panel is opened
     onActiveChanged: {

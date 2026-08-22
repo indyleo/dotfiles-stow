@@ -6,12 +6,13 @@ Rectangle {
 
     property string icon: ""
     property string label: ""
-    property color bgColor: "#504945"
-    property color hoverColor: "#7c6f64"
-    property color iconColor: "#fe8019"
-    property color textColor: "#ebdbb2"
-    property string fontFamily: "JetBrainsMono Nerd Font"
-    property int fontSize: 13
+    // Defaults sourced from Theme.qml; still overridable per-instance
+    property color bgColor: Theme.buttonBg
+    property color hoverColor: Theme.buttonHoverBg
+    property color iconColor: Theme.buttonIcon
+    property color textColor: Theme.buttonText
+    property string fontFamily: Theme.fontFamily
+    property int fontSize: Theme.fontSize
 
     signal clicked
 

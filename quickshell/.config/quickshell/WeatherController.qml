@@ -27,8 +27,9 @@ Item {
     property bool hasError: false
     property string errorMessage: ""
 
-    property string fontFamily: "JetBrainsMono Nerd Font"
-    property int fontSize: 13
+    // Font sourced from the central Theme singleton (Theme.qml)
+    property string fontFamily: Theme.fontFamily
+    property int fontSize: Theme.fontSize
 
     Process {
         id: weatherProc

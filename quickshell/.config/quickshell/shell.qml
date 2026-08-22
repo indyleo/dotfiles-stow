@@ -11,28 +11,29 @@ import Qt5Compat.GraphicalEffects
 ShellRoot {
 	id: root
 
-	// Colors
-	readonly property color cal0:  "#282828"
-	readonly property color cal1:  "#3c3836"
-	readonly property color cal2:  "#504945"
-	readonly property color cal3:  "#7c6f64"
-	readonly property color cal4:  "#a89984"
-	readonly property color cal5:  "#d5c4a1"
-	readonly property color cal6:  "#ebdbb2"
-	readonly property color cal7:  "#83a598"
-	readonly property color cal8:  "#fb4934"
-	readonly property color cal9:  "#d3869b"
-	readonly property color cal10: "#fabd2f"
-	readonly property color cal11: "#cc241d"
-	readonly property color cal12: "#458588"
-	readonly property color cal13: "#b8bb26"
-	readonly property color cal14: "#fe8019"
-	readonly property color cal15: "#bdae93"
+	// Colors - sourced from the central Theme singleton (Theme.qml).
+	// Edit Theme.qml to re-theme every file at once.
+	readonly property color cal0:  Theme.cal0
+	readonly property color cal1:  Theme.cal1
+	readonly property color cal2:  Theme.cal2
+	readonly property color cal3:  Theme.cal3
+	readonly property color cal4:  Theme.cal4
+	readonly property color cal5:  Theme.cal5
+	readonly property color cal6:  Theme.cal6
+	readonly property color cal7:  Theme.cal7
+	readonly property color cal8:  Theme.cal8
+	readonly property color cal9:  Theme.cal9
+	readonly property color cal10: Theme.cal10
+	readonly property color cal11: Theme.cal11
+	readonly property color cal12: Theme.cal12
+	readonly property color cal13: Theme.cal13
+	readonly property color cal14: Theme.cal14
+	readonly property color cal15: Theme.cal15
 
-	readonly property color osdBgColor: Qt.rgba(cal1.r, cal1.g, cal1.b, 0.85)
+	readonly property color osdBgColor: Theme.osdBgColor
 
-	property string fontFamily: "JetBrainsMono Nerd Font"
-	property int fontSize: 13
+	property string fontFamily: Theme.fontFamily
+	property int fontSize: Theme.fontSize
 
 	property string currentLayout: {
 		const top = Hyprland.activeToplevel
@@ -98,6 +99,7 @@ ShellRoot {
 	NotesPicker { id: notesPicker }
 	AudioSwitcher { id: audioSwitcher }
 	AudioMixer { id: audioMixer }
+	CalendarPopup { id: calendarPopup }
 	Connections { target: audioSwitcher; function onRequestMixer() { audioMixer.active = true } }
 	Connections { target: audioMixer; function onRequestSwitcher() { audioSwitcher.active = true } }
 
@@ -828,15 +830,24 @@ ShellRoot {
 					}
 				}
 
-				// Clock
+				// Clock - click to open the calendar popup
 				Rectangle {
-					visible: isPrimary; Layout.preferredHeight: 26; Layout.preferredWidth: clockText.implicitWidth + 30; color: root.cal2; radius: 13
+					id: clockRect
+					property bool hovered: false
+					visible: isPrimary; Layout.preferredHeight: 26; Layout.preferredWidth: clockText.implicitWidth + 30
+					color: calendarPopup.active ? root.cal3 : (hovered ? root.cal3 : root.cal2)
+					radius: 13
 					Text {
 						id: clockText; anchors.centerIn: parent
 						property var dateTime: new Date()
 						text: Qt.formatDateTime(dateTime, "󰥔  hh:mm AP |   dddd MMMM dd yyyy")
 						color: root.cal6; font.pixelSize: root.fontSize; font.family: root.fontFamily; font.bold: true
 						Timer { interval: 1000; running: true; repeat: true; onTriggered: parent.dateTime = new Date() }
+					}
+					MouseArea {
+						anchors.fill: parent; cursorShape: Qt.PointingHandCursor; hoverEnabled: true
+						onEntered: clockRect.hovered = true; onExited: clockRect.hovered = false
+						onClicked: calendarPopup.active = !calendarPopup.active
 					}
 				}
 

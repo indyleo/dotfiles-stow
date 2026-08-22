@@ -11,9 +11,10 @@ Item {
 	property real maxValue: 1.0     // pipewire allows >1.0 ("overdrive"); callers can raise this
 	property bool muted: false
 
-	property color trackColor: "#504945"
-	property color fillColor: "#fe8019"
-	property color mutedFillColor: "#7c6f64"
+	// Defaults sourced from Theme.qml; still overridable per-instance
+	property color trackColor: Theme.buttonBg
+	property color fillColor: Theme.accent
+	property color mutedFillColor: Theme.border
 
 	// Emitted continuously while dragging/clicking, not just on release,
 	// so the caller can bind it straight to a live property (e.g.

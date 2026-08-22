@@ -9,22 +9,23 @@ PanelWindow {
 	id: root
 
 	    // Colors (same as shell)
-    readonly property color cal0:  "#282828"
-    readonly property color cal1:  "#3c3836"
-    readonly property color cal2:  "#504945"
-    readonly property color cal3:  "#7c6f64"
-    readonly property color cal4:  "#a89984"
-    readonly property color cal5:  "#d5c4a1"
-    readonly property color cal6:  "#ebdbb2"
-    readonly property color cal7:  "#83a598"
-    readonly property color cal8:  "#fb4934"
-    readonly property color cal9:  "#d3869b"
-    readonly property color cal10: "#fabd2f"
-    readonly property color cal11: "#cc241d"
-    readonly property color cal12: "#458588"
-    readonly property color cal13: "#b8bb26"
-    readonly property color cal14: "#fe8019"
-    readonly property color cal15: "#bdae93"
+    // Colors sourced from the central Theme singleton (Theme.qml)
+    readonly property color cal0:  Theme.cal0
+    readonly property color cal1:  Theme.cal1
+    readonly property color cal2:  Theme.cal2
+    readonly property color cal3:  Theme.cal3
+    readonly property color cal4:  Theme.cal4
+    readonly property color cal5:  Theme.cal5
+    readonly property color cal6:  Theme.cal6
+    readonly property color cal7:  Theme.cal7
+    readonly property color cal8:  Theme.cal8
+    readonly property color cal9:  Theme.cal9
+    readonly property color cal10: Theme.cal10
+    readonly property color cal11: Theme.cal11
+    readonly property color cal12: Theme.cal12
+    readonly property color cal13: Theme.cal13
+    readonly property color cal14: Theme.cal14
+    readonly property color cal15: Theme.cal15
 
 	property bool active: false
 	visible: active

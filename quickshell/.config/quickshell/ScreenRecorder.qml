@@ -27,14 +27,15 @@ Item {
 	signal gifStopped()
 	signal actionFailed(string reason)
 
-	property string fontFamily: "JetBrainsMono Nerd Font"
-	property int fontSize: 13
-	readonly property color cal0: "#282828"
-	readonly property color cal2: "#504945"
-	readonly property color cal3: "#7c6f64"
-	readonly property color cal6: "#ebdbb2"
-	readonly property color cal14: "#fe8019"
-	readonly property color cal10: "#fabd2f"
+	// Colors/font sourced from the central Theme singleton (Theme.qml)
+	property string fontFamily: Theme.fontFamily
+	property int fontSize: Theme.fontSize
+	readonly property color cal0: Theme.cal0
+	readonly property color cal2: Theme.cal2
+	readonly property color cal3: Theme.cal3
+	readonly property color cal6: Theme.cal6
+	readonly property color cal14: Theme.cal14
+	readonly property color cal10: Theme.cal10
 
 
 	readonly property int fpsRecord: 60
