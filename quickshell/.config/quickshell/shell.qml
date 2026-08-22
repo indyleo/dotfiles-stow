@@ -550,7 +550,7 @@ ShellRoot {
 					}
 				}
 
-				// Weather pill - standalone, not part of the shared Stats group
+				// Weather pill
 				Rectangle {
 					visible: isPrimary
 					Layout.preferredHeight: 26
@@ -569,7 +569,7 @@ ShellRoot {
 						// Icon (always visible)
 						Text {
 							text: root.weatherIcon
-							color: root.cal9
+							color: root.cal12
 							font.pixelSize: root.fontSize + 2
 							font.family: root.fontFamily
 							anchors.verticalCenter: parent.verticalCenter
@@ -589,7 +589,7 @@ ShellRoot {
 								anchors.leftMargin: 6
 								anchors.verticalCenter: parent.verticalCenter
 								text: root.weatherText
-								color: root.cal9
+								color: root.cal12
 								font.pixelSize: root.fontSize
 								font.family: root.fontFamily
 								opacity: parent.width > 5 ? 1 : 0
