@@ -337,8 +337,11 @@ ShellRoot {
 	// Screen Recorder IPC
 	IpcHandler {
 		target: "recorder"
-		function toggleRecord(): void { screenRecorder.toggleRecord() }
+		function toggleRecord(): void { screenRecorder.toggleRecord(false) }
+		function toggleRecordArea(): void { screenRecorder.toggleRecord(true) }
 		function toggleStream(): void { screenRecorder.toggleStream() }
+		function toggleGif(): void { screenRecorder.toggleGif(false) }
+		function toggleGifArea(): void { screenRecorder.toggleGif(true) }
 		function actionPicker(): void { screenRecorder.showActionPicker() }
 	}
 
@@ -463,7 +466,7 @@ ShellRoot {
 						hoverEnabled: true
 						onEntered: windowTitlePill.color = root.cal3
 						onExited: windowTitlePill.color = root.cal2
-						onClicked: audioMixer.active = true
+						onClicked: audioSwitcher.active = true
 					}
 				}
 
@@ -482,11 +485,11 @@ ShellRoot {
 						property bool pinned: false
 						property bool hovered: false
 						readonly property bool expanded: pinned || hovered
-						property bool active: screenRecorder.recording || screenRecorder.streaming
+						property bool active: screenRecorder.recording || screenRecorder.streaming || screenRecorder.recordingGif
 
 						// Icon (always visible)
 						Text {
-							text: recordRow.active ? (screenRecorder.recording ? "󰑊" : "󰐊") : ""
+							text: recordRow.active ? (screenRecorder.recording || screenRecorder.recordingGif ? "󰑊" : "󰐊") : ""
 							color: recordRow.active ? root.cal10 : root.cal10
 							font.pixelSize: root.fontSize + 2
 							font.family: root.fontFamily
@@ -506,7 +509,7 @@ ShellRoot {
 								anchors.left: parent.left
 								anchors.leftMargin: 6
 								anchors.verticalCenter: parent.verticalCenter
-								text: recordRow.active ? (screenRecorder.recording ? "REC" : "LIVE") : "Idle"
+								text: recordRow.active ? (screenRecorder.recording ? "REC" : (screenRecorder.recordingGif ? "GIF" : "LIVE")) : "Idle"
 								color: recordRow.active ? root.cal10 : root.cal10
 								font.pixelSize: root.fontSize
 								font.family: root.fontFamily
@@ -535,9 +538,10 @@ ShellRoot {
 								screenRecorder.showActionPicker()
 							} else if (m.button === Qt.RightButton) {
 								// Stop all active sessions, or show picker if none
-								if (screenRecorder.recording || screenRecorder.streaming) {
+								if (screenRecorder.recording || screenRecorder.streaming || screenRecorder.recordingGif) {
 									if (screenRecorder.recording) screenRecorder.stopRecord()
 									if (screenRecorder.streaming) screenRecorder.stopStream()
+									if (screenRecorder.recordingGif) screenRecorder.stopGif()
 								} else {
 									screenRecorder.showActionPicker()
 								}
@@ -546,7 +550,7 @@ ShellRoot {
 					}
 				}
 
-				// Weather pill
+				// Weather pill - standalone, not part of the shared Stats group
 				Rectangle {
 					visible: isPrimary
 					Layout.preferredHeight: 26
@@ -565,7 +569,7 @@ ShellRoot {
 						// Icon (always visible)
 						Text {
 							text: root.weatherIcon
-							color: root.cal7
+							color: root.cal9
 							font.pixelSize: root.fontSize + 2
 							font.family: root.fontFamily
 							anchors.verticalCenter: parent.verticalCenter
@@ -585,7 +589,7 @@ ShellRoot {
 								anchors.leftMargin: 6
 								anchors.verticalCenter: parent.verticalCenter
 								text: root.weatherText
-								color: root.cal7
+								color: root.cal9
 								font.pixelSize: root.fontSize
 								font.family: root.fontFamily
 								opacity: parent.width > 5 ? 1 : 0
@@ -1251,14 +1255,14 @@ ShellRoot {
 						Layout.preferredWidth: dndText.implicitWidth + 24
 						radius: 13
 						color: notifs.dndEnabled ? root.cal14 : root.cal2
-						border.width: notifs.dndEnabled ? 0 : 1
+						border.width: 1
 						border.color: root.cal3
 
 						Text {
 							id: dndText
 							anchors.centerIn: parent
 							text: "\uf1f6  DND"
-							color: notifs.dndEnabled ? root.cal0 : root.cal6
+							color: notifs.dndEnabled ? root.cal14 : root.cal6
 							font.family: root.fontFamily
 							font.pixelSize: root.fontSize
 							font.bold: true
@@ -1267,7 +1271,16 @@ ShellRoot {
 						MouseArea {
 							anchors.fill: parent
 							cursorShape: Qt.PointingHandCursor
+							hoverEnabled: true
 							onClicked: notifs.dndEnabled = !notifs.dndEnabled
+							onEntered: {
+								parent.color = root.cal3
+								parent.border.color = root.cal14
+							}
+							onExited: {
+								parent.color = root.cal2
+								parent.border.color = root.cal3
+							}
 						}
 					}
 
@@ -1290,6 +1303,7 @@ ShellRoot {
 						MouseArea {
 							anchors.fill: parent
 							cursorShape: Qt.PointingHandCursor
+							hoverEnabled: true
 							onClicked: {
 								// "Clear" previously only wiped history, leaving any
 								// still-active popup on screen (and the bell icon
@@ -1297,6 +1311,14 @@ ShellRoot {
 								// button reads as a clear-everything action.
 								notifs.dismissAll()
 								notifs.clearHistory()
+							}
+							onEntered: {
+								parent.color = root.cal3
+								parent.border.color = root.cal14
+							}
+							onExited: {
+								parent.color = root.cal2
+								parent.border.color = root.cal3
 							}
 						}
 					}
