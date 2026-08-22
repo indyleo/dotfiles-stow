@@ -34,14 +34,19 @@ PanelWindow {
     // AudioController.qml) that exposes real node metadata directly, so
     // there's no text format to misparse and no subprocess that can fail
     // silently.
-    readonly property var sinks: Pipewire.nodes.values.filter(function(n) {
-        return n.audio && !n.isStream && n.isSink
+    readonly property var allSinkNodes: Pipewire.nodes.values.filter(function(n) {
+        return !n.isStream && n.isSink
     })
-    readonly property var sources: Pipewire.nodes.values.filter(function(n) {
-        return n.audio && !n.isStream && !n.isSink
+    readonly property var allSourceNodes: Pipewire.nodes.values.filter(function(n) {
+        return !n.isStream && !n.isSink
     })
 
-    PwObjectTracker { objects: root.sinks.concat(root.sources) }
+    PwObjectTracker { objects: root.allSinkNodes.concat(root.allSourceNodes) }
+
+    readonly property var sinks: root.allSinkNodes.filter(function(n) { return n.audio })
+    readonly property var sources: root.allSourceNodes.filter(function(n) { return n.audio })
+
+    signal requestMixer()
 
     function deviceLabel(node) {
         return node.description || node.nickname || node.name
@@ -67,12 +72,41 @@ PanelWindow {
             anchors.margins: 16
             spacing: 12
 
-            Text {
-                text: "Audio Devices"
-                color: cal6
-                font.family: root.fontFamily
-                font.pixelSize: root.fontSize + 4
-                font.bold: true
+            RowLayout {
+                Layout.fillWidth: true
+                Text {
+                    text: "Audio Devices"
+                    color: cal6
+                    font.family: root.fontFamily
+                    font.pixelSize: root.fontSize + 4
+                    font.bold: true
+                }
+                Item { Layout.fillWidth: true }
+                Rectangle {
+                    id: perAppBtn
+                    Layout.preferredWidth: perAppText.implicitWidth + 24
+                    Layout.preferredHeight: 30
+                    radius: 15
+                    color: cal2
+                    border.width: 1
+                    border.color: cal3
+                    Text {
+                        id: perAppText
+                        anchors.centerIn: parent
+                        text: "\uf1de  Per-App Volume"
+                        color: cal6
+                        font.family: root.fontFamily
+                        font.pixelSize: root.fontSize - 1
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        hoverEnabled: true
+                        onEntered: { perAppBtn.color = cal3; perAppBtn.border.color = cal14 }
+                        onExited: { perAppBtn.color = cal2; perAppBtn.border.color = cal3 }
+                        onClicked: { root.active = false; root.requestMixer() }
+                    }
+                }
             }
 
             RowLayout {

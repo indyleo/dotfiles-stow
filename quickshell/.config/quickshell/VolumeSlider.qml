@@ -21,6 +21,16 @@ Item {
 	signal moved(real newValue)
 
 	implicitHeight: 16
+	clip: true   // guarantees the fill bar/handle can never paint past this component's own bounds
+
+	// Single source of truth for the fill ratio, guarded against NaN/Infinity
+	// (e.g. a transient undefined volume value while a node's .audio hasn't
+	// populated yet) which could otherwise produce a nonsensical width.
+	readonly property real ratio: {
+		var v = root.value, m = root.maxValue
+		if (!isFinite(v) || !isFinite(m) || m <= 0) return 0
+		return Math.max(0, Math.min(1, v / m))
+	}
 
 	Rectangle {
 		id: track
@@ -33,7 +43,7 @@ Item {
 		Rectangle {
 			height: parent.height
 			radius: 3
-			width: track.width * Math.max(0, Math.min(1, root.value / root.maxValue))
+			width: track.width * root.ratio
 			color: root.muted ? root.mutedFillColor : root.fillColor
 		}
 	}
@@ -44,7 +54,7 @@ Item {
 		color: root.muted ? root.mutedFillColor : root.fillColor
 		border.width: 2; border.color: "#282828"
 		anchors.verticalCenter: parent.verticalCenter
-		x: Math.max(0, Math.min(root.width - width, (track.width * Math.max(0, Math.min(1, root.value / root.maxValue))) - width / 2))
+		x: Math.max(0, Math.min(root.width - width, (track.width * root.ratio) - width / 2))
 	}
 
 	MouseArea {

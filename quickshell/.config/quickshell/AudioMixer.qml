@@ -24,28 +24,43 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Overlay
     anchors { top: true; bottom: true; left: true; right: true }
 
-    // Streams, not hardware devices: isStream picks out per-application
-    // nodes rather than physical sinks/sources. Direction follows the same
-    // "isSink = audio flows into this node" rule as the hardware devices
-    // in AudioSwitcher: a playback stream (an app's audio going out to a
-    // speaker) is a source of audio into the graph, so isSink is false; a
-    // recording stream (an app capturing from a mic) accepts audio routed
-    // into it, so isSink is true.
-    readonly property var playbackStreams: Pipewire.nodes.values.filter(function(n) {
-        return n.audio && n.isStream && !n.isSink
+    // Track every stream node unconditionally first - deliberately not
+    // gated on n.audio/n.properties being already truthy. Those become
+    // valid only once a node is bound via PwObjectTracker, and the old
+    // version built the tracker's object list FROM the filtered
+    // playback/recording lists, which themselves filtered on n.audio -
+    // a circular dependency that could leave freshly-appearing playback
+    // streams permanently unclassified (never enough to get tracked, so
+    // .audio never populates, so they never pass the filter).
+    readonly property var allStreamNodes: Pipewire.nodes.values.filter(function(n) { return n.isStream })
+    readonly property var allSinkNodes: Pipewire.nodes.values.filter(function(n) { return !n.isStream && n.isSink })
+    readonly property var allSourceNodes: Pipewire.nodes.values.filter(function(n) { return !n.isStream && !n.isSink })
+
+    PwObjectTracker { objects: root.allStreamNodes.concat(root.allSinkNodes).concat(root.allSourceNodes) }
+
+    // media.class is PipeWire's own authoritative direction string
+    // ("Stream/Output/Audio" for playback, "Stream/Input/Audio" for
+    // recording) - more reliable than guessing how the isSink heuristic
+    // maps onto stream nodes specifically, which turned out to be
+    // backwards in practice (every playback stream was landing in
+    // "recording" and the playback list stayed empty). isSink is kept
+    // only as a fallback for the rare node that's missing media.class.
+    function isPlaybackStream(n) {
+        var mc = (n.properties && n.properties["media.class"]) || ""
+        if (mc.indexOf("Output") !== -1) return true
+        if (mc.indexOf("Input") !== -1) return false
+        return n.isSink
+    }
+
+    readonly property var playbackStreams: root.allStreamNodes.filter(function(n) {
+        return n.audio && root.isPlaybackStream(n)
     })
-    readonly property var recordingStreams: Pipewire.nodes.values.filter(function(n) {
-        return n.audio && n.isStream && n.isSink
+    readonly property var recordingStreams: root.allStreamNodes.filter(function(n) {
+        return n.audio && !root.isPlaybackStream(n)
     })
 
-    readonly property var sinks: Pipewire.nodes.values.filter(function(n) {
-        return n.audio && !n.isStream && n.isSink
-    })
-    readonly property var sources: Pipewire.nodes.values.filter(function(n) {
-        return n.audio && !n.isStream && !n.isSink
-    })
-
-    PwObjectTracker { objects: root.playbackStreams.concat(root.recordingStreams).concat(root.sinks).concat(root.sources) }
+    readonly property var sinks: root.allSinkNodes.filter(function(n) { return n.audio })
+    readonly property var sources: root.allSourceNodes.filter(function(n) { return n.audio })
 
     function appLabel(node) {
         var props = node.properties || {}
@@ -61,6 +76,8 @@ PanelWindow {
     // pipewire graph via pipewire-pulse) for exactly this one operation.
     // Everything else here (volume, mute) is done through the native
     // property writes above, no subprocess involved.
+    signal requestSwitcher()
+
     Process { id: moveProc }
 
     function moveStream(node, targetDevice, kind) {
@@ -84,12 +101,41 @@ PanelWindow {
             anchors.margins: 16
             spacing: 12
 
-            Text {
-                text: "Application Volume"
-                color: cal6
-                font.family: root.fontFamily
-                font.pixelSize: root.fontSize + 4
-                font.bold: true
+            RowLayout {
+                Layout.fillWidth: true
+                Text {
+                    text: "Application Volume"
+                    color: cal6
+                    font.family: root.fontFamily
+                    font.pixelSize: root.fontSize + 4
+                    font.bold: true
+                }
+                Item { Layout.fillWidth: true }
+                Rectangle {
+                    id: devicesBtn
+                    Layout.preferredWidth: devicesText.implicitWidth + 24
+                    Layout.preferredHeight: 30
+                    radius: 15
+                    color: cal2
+                    border.width: 1
+                    border.color: cal3
+                    Text {
+                        id: devicesText
+                        anchors.centerIn: parent
+                        text: "\uf2db  Devices"
+                        color: cal6
+                        font.family: root.fontFamily
+                        font.pixelSize: root.fontSize - 1
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        hoverEnabled: true
+                        onEntered: { devicesBtn.color = cal3; devicesBtn.border.color = cal14 }
+                        onExited: { devicesBtn.color = cal2; devicesBtn.border.color = cal3 }
+                        onClicked: { root.active = false; root.requestSwitcher() }
+                    }
+                }
             }
 
             ColumnLayout {

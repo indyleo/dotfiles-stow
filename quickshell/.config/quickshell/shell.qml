@@ -96,6 +96,8 @@ ShellRoot {
 	NotesPicker { id: notesPicker }
 	AudioSwitcher { id: audioSwitcher }
 	AudioMixer { id: audioMixer }
+	Connections { target: audioSwitcher; function onRequestMixer() { audioMixer.active = true } }
+	Connections { target: audioMixer; function onRequestSwitcher() { audioSwitcher.active = true } }
 
 	property var notifBorder: (urgency) => {
 		switch (urgency) {
@@ -443,11 +445,20 @@ ShellRoot {
 
 				// Window title
 				Rectangle {
+					id: windowTitlePill
 					Layout.preferredHeight: 26; Layout.fillWidth: true; Layout.minimumWidth: 100; color: root.cal2; radius: 13; clip: true
 					RowLayout {
 						anchors.fill: parent; anchors.leftMargin: 15; anchors.rightMargin: 15; spacing: 10
 						Text { text: localActiveWindow === "Desktop" ? "󰇄" : "󱂬"; color: root.cal10; font.pixelSize: root.fontSize+2; font.family: root.fontFamily }
 						Text { Layout.fillWidth: true; text: localActiveWindow; color: root.cal6; font.pixelSize: root.fontSize; font.family: root.fontFamily; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter }
+					}
+					MouseArea {
+						anchors.fill: parent
+						cursorShape: Qt.PointingHandCursor
+						hoverEnabled: true
+						onEntered: windowTitlePill.color = root.cal3
+						onExited: windowTitlePill.color = root.cal2
+						onClicked: audioMixer.active = true
 					}
 				}
 
@@ -726,7 +737,7 @@ ShellRoot {
 								Item { height: 20; width: parent.expanded ? micTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
 								Text { id: micTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: audio.micText; color: root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
 							}
-							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: micRow.hovered = true; onExited: micRow.hovered = false; onWheel: (wheel) => { if (wheel.angleDelta.y > 0) audio.micUp(); else audio.micDown() }; onClicked: (m) => { if(m.button === Qt.MiddleButton) micRow.pinned = !micRow.pinned; else if (m.button === Qt.LeftButton) { audio.micToggle() } else if (m.button === Qt.RightButton) { if (m.modifiers & Qt.ControlModifier) audioMixer.active = true; else audioSwitcher.active = true } } }
+							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: micRow.hovered = true; onExited: micRow.hovered = false; onWheel: (wheel) => { if (wheel.angleDelta.y > 0) audio.micUp(); else audio.micDown() }; onClicked: (m) => { if(m.button === Qt.MiddleButton) micRow.pinned = !micRow.pinned; else if (m.button === Qt.LeftButton) { audio.micToggle() } else if (m.button === Qt.RightButton) { audioSwitcher.active = true } } }
 						}
 
 						// Volume
@@ -738,7 +749,7 @@ ShellRoot {
 								Item { height: 20; width: parent.expanded ? volTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
 								Text { id: volTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: audio.volText; color: root.cal14; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
 							}
-							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: volRow.hovered = true; onExited: volRow.hovered = false; onWheel: (wheel) => { if (wheel.angleDelta.y > 0) audio.volUp(); else audio.volDown() }; onClicked: (m) => { if(m.button === Qt.MiddleButton) volRow.pinned = !volRow.pinned; else if (m.button === Qt.LeftButton) { audio.volToggle() } else if (m.button === Qt.RightButton) { if (m.modifiers & Qt.ControlModifier) audioMixer.active = true; else audioSwitcher.active = true } } }
+							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton; hoverEnabled: true; onEntered: volRow.hovered = true; onExited: volRow.hovered = false; onWheel: (wheel) => { if (wheel.angleDelta.y > 0) audio.volUp(); else audio.volDown() }; onClicked: (m) => { if(m.button === Qt.MiddleButton) volRow.pinned = !volRow.pinned; else if (m.button === Qt.LeftButton) { audio.volToggle() } else if (m.button === Qt.RightButton) { audioSwitcher.active = true } } }
 						}
 					}
 				}
