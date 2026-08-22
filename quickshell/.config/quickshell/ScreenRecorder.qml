@@ -606,7 +606,7 @@ PanelWindow {
 				Text {
 					anchors.centerIn: parent
 					text: actionPicker.useArea ? " Selecting area on start" : " Full screen (tap to select an area)"
-					color: actionPicker.useArea ? root.cal0 : root.cal6
+					color: actionPicker.useArea ? root.cal6 : root.cal6
 					font.family: root.fontFamily
 					font.pixelSize: root.fontSize - 1
 					font.bold: actionPicker.useArea
