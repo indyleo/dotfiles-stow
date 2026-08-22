@@ -17,6 +17,9 @@ Item {
 	// Only unpinned history images are removed automatically.
 	property int maxImages: 25
 
+	// Clipboard monitoring
+	property bool _copying: false
+
 	property string fontFamily: "sans-serif"
 	property int fontSize: 14
 
@@ -209,6 +212,7 @@ Item {
 
 		stdout: SplitParser {
 			onRead: function(line) {
+				if (root._copying) return
 				var data = line.trim()
 				console.log("[Clipboard] Watcher output:", data)
 
@@ -432,20 +436,20 @@ Item {
 	}
 
 	function pasteClip(clip) {
-		if (clip.type === "text") {
-			copyProc.command = ["wl-copy", "--", clip.content]
-		} else if (clip.type === "html") {
-			// Use the plain‑text version (content) and strip any leftover HTML tags.
-			var plain = clip.content || ""
-			// Remove any HTML tags, just in case the plain text was not captured cleanly.
-			plain = plain.replace(/<[^>]*>/g, "")
-			copyProc.command = ["wl-copy", "--", plain]
-		} else if (clip.type === "image") {
-			copyProc.command = ["sh", "-c", "wl-copy --type image/png < \"$1\"", "clipboard-copy", clip.imagePath]
-		}
-		copyProc.running = false
-		copyProc.running = true
-	}
+    if (clip.type === "text") {
+        copyProc.command = ["wl-copy", "--", clip.content]
+    } else if (clip.type === "html") {
+        // Use the plain‑text version, stripping any HTML tags.
+        var plain = clip.content || ""
+        plain = plain.replace(/<[^>]*>/g, "")
+        copyProc.command = ["wl-copy", "--", plain]
+    } else if (clip.type === "image") {
+        copyProc.command = ["sh", "-c", "wl-copy --type image/png < \"$1\"", "clipboard-copy", clip.imagePath]
+    }
+    root._copying = true
+    copyProc.running = false
+    copyProc.running = true
+}
 
 	function isPinned(clip) {
 		for (var i = 0; i < pinned.length; i++) {
@@ -473,25 +477,28 @@ Item {
 	}
 
 	function pasteSnippet(snippet) {
-		if (snippet.htmlContent) {
-			// If you want to keep rich‑text pasting for snippets, leave this as is.
-			// To force plain text, use: copyProc.command = ["wl-copy", "--", snippet.content]
-		} else {
-			copyProc.command = ["wl-copy", "--", snippet.content]
-		}
-		copyProc.running = false
-		copyProc.running = true
-	}
+    if (snippet.htmlContent) {
+        // If you want to keep rich‑text pasting for snippets, leave as is.
+        // To force plain text, use: copyProc.command = ["wl-copy", "--", snippet.content]
+        copyProc.command = ["sh", "-c", "printf '%s' \"$1\" | wl-copy --type text/html", "clipboard-copy-html", snippet.htmlContent]
+    } else {
+        copyProc.command = ["wl-copy", "--", snippet.content]
+    }
+    root._copying = true
+    copyProc.running = false
+    copyProc.running = true
+}
 
 	property var pendingSnippetContent: null   // {content, htmlContent} staged from "save as snippet"; consumed by the New Snippet row
 
 	Process {
-		id: copyProc
-		onExited: function(code, status) {
-			if (code !== 0)
-			console.warn("[Clipboard] wl-copy failed:", code, status)
-		}
-	}
+    id: copyProc
+    onExited: function(code, status) {
+        root._copying = false
+        if (code !== 0)
+            console.warn("[Clipboard] wl-copy failed:", code, status)
+    }
+}
 
 	// ------------------------------------------------------------
 	// Overlay UI (uses fixed font and pixel size)
