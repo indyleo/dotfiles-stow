@@ -435,12 +435,11 @@ Item {
 		if (clip.type === "text") {
 			copyProc.command = ["wl-copy", "--", clip.content]
 		} else if (clip.type === "html") {
-			// Paste back as text/html so rich-text-aware apps (browsers,
-			// word processors) get the formatted version. wl-copy only
-			// advertises one MIME type per invocation, so a paste target
-			// that only accepts text/plain won't see anything here - a
-			// limitation of the CLI tool itself, not this shell.
-			copyProc.command = ["sh", "-c", "printf '%s' \"$1\" | wl-copy --type text/html", "clipboard-copy-html", clip.htmlContent]
+			// Use the plain‑text version (content) and strip any leftover HTML tags.
+			var plain = clip.content || ""
+			// Remove any HTML tags, just in case the plain text was not captured cleanly.
+			plain = plain.replace(/<[^>]*>/g, "")
+			copyProc.command = ["wl-copy", "--", plain]
 		} else if (clip.type === "image") {
 			copyProc.command = ["sh", "-c", "wl-copy --type image/png < \"$1\"", "clipboard-copy", clip.imagePath]
 		}
@@ -475,7 +474,8 @@ Item {
 
 	function pasteSnippet(snippet) {
 		if (snippet.htmlContent) {
-			copyProc.command = ["sh", "-c", "printf '%s' \"$1\" | wl-copy --type text/html", "clipboard-copy-html", snippet.htmlContent]
+			// If you want to keep rich‑text pasting for snippets, leave this as is.
+			// To force plain text, use: copyProc.command = ["wl-copy", "--", snippet.content]
 		} else {
 			copyProc.command = ["wl-copy", "--", snippet.content]
 		}
