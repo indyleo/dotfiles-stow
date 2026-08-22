@@ -128,6 +128,17 @@ PanelWindow {
                             id: sinkDelegate
                             required property var modelData
                             readonly property bool isDefault: modelData === Pipewire.defaultAudioSink
+                            // Some nodes (e.g. a suspended/idle HDMI output nobody's
+                            // using) expose a valid .audio object but haven't
+                            // populated .volume/.muted yet, or PipeWire genuinely
+                            // has no volume to report until the device becomes
+                            // active. Falling back cleanly here (instead of NaN
+                            // propagating into the slider's width math, or an
+                            // exception blanking the percent text) keeps the row
+                            // looking correct either way.
+                            readonly property bool hasAudioData: modelData.audio != null && isFinite(modelData.audio.volume)
+                            readonly property real safeVolume: hasAudioData ? modelData.audio.volume : 0
+                            readonly property bool safeMuted: modelData.audio != null ? !!modelData.audio.muted : false
                             width: ListView.view.width
                             height: 64
                             radius: 10
@@ -169,26 +180,27 @@ PanelWindow {
                                     Layout.fillWidth: true
                                     spacing: 8
                                     Text {
-                                        text: sinkDelegate.modelData.audio.muted ? "\uf6a9" : "\uf028"
-                                        color: sinkDelegate.modelData.audio.muted ? cal3 : cal6
+                                        text: sinkDelegate.safeMuted ? "\uf6a9" : "\uf028"
+                                        color: sinkDelegate.safeMuted ? cal3 : cal6
                                         font.family: root.fontFamily
                                         font.pixelSize: root.fontSize
                                         MouseArea {
                                             anchors.fill: parent
                                             anchors.margins: -6
                                             cursorShape: Qt.PointingHandCursor
+                                            enabled: sinkDelegate.modelData.audio != null
                                             onClicked: sinkDelegate.modelData.audio.muted = !sinkDelegate.modelData.audio.muted
                                         }
                                     }
                                     VolumeSlider {
                                         Layout.fillWidth: true
-                                        value: sinkDelegate.modelData.audio.volume
-                                        muted: sinkDelegate.modelData.audio.muted
-                                        onMoved: (v) => sinkDelegate.modelData.audio.volume = v
+                                        value: sinkDelegate.safeVolume
+                                        muted: sinkDelegate.safeMuted
+                                        onMoved: (v) => { if (sinkDelegate.modelData.audio != null) sinkDelegate.modelData.audio.volume = v }
                                     }
                                     Text {
                                         Layout.preferredWidth: 36
-                                        text: Math.round(sinkDelegate.modelData.audio.volume * 100) + "%"
+                                        text: sinkDelegate.hasAudioData ? Math.round(sinkDelegate.safeVolume * 100) + "%" : "--"
                                         color: cal6
                                         font.family: root.fontFamily
                                         font.pixelSize: root.fontSize - 2
@@ -213,6 +225,9 @@ PanelWindow {
                             id: sourceDelegate
                             required property var modelData
                             readonly property bool isDefault: modelData === Pipewire.defaultAudioSource
+                            readonly property bool hasAudioData: modelData.audio != null && isFinite(modelData.audio.volume)
+                            readonly property real safeVolume: hasAudioData ? modelData.audio.volume : 0
+                            readonly property bool safeMuted: modelData.audio != null ? !!modelData.audio.muted : false
                             width: ListView.view.width
                             height: 64
                             radius: 10
@@ -254,26 +269,27 @@ PanelWindow {
                                     Layout.fillWidth: true
                                     spacing: 8
                                     Text {
-                                        text: sourceDelegate.modelData.audio.muted ? "\uf131" : "\uf130"
-                                        color: sourceDelegate.modelData.audio.muted ? cal3 : cal6
+                                        text: sourceDelegate.safeMuted ? "\uf131" : "\uf130"
+                                        color: sourceDelegate.safeMuted ? cal3 : cal6
                                         font.family: root.fontFamily
                                         font.pixelSize: root.fontSize
                                         MouseArea {
                                             anchors.fill: parent
                                             anchors.margins: -6
                                             cursorShape: Qt.PointingHandCursor
+                                            enabled: sourceDelegate.modelData.audio != null
                                             onClicked: sourceDelegate.modelData.audio.muted = !sourceDelegate.modelData.audio.muted
                                         }
                                     }
                                     VolumeSlider {
                                         Layout.fillWidth: true
-                                        value: sourceDelegate.modelData.audio.volume
-                                        muted: sourceDelegate.modelData.audio.muted
-                                        onMoved: (v) => sourceDelegate.modelData.audio.volume = v
+                                        value: sourceDelegate.safeVolume
+                                        muted: sourceDelegate.safeMuted
+                                        onMoved: (v) => { if (sourceDelegate.modelData.audio != null) sourceDelegate.modelData.audio.volume = v }
                                     }
                                     Text {
                                         Layout.preferredWidth: 36
-                                        text: Math.round(sourceDelegate.modelData.audio.volume * 100) + "%"
+                                        text: sourceDelegate.hasAudioData ? Math.round(sourceDelegate.safeVolume * 100) + "%" : "--"
                                         color: cal6
                                         font.family: root.fontFamily
                                         font.pixelSize: root.fontSize - 2

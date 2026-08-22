@@ -62,6 +62,8 @@ ShellRoot {
 	property string tailIcon: "󰈂"
 	property string tailText: "Not connected"
 	property bool showTail: false
+	property string weatherIcon: "󰖐"
+	property string weatherText: "--"
 
 	// All the stat pills above depend on an external "sysstats" script.
 	// Previously, if it wasn't installed, every pill just kept showing its
@@ -132,6 +134,7 @@ ShellRoot {
 					root.ethText = "N/A"
 					root.wifiText = "N/A"
 					root.tailText = "N/A"
+					root.weatherText = "N/A"
 					root.kernelVersion = "N/A"
 				}
 			}
@@ -154,6 +157,7 @@ ShellRoot {
 	Process { id: gpuProc; command: ["sysstats", "gpu"]; stdout: SplitParser { onRead: data => root.parseSysstats(data, "gpuIcon", "gpuText") } }
 	Process { id: memProc; command: ["sysstats", "mem"]; stdout: SplitParser { onRead: data => root.parseSysstats(data, "memIcon", "memText") } }
 	Process { id: diskProc; command: ["sysstats", "disk"]; stdout: SplitParser { onRead: data => root.parseSysstats(data, "diskIcon", "diskText") } }
+	Process { id: weatherStatProc; command: ["sysstats", "weather"]; stdout: SplitParser { onRead: data => root.parseSysstats(data, "weatherIcon", "weatherText") } }
 	Process {
 		id: ethProc
 		command: ["sysstats", "ethernet"]
@@ -205,6 +209,7 @@ ShellRoot {
 		onTriggered: {
 			kernelProc.running = false; kernelProc.running = true
 			gpuProc.running = false; gpuProc.running = true
+			weatherStatProc.running = false; weatherStatProc.running = true
 		}
 	}
 
@@ -536,6 +541,71 @@ ShellRoot {
 								} else {
 									screenRecorder.showActionPicker()
 								}
+							}
+						}
+					}
+				}
+
+				// Weather pill
+				Rectangle {
+					visible: isPrimary
+					Layout.preferredHeight: 26
+					Layout.preferredWidth: weatherRow.implicitWidth + 20
+					color: root.cal2
+					radius: 13
+
+					Row {
+						id: weatherRow
+						anchors.centerIn: parent
+						spacing: 0
+						property bool pinned: false
+						property bool hovered: false
+						readonly property bool expanded: pinned || hovered
+
+						// Icon (always visible)
+						Text {
+							text: root.weatherIcon
+							color: root.cal7
+							font.pixelSize: root.fontSize + 2
+							font.family: root.fontFamily
+							anchors.verticalCenter: parent.verticalCenter
+						}
+
+						// Expanding text (hidden by default)
+						Item {
+							width: weatherRow.expanded ? weatherTxt.implicitWidth + 8 : 0
+							height: 20
+							clip: true
+							anchors.verticalCenter: parent.verticalCenter
+							Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+
+							Text {
+								id: weatherTxt
+								anchors.left: parent.left
+								anchors.leftMargin: 6
+								anchors.verticalCenter: parent.verticalCenter
+								text: root.weatherText
+								color: root.cal7
+								font.pixelSize: root.fontSize
+								font.family: root.fontFamily
+								opacity: parent.width > 5 ? 1 : 0
+								Behavior on opacity { NumberAnimation { duration: 200 } }
+							}
+						}
+					}
+
+					MouseArea {
+						anchors.fill: parent
+						cursorShape: Qt.PointingHandCursor
+						acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+						hoverEnabled: true
+						onEntered: weatherRow.hovered = true
+						onExited: weatherRow.hovered = false
+						onClicked: (m) => {
+							if (m.button === Qt.MiddleButton) {
+								weatherRow.pinned = !weatherRow.pinned
+							} else if (m.button === Qt.LeftButton) {
+								weather.active = !weather.active
 							}
 						}
 					}

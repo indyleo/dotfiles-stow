@@ -232,6 +232,9 @@ PanelWindow {
             // shared Component doesn't otherwise know which ListView it's in.
             readonly property string kind: ListView.view.kind
             property bool deviceMenuOpen: false
+            readonly property bool hasAudioData: modelData.audio != null && isFinite(modelData.audio.volume)
+            readonly property real safeVolume: hasAudioData ? modelData.audio.volume : 0
+            readonly property bool safeMuted: modelData.audio != null ? !!modelData.audio.muted : false
 
             width: ListView.view.width
             height: deviceMenuOpen ? 128 : 68
@@ -278,26 +281,27 @@ PanelWindow {
                     Layout.fillWidth: true
                     spacing: 8
                     Text {
-                        text: streamRow.modelData.audio.muted ? "\uf6a9" : "\uf028"
-                        color: streamRow.modelData.audio.muted ? cal3 : cal6
+                        text: streamRow.safeMuted ? "\uf6a9" : "\uf028"
+                        color: streamRow.safeMuted ? cal3 : cal6
                         font.family: root.fontFamily
                         font.pixelSize: root.fontSize
                         MouseArea {
                             anchors.fill: parent
                             anchors.margins: -6
                             cursorShape: Qt.PointingHandCursor
+                            enabled: streamRow.modelData.audio != null
                             onClicked: streamRow.modelData.audio.muted = !streamRow.modelData.audio.muted
                         }
                     }
                     VolumeSlider {
                         Layout.fillWidth: true
-                        value: streamRow.modelData.audio.volume
-                        muted: streamRow.modelData.audio.muted
-                        onMoved: (v) => streamRow.modelData.audio.volume = v
+                        value: streamRow.safeVolume
+                        muted: streamRow.safeMuted
+                        onMoved: (v) => { if (streamRow.modelData.audio != null) streamRow.modelData.audio.volume = v }
                     }
                     Text {
                         Layout.preferredWidth: 36
-                        text: Math.round(streamRow.modelData.audio.volume * 100) + "%"
+                        text: streamRow.hasAudioData ? Math.round(streamRow.safeVolume * 100) + "%" : "--"
                         color: cal6
                         font.family: root.fontFamily
                         font.pixelSize: root.fontSize - 2
