@@ -566,8 +566,8 @@ Item {
                 Text {
                     Layout.fillWidth: true
                     text: {
-                        if (root.recording) return " Currently recording"
-                        if (root.streaming) return " Currently streaming"
+                        if (root.recording) return " Currently recording"
+                        if (root.streaming) return " Currently streaming"
                         return " No active session"
                     }
                     color: root.cal10
