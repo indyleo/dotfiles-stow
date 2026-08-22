@@ -569,7 +569,7 @@ ShellRoot {
 						// Icon (always visible)
 						Text {
 							text: root.weatherIcon
-							color: root.cal12
+							color: root.cal7
 							font.pixelSize: root.fontSize + 2
 							font.family: root.fontFamily
 							anchors.verticalCenter: parent.verticalCenter
