@@ -466,7 +466,7 @@ ShellRoot {
 						hoverEnabled: true
 						onEntered: windowTitlePill.color = root.cal3
 						onExited: windowTitlePill.color = root.cal2
-						onClicked: audioSwitcher.active = true
+						onClicked: audioMixer.active = true
 					}
 				}
 
