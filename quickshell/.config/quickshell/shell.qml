@@ -589,7 +589,7 @@ ShellRoot {
 								anchors.leftMargin: 6
 								anchors.verticalCenter: parent.verticalCenter
 								text: root.weatherText
-								color: root.cal12
+								color: root.cal7
 								font.pixelSize: root.fontSize
 								font.family: root.fontFamily
 								opacity: parent.width > 5 ? 1 : 0
