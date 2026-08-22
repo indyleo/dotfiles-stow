@@ -187,6 +187,15 @@ PanelWindow {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         enabled: !root.updating
+												hoverEnabled: true
+																								onEntered: {
+                          parent.color = cal3
+													parent.border.color = cal14
+												}
+												onExited: {
+													parent.color = cal2
+													parent.border.color = cal3
+												}
                         onClicked: root.updateIconData()
                     }
                 }
