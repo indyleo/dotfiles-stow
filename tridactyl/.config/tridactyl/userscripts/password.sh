@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# Dependencies: rbw, rofi (Wayland) or dmenu (X11), wl-copy or xsel/xclip
+# Dependencies:
+#   rbw
+#   Wayland + Quickshell running -> talks directly to the Quickshell Dmenu
+#     picker over `qs ipc call` (no qsdmenu wrapper needed)
+#   Anything else                -> dmenu
+#   wl-copy (Wayland) or xsel/xclip (X11)
 
 # --- Display server detection ---
 if [ -n "$WAYLAND_DISPLAY" ]; then
@@ -9,32 +14,53 @@ else
 fi
 
 # --- Menu helper ---
+# Wayland: talks directly to the Quickshell Dmenu picker's IPC endpoint,
+# same protocol as the qsdmenu wrapper script:
+#   qs ipc call pick dmenu <inputFile> <outputFifo> <prompt>
+_quickshell_menu() {
+    local prompt="$1"
+    local tmpdir infile outfifo result
+    tmpdir=$(mktemp -d)
+    infile="$tmpdir/in"
+    outfifo="$tmpdir/out"
+
+    cat > "$infile"
+    mkfifo "$outfifo"
+
+    qs ipc call pick dmenu "$infile" "$outfifo" "$prompt"
+
+    result=$(cat "$outfifo")
+    rm -rf "$tmpdir"
+
+    if [ -n "$result" ]; then
+        printf '%s\n' "$result"
+    fi
+}
+
 MENU() {
     if [ "$IS_WAYLAND" -eq 1 ]; then
-        rofi -dmenu -i -p "$1"
+        _quickshell_menu "$1"
     else
         dmenu -p "$1"
     fi
 }
 
 # --- Error/info popup ---
+# notify-send works fine on both, and the Quickshell Dmenu picker has no
+# built-in message/error surface.
 POPUP() {
-    if [ "$IS_WAYLAND" -eq 1 ]; then
-        rofi -e "$1"
-    else
-        notify-send "Password" "$1"
-    fi
+    notify-send "Password" "$1"
 }
 
 # --- Clipboard helper ---
 copy_to_clip() {
     if [ "$IS_WAYLAND" -eq 1 ]; then
-        echo -n "$1" | wl-copy
+        printf '%s' "$1" | wl-copy
     else
         if command -v xsel &>/dev/null; then
-            echo -n "$1" | xsel --clipboard --input
+            printf '%s' "$1" | xsel --clipboard --input
         elif command -v xclip &>/dev/null; then
-            echo -n "$1" | xclip -selection clipboard
+            printf '%s' "$1" | xclip -selection clipboard
         else
             echo "Error: neither xsel nor xclip found." >&2
             exit 1
@@ -55,7 +81,7 @@ ENTRY=$(rbw ls | sort -u | MENU "󰟵 Search:")
 REMAINING=$(( 30 - $(date +%s) % 30 ))
 
 # 4. Action sub-menu
-ACTION=$(printf "󰟵 Copy Password\n Copy Username\n󰦝 Copy TOTP (%ss left)\n󰈙 Show Details & Notes" "$REMAINING" | MENU "$ENTRY:")
+ACTION=$(printf "󰟵 Copy Password\n Copy Username\n󰦝 Copy TOTP (%ss left)\n󰈙 Show Details & Notes" "$REMAINING" | MENU "$ENTRY:")
 [ -z "$ACTION" ] && exit 0
 
 # 5. Handle action

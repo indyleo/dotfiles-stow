@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
 """
-Bookmarks — Browse HTML bookmark files via rofi (Wayland) or dmenu (X11).
+Bookmarks — Browse HTML bookmark files.
+
+Menu backend:
+  Wayland + Quickshell running -> talks directly to the Quickshell
+  Dmenu picker over `qs ipc call` (no qsdmenu wrapper needed).
+  Anything else                -> dmenu.
 """
 
 import argparse
 import glob
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 from html.parser import HTMLParser
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -19,22 +26,57 @@ DEFAULT_PATHS = [
 IS_WAYLAND = bool(os.environ.get("WAYLAND_DISPLAY"))
 
 
-def menu(items, prompt="Bookmarks"):
-    """Show a menu via rofi (Wayland) or dmenu (X11). Returns selection or None."""
-    if IS_WAYLAND:
-        cmd = ["rofi", "-dmenu", "-i", "-p", prompt]
-    else:
-        cmd = ["dmenu", "-p", prompt]
-    result = subprocess.run(cmd, input="\n".join(items), capture_output=True, text=True)
+# ── Menu backends ────────────────────────────────────────────────────────────
+def _quickshell_menu(items, prompt="run"):
+    """Talk directly to the Quickshell Dmenu picker over IPC.
+    Same protocol as the qsdmenu wrapper script:
+        qs ipc call pick dmenu <inputFile> <outputFifo> <prompt>
+    Returns the first selected line, or None if cancelled / nothing chosen.
+    """
+    tmpdir = tempfile.mkdtemp(prefix="bookmarks-qs-")
+    try:
+        infile = os.path.join(tmpdir, "in")
+        outfifo = os.path.join(tmpdir, "out")
+        with open(infile, "w", encoding="utf-8") as f:
+            f.write("\n".join(items))
+        os.mkfifo(outfifo)
+
+        subprocess.run(
+            ["qs", "ipc", "call", "pick", "dmenu", infile, outfifo, prompt],
+            check=False,
+        )
+
+        # Blocks until the picker writes a result (or is dismissed, which
+        # writes an empty string).
+        with open(outfifo, "r", encoding="utf-8") as f:
+            result = f.read()
+        result = result.strip()
+        return result if result else None
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+def _dmenu_menu(items, prompt="run"):
+    result = subprocess.run(
+        ["dmenu", "-p", prompt],
+        input="\n".join(items),
+        capture_output=True,
+        text=True,
+    )
     return result.stdout.strip() if result.returncode == 0 else None
 
 
-def error(msg):
-    """Show an error message via rofi -e (Wayland) or notify-send (X11)."""
+def menu(items, prompt="Bookmarks"):
+    """Show a menu via Quickshell (Wayland) or dmenu (X11). Returns selection or None."""
     if IS_WAYLAND:
-        subprocess.run(["rofi", "-e", msg], check=False)
-    else:
-        subprocess.run(["notify-send", "Bookmarks", msg], check=False)
+        return _quickshell_menu(items, prompt)
+    return _dmenu_menu(items, prompt)
+
+
+def error(msg):
+    """Show an error message. notify-send works fine on both, and the
+    Quickshell Dmenu picker has no built-in message/error surface."""
+    subprocess.run(["notify-send", "Bookmarks", msg], check=False)
 
 
 # ── Parser ────────────────────────────────────────────────────────────────────
@@ -93,6 +135,8 @@ class BookmarkParser(HTMLParser):
 
 # ── Navigation ────────────────────────────────────────────────────────────────
 BACK = "<- Back"
+ICON_FOLDER = "\uf07b"  # nf-fa-folder
+ICON_LINK = "\uf0c1"  # nf-fa-link
 
 
 def open_url(url, browser):
@@ -112,9 +156,9 @@ def browse(folder, browser, breadcrumb=None):
             entries.append(BACK)
         for child in children:
             if child["type"] == "folder":
-                entries.append(f" {child['title']}")
+                entries.append(f"{ICON_FOLDER} {child['title']}")
             else:
-                entries.append(f" {child['title']}")
+                entries.append(f"{ICON_LINK} {child['title']}")
 
         choice = menu(entries, prompt=path_str)
         if choice is None:
@@ -122,8 +166,8 @@ def browse(folder, browser, breadcrumb=None):
         if choice == BACK:
             return
 
-        # Strip prefix
-        label = choice.lstrip("").strip()
+        # Strip icon prefix (either icon, one space)
+        label = choice[len(ICON_FOLDER) :].strip() if choice.startswith(ICON_FOLDER) else choice[len(ICON_LINK) :].strip()
 
         matched = None
         for child in children:
