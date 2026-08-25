@@ -57,7 +57,7 @@ PanelWindow {
         "    [ -z \"$name\" ] && continue",
         "    icon=$(grep -m1 '^Icon=' \"$f\" | cut -d= -f2-)",
         "    printf '%s\\x1f%s\\x1f%s\\0' \"$name\" \"$icon\" \"$f\"",
-        "  done < <(find \"$d\" -maxdepth 1 -type f -name '*.desktop' -print0 2>/dev/null)",
+        "  done < <(find \"$d\" -maxdepth 1 \\( -type f -o -type l \\) -name '*.desktop' -print0 2>/dev/null)",
         "done",
         "rm -f \"$SEEN\""
     ].join("\n")
