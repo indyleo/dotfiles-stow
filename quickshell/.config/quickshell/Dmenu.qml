@@ -38,12 +38,15 @@ PanelWindow {
     //   qs ipc call pick dmenu <inputFile> <outputFifo> <prompt>
     // ------------------------------------------------------------
 
-    function open(inputFile, outFile, prompt) {
-        root.outputPath = outFile
-        root.promptText = prompt !== "" ? prompt : "run"
-        root.selectedSet = {}
-        inputFileView.path = inputFile
-    }
+		function open(inputFile, outFile, prompt) {
+			root.outputPath = outFile
+			root.promptText = prompt !== "" ? prompt : "run"
+			root.selectedSet = {}
+			inputFileView.path = inputFile
+
+			searchInput.text = ""
+			root.searchText = ""   // keep property in sync
+		}
 
     FileView {
         id: inputFileView
@@ -81,6 +84,7 @@ PanelWindow {
         if (updated[value]) delete updated[value]
         else updated[value] = true
         root.selectedSet = updated
+				searchInput.text = ""
     }
 
     // ------------------------------------------------------------
