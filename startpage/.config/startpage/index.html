@@ -183,8 +183,9 @@
         flex-wrap: wrap;
       }
 
-      .clock-alarm input[type="time"] {
-        width: 105px;
+      .clock-alarm input[type="time"],
+      .clock-alarm input[type="number"] {
+        width: 70px;
         padding: 5px 7px;
         border: 1px solid var(--bg3);
         border-radius: 4px;
@@ -192,6 +193,18 @@
         color: var(--fg);
         font: inherit;
         font-size: 0.75rem;
+      }
+
+      .clock-alarm input[type="number"] {
+        width: 50px;
+        text-align: center;
+        -moz-appearance: textfield; /* hide spinners in Firefox */
+      }
+
+      .clock-alarm input[type="number"]::-webkit-outer-spin-button,
+      .clock-alarm input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
       }
 
       .clock-alarm select {
@@ -1262,8 +1275,16 @@
         ];
         const h = now.getHours();
 
-        document.getElementById("datetime").textContent =
-          `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()} \u2022 ${h % 12 || 12}:${String(now.getMinutes()).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+        // Build the time string and add a timer indicator if a countdown is running
+        const timeStr = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()} \u2022 ${h % 12 || 12}:${String(now.getMinutes()).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+        let timerHtml = '';
+        if (timerRunning) {
+          const remaining = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
+          timerRemainingSeconds = remaining;
+          const formatted = formatTimerRemaining(remaining);
+          timerHtml = ` <span id="timer-status" style="color: var(--accent); margin-left: 8px;">⏳ ${formatted}</span>`;
+        }
+        document.getElementById("datetime").innerHTML = timeStr + timerHtml;
 
         const greet =
           h < 12 ? "Good Morning" : h < 17 ? "Good Afternoon" : "Good Evening";
@@ -1291,6 +1312,10 @@
           quoteEl.style.opacity = "1";
         }
 
+        if (timerRunning) {
+          updateTimerDisplay();  // updates popover display and triggers alarm when done
+        }
+
         if (activePopover === "clock") updateWorldClockRows();
       }
 
@@ -1308,6 +1333,12 @@
       let alarmTimer = null;
       let alarmAudioContext = null;
       let alarmRinging = false;
+
+      // Countdown timer
+      let timerInterval = null;
+      let timerEndTime = null;
+      let timerRunning = false;
+      let timerRemainingSeconds = 0;
 
       function loadClockAlarm() {
         try {
@@ -1478,11 +1509,100 @@
         return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
       }
 
+      // ─── Countdown Timer ──────────────────────────────────────────
+      function parseTimerInputs() {
+        const hours = parseInt(document.getElementById("timer-hours").value, 10) || 0;
+        const minutes = parseInt(document.getElementById("timer-minutes").value, 10) || 0;
+        const seconds = parseInt(document.getElementById("timer-seconds").value, 10) || 0;
+        if (hours < 0 || minutes < 0 || seconds < 0) return null;
+        if (minutes > 59 || seconds > 59) return null;
+        const total = hours * 3600 + minutes * 60 + seconds;
+        return total > 0 ? total : null;
+      }
+
+      function formatTimerRemaining(totalSeconds) {
+        const hrs = Math.floor(totalSeconds / 3600);
+        const mins = Math.floor((totalSeconds % 3600) / 60);
+        const secs = totalSeconds % 60;
+        if (hrs > 0) {
+          return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      }
+
+      function startTimer() {
+        const total = parseTimerInputs();
+        if (!total) return;
+
+        stopTimer(); // clear any existing timer
+        timerEndTime = Date.now() + total * 1000;
+        timerRunning = true;
+        updateClock(); // immediately show timer status in the clock
+        updateTimerDisplay();
+
+        // Optionally request notification permission
+        if (typeof Notification !== "undefined" && Notification.permission === "default") {
+          Notification.requestPermission().catch(() => {});
+        }
+      }
+
+      function stopTimer(resetDisplay = true) {
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+        timerEndTime = null;
+        timerRunning = false;
+        if (resetDisplay) {
+          const timerDisplay = document.getElementById("timer-display");
+          if (timerDisplay) timerDisplay.textContent = "Timer: not running";
+        }
+        // remove any leftover timer status in the clock
+        const statusSpan = document.getElementById("timer-status");
+        if (statusSpan) statusSpan.remove();
+      }
+
+      function updateTimerDisplay() {
+        if (!timerRunning || !timerEndTime) return;
+
+        const remaining = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
+        timerRemainingSeconds = remaining;
+        if (remaining <= 0) {
+          triggerTimerAlarm();
+          stopTimer(false);  // stop without clearing the "finished" text
+          if (document.getElementById("timer-display")) {
+            document.getElementById("timer-display").textContent = "Timer finished!";
+          }
+          return;
+        }
+
+        const formatted = formatTimerRemaining(remaining);
+        const timerDisplay = document.getElementById("timer-display");
+        if (timerDisplay) {
+          timerDisplay.textContent = `Time remaining: ${formatted}`;
+        }
+      }
+
+      function triggerTimerAlarm() {
+        beepClockAlarm();
+        const datetimeEl = document.getElementById("datetime");
+        datetimeEl.classList.add("alarm-ringing");
+        setTimeout(() => datetimeEl.classList.remove("alarm-ringing"), 10000);
+
+        if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+          new Notification("Countdown finished", {
+            body: "Your timer has ended.",
+          });
+        }
+      }
+
       function renderClockAlarm(popover) {
         const section = document.createElement("div");
         section.className = "clock-alarm";
-        const controls = document.createElement("div");
-        controls.className = "clock-alarm-controls";
+
+        // ── Existing daily/once alarm ─────────────────────────────
+        const alarmControls = document.createElement("div");
+        alarmControls.className = "clock-alarm-controls";
 
         const input = document.createElement("input");
         input.type = "time";
@@ -1503,7 +1623,7 @@
         setButton.type = "button";
         setButton.textContent = "Set";
         setButton.addEventListener("click", () =>
-          setClockAlarm(input.value, typeSelect.value),
+          setClockAlarm(input.value, typeSelect.value)
         );
 
         const clearButton = document.createElement("button");
@@ -1511,13 +1631,71 @@
         clearButton.textContent = "Clear";
         clearButton.addEventListener("click", clearClockAlarm);
 
-        controls.append(input, typeSelect, setButton, clearButton);
-        const status = document.createElement("div");
-        status.className = "clock-alarm-status";
-        status.id = "clock-alarm-status";
-        section.append(controls, status);
+        alarmControls.append(input, typeSelect, setButton, clearButton);
+        const alarmStatus = document.createElement("div");
+        alarmStatus.className = "clock-alarm-status";
+        alarmStatus.id = "clock-alarm-status";
+        section.append(alarmControls, alarmStatus);
+        updateClockAlarmUI();
+
+        // ── Divider ───────────────────────────────────────────────
+        const divider = document.createElement("hr");
+        divider.style.border = "none";
+        divider.style.borderTop = "1px solid rgba(255,255,255,0.1)";
+        divider.style.margin = "10px 0";
+        section.appendChild(divider);
+
+        // ── Countdown timer ───────────────────────────────────────
+        const timerControls = document.createElement("div");
+        timerControls.className = "clock-alarm-controls";
+
+        const hoursInput = document.createElement("input");
+        hoursInput.type = "number";
+        hoursInput.id = "timer-hours";
+        hoursInput.min = "0";
+        hoursInput.max = "99";
+        hoursInput.value = "0";
+        hoursInput.setAttribute("aria-label", "Hours");
+
+        const minutesInput = document.createElement("input");
+        minutesInput.type = "number";
+        minutesInput.id = "timer-minutes";
+        minutesInput.min = "0";
+        minutesInput.max = "59";
+        minutesInput.value = "5";
+        minutesInput.setAttribute("aria-label", "Minutes");
+
+        const secondsInput = document.createElement("input");
+        secondsInput.type = "number";
+        secondsInput.id = "timer-seconds";
+        secondsInput.min = "0";
+        secondsInput.max = "59";
+        secondsInput.value = "0";
+        secondsInput.setAttribute("aria-label", "Seconds");
+
+        const startButton = document.createElement("button");
+        startButton.type = "button";
+        startButton.textContent = "Start";
+        startButton.addEventListener("click", startTimer);
+
+        const stopButton = document.createElement("button");
+        stopButton.type = "button";
+        stopButton.textContent = "Stop";
+        stopButton.addEventListener("click", () => stopTimer());
+
+        timerControls.append(
+          hoursInput, minutesInput, secondsInput,
+          startButton, stopButton
+        );
+        const timerDisplay = document.createElement("div");
+        timerDisplay.className = "clock-alarm-status";
+        timerDisplay.id = "timer-display";
+        timerDisplay.textContent = "Timer: not running";
+
+        section.append(timerControls, timerDisplay);
         popover.appendChild(section);
         updateClockAlarmUI();
+        updateTimerDisplay();
       }
 
       function renderClockPopover(popover) {
