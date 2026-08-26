@@ -4,10 +4,6 @@ import Quickshell.Wayland
 import Quickshell.Io
 import QtQuick.Layouts
 
-// Small month calendar, opened by clicking the clock in the bar.
-// Follows the same shape as WeatherController.qml: an Item wrapping a
-// full-screen transparent PanelWindow with a centered content Rectangle,
-// so it inherits the shell's existing popup conventions.
 Item {
     id: root
 
@@ -37,13 +33,11 @@ Item {
         root.viewMonth = d.getMonth()
     }
 
-    // Builds a flat 42-cell (6 week) grid for the given month, including
-    // the trailing/leading days from the adjacent months so the grid is
-    // always full and weekday columns line up.
+    // Builds a flat 42-cell (6 week) grid for the given month
     function buildCells(year, month) {
         var cells = []
         var firstOfMonth = new Date(year, month, 1)
-        var startDow = firstOfMonth.getDay() // 0 = Sunday
+        var startDow = firstOfMonth.getDay()
         var daysInMonth = new Date(year, month + 1, 0).getDate()
         var daysInPrevMonth = new Date(year, month, 0).getDate()
         var today = new Date()
@@ -64,25 +58,14 @@ Item {
 
     property var cells: buildCells(root.viewYear, root.viewMonth)
 
-    // Re-sync to the real current month/day whenever the popup is opened,
-    // rather than staying wherever it was last navigated to.
     onActiveChanged: if (active) { root.goToday(); root.syncFields() }
 
     // ---- Alarm ---------------------------------------------------------
-    // A single alarm, in one of two modes:
-    //   "at" - fires at a specific time of day (HH:MM:SS), optionally daily
-    //   "in" - fires after a duration from now (HH:MM:SS from now),
-    //          optionally repeating every that duration
-    // Each mode keeps its own field values so switching modes doesn't
-    // clobber what you typed into the other one. Lives on this Item
-    // (instantiated once by shell.qml and kept alive, only visibility
-    // toggles) so the countdown Timer keeps running while the popup is
-    // closed.
     property string alarmMode: "at" // "at" | "in"
 
     property string atHH: "07"
     property string atMM: "00"
-    property string atSS: "00"
+    property string atPeriod: "AM"
 
     property string inHH: "00"
     property string inMM: "01"
@@ -90,23 +73,85 @@ Item {
 
     property bool alarmRepeat: false
     property bool alarmSet: false
-    property double alarmTargetEpoch: 0 // ms timestamp of the next trigger
-    property double alarmDurationMs: 0  // "in" mode only - the duration to re-apply on repeat
-    property int tick: 0                // bumped every second while armed, just to force the status/countdown text to re-evaluate
+    property double alarmTargetEpoch: 0
+    property double alarmDurationMs: 0
+    property int tick: 0
+
+		// Alarm sound
+property string alarmSoundScript: `
+import math, struct, tempfile, subprocess, os
+
+sr = 44100
+duration = 1.1  # total length of the combined beeps
+
+# (offset_seconds, frequency_hz) — first beep is 660, then 880, alternating
+beeps = [
+    (0.0, 660),
+    (0.22, 880),
+    (0.44, 660),
+    (0.66, 880),
+    (0.88, 660),
+]
+
+# Web Audio envelope constants (from the website's code)
+attack_time = 0.015
+decay_time = 0.165  # 0.18 - 0.015
+start_amp = 0.0001
+peak_amp = 0.18
+end_amp = 0.0001
+
+samples = []
+for i in range(int(sr * duration)):
+    t = i / sr
+    val = 0.0
+    for offset, freq in beeps:
+        local_t = t - offset
+        if 0 <= local_t < attack_time + decay_time:
+            # Envelope
+            if local_t < attack_time:
+                # Exponential attack from start_amp to peak_amp
+                gain = start_amp * (peak_amp / start_amp) ** (local_t / attack_time)
+            else:
+                # Exponential decay from peak_amp to end_amp
+                k = (local_t - attack_time) / decay_time
+                gain = peak_amp * (end_amp / peak_amp) ** k
+            val += gain * math.sin(2 * math.pi * freq * local_t)
+    # Soft clip to avoid harsh distortion
+    val = max(-1.0, min(1.0, val))
+    samples.append(struct.pack('<h', int(val * 32767)))
+
+wav = b'RIFF' + struct.pack('<I', 36 + len(samples)*2) + b'WAVEfmt ' + struct.pack('<IHHIIHH', 16, 1, 1, sr, sr*2, 2, 16) + b'data' + struct.pack('<I', len(samples)*2) + b''.join(samples)
+
+fd, path = tempfile.mkstemp(suffix='.wav')
+with os.fdopen(fd, 'wb') as f:
+    f.write(wav)
+
+players = [
+    ['paplay', path],
+    ['aplay', path],
+    ['play', path],
+]
+for cmd in players:
+    try:
+        subprocess.run(cmd, check=True)
+        break
+    except FileNotFoundError:
+        continue
+    except subprocess.CalledProcessError:
+        break
+os.unlink(path)
+`
 
     function pad2(n) { return String(n).padStart(2, "0") }
 
-    // Pushes the backing values for the current mode into the on-screen
-    // HH/MM/SS fields. Called on mode switch and whenever the popup opens,
-    // since the fields aren't kept permanently bound (see AlarmField note).
     function syncFields() {
         hhField.value = root.alarmMode === "at" ? root.atHH : root.inHH
         mmField.value = root.alarmMode === "at" ? root.atMM : root.inMM
-        ssField.value = root.alarmMode === "at" ? root.atSS : root.inSS
+        if (ssField) ssField.value = root.inSS
     }
     function commitHH(v) { if (root.alarmMode === "at") root.atHH = v; else root.inHH = v }
     function commitMM(v) { if (root.alarmMode === "at") root.atMM = v; else root.inMM = v }
-    function commitSS(v) { if (root.alarmMode === "at") root.atSS = v; else root.inSS = v }
+    function commitSS(v) { if (root.alarmMode === "in") root.inSS = v }
 
     function formatDuration(ms) {
         if (ms < 0) ms = 0
@@ -117,39 +162,43 @@ Item {
         return pad2(hh) + ":" + pad2(mm) + ":" + pad2(ss)
     }
 
-    // Validates the current mode's fields and (re)arms the timer.
-    //   "at": next occurrence of that time (today if it hasn't passed, else tomorrow)
-    //   "in": now + that duration
-    // Returns false without changing anything if the fields don't parse.
     function setAlarm() {
         var h, m, s, maxH
         if (root.alarmMode === "at") {
-            h = parseInt(root.atHH, 10); m = parseInt(root.atMM, 10); s = parseInt(root.atSS, 10)
-            maxH = 23
-        } else {
-            h = parseInt(root.inHH, 10); m = parseInt(root.inMM, 10); s = parseInt(root.inSS, 10)
-            maxH = 99
-        }
-        if (isNaN(h) || isNaN(m) || isNaN(s) || h < 0 || h > maxH || m < 0 || m > 59 || s < 0 || s > 59)
-            return false
+            var h12 = parseInt(hhField.value, 10)
+            m = parseInt(mmField.value, 10)
+            var period = root.atPeriod
+            if (isNaN(h12) || h12 < 1 || h12 > 12 || isNaN(m) || m < 0 || m > 59)
+                return false
 
-        var target
-        if (root.alarmMode === "at") {
+            h = h12
+            if (period === "AM" && h12 === 12) h = 0
+            else if (period === "PM" && h12 !== 12) h += 12
+
             var now = new Date()
-            target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, s, 0)
+            var target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0)
             if (target.getTime() <= now.getTime())
                 target.setDate(target.getDate() + 1)
-            root.atHH = pad2(h); root.atMM = pad2(m); root.atSS = pad2(s)
+
+            root.atHH = pad2(h12)
+            root.atMM = pad2(m)
+            root.atPeriod = period
+            root.alarmTargetEpoch = target.getTime()
         } else {
+            h = parseInt(hhField.value, 10)
+            m = parseInt(mmField.value, 10)
+            s = parseInt(ssField.value, 10)
+            if (isNaN(h) || isNaN(m) || isNaN(s) || h < 0 || h > 99 || m < 0 || m > 59 || s < 0 || s > 59)
+                return false
+
             var durationMs = ((h * 3600) + (m * 60) + s) * 1000
             if (durationMs <= 0) return false
             root.alarmDurationMs = durationMs
-            target = new Date(Date.now() + durationMs)
+            root.alarmTargetEpoch = Date.now() + durationMs
             root.inHH = pad2(h); root.inMM = pad2(m); root.inSS = pad2(s)
         }
 
         root.syncFields()
-        root.alarmTargetEpoch = target.getTime()
         root.alarmSet = true
         alarmTimer.restartToTarget()
         return true
@@ -161,12 +210,20 @@ Item {
     }
 
     function fireAlarm() {
-        var label = root.alarmMode === "at"
-            ? "It's " + root.atHH + ":" + root.atMM + ":" + root.atSS + "."
-            : "Your " + root.inHH + ":" + root.inMM + ":" + root.inSS + " timer is up."
+        var label
+        if (root.alarmMode === "at") {
+            label = "It's " + root.atHH + ":" + root.atMM + " " + root.atPeriod + "."
+        } else {
+            label = "Your " + root.inHH + ":" + root.inMM + ":" + root.inSS + " timer is up."
+        }
+
+        // Show notification
         alarmNotifyProc.command = ["notify-send", "-u", "critical", "-a", "Alarm", "Alarm", label]
         alarmNotifyProc.running = false
         alarmNotifyProc.running = true
+
+        // Play beep sound
+        playAlarmSound()
 
         if (root.alarmRepeat) {
             var next
@@ -183,10 +240,25 @@ Item {
         }
     }
 
-    Process { id: alarmNotifyProc }
+    function playAlarmSound() {
+        alarmSoundProc.command = ["python3", "-c", root.alarmSoundScript]
+        alarmSoundProc.running = false
+        alarmSoundProc.running = true
+    }
 
-    // Ticks once a second while an alarm is armed, purely to force the
-    // status/countdown Text below to re-evaluate (it reads Date.now()).
+    Process { id: alarmNotifyProc }
+    Process {
+        id: alarmSoundProc
+        stdout: StdioCollector {}
+        stderr: StdioCollector {}
+        onExited: (code, status) => {
+            if (code !== 0) {
+                console.warn("[CalendarPopup] Failed to play alarm sound:", code, alarmSoundProc.stderr.text)
+            }
+        }
+    }
+
+    // Ticks once a second while an alarm is armed
     Timer {
         interval: 1000
         repeat: true
@@ -194,14 +266,11 @@ Item {
         onTriggered: root.tick++
     }
 
-    // Small 2-digit time field used for the HH / MM / SS inputs below.
-    // Inline components can't reference ids from the surrounding document
-    // (only the Theme singleton, which isn't id-scoped), so this talks back
-    // to root purely through property bindings + signals set up at the
-    // call site, the same way the rest of the shell's components do.
+    // Small 2-digit time field component
     component AlarmField: Rectangle {
         id: fieldRoot
         property alias value: fieldInput.text
+        property int maxValue: 99
         signal committed()
         signal submitRequested()
         signal closeRequested()
@@ -221,7 +290,7 @@ Item {
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSize - 1
             maximumLength: 2
-            validator: IntValidator { bottom: 0; top: 99 }
+            validator: IntValidator { bottom: 0; top: fieldRoot.maxValue }
             selectByMouse: true
             onEditingFinished: {
                 if (text !== "") text = text.padStart(2, "0")
@@ -237,9 +306,6 @@ Item {
         id: alarmTimer
         repeat: false
         onTriggered: root.fireAlarm()
-        // QML Timer.interval is a 32-bit ms value (~24.8 day ceiling), which
-        // a daily/once alarm never approaches, but this keeps the call safe
-        // regardless.
         function restartToTarget() {
             stop()
             var ms = root.alarmTargetEpoch - Date.now()
@@ -255,9 +321,13 @@ Item {
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
         anchors { top: true; bottom: true; left: true; right: true }
 
-        // Click anywhere outside the card to dismiss, same as pressing Escape.
+        onVisibleChanged: {
+            if (visible) card.forceActiveFocus()
+        }
+
         MouseArea {
             anchors.fill: parent
             onClicked: root.active = false
@@ -272,12 +342,11 @@ Item {
             color: Theme.background
             border.width: 2
             border.color: Theme.border
+            focus: true
 
-            // Swallow clicks so they don't fall through to the dismiss MouseArea above.
             MouseArea { anchors.fill: parent; onClicked: {} }
 
             Keys.onEscapePressed: root.active = false
-            focus: root.active
 
             ColumnLayout {
                 anchors.fill: parent
@@ -395,14 +464,14 @@ Item {
                     }
                 }
 
-                // Divider between the calendar grid and the alarm section
+                // Divider
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 1
                     color: Theme.border
                 }
 
-                // Alarm: at a set time, or in a duration from now
+                // Alarm section
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 6
@@ -464,9 +533,7 @@ Item {
                             }
                         }
 
-                        // Once / repeat toggle - label adapts to mode ("Daily" for
-                        // a clock time, "Repeat" for a duration that re-fires
-                        // every time it elapses)
+                        // Once / repeat toggle
                         Rectangle {
                             Layout.preferredWidth: 96
                             Layout.preferredHeight: 22
@@ -511,31 +578,91 @@ Item {
                         }
                     }
 
-                    // HH : MM : SS entry - a clock time in "at" mode, a
-                    // duration from now in "in" mode
+                    // Time entry
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 4
 
                         AlarmField {
-                            id: hhField; value: root.atHH
+                            id: hhField
+                            value: root.atHH
+                            maxValue: root.alarmMode === "at" ? 12 : 99
                             onCommitted: root.commitHH(value)
                             onSubmitRequested: root.setAlarm()
                             onCloseRequested: root.active = false
                         }
                         Text { text: ":"; color: Theme.textMuted; font.family: root.fontFamily; font.pixelSize: root.fontSize; font.bold: true }
                         AlarmField {
-                            id: mmField; value: root.atMM
+                            id: mmField
+                            value: root.atMM
+                            maxValue: 59
                             onCommitted: root.commitMM(value)
                             onSubmitRequested: root.setAlarm()
                             onCloseRequested: root.active = false
                         }
-                        Text { text: ":"; color: Theme.textMuted; font.family: root.fontFamily; font.pixelSize: root.fontSize; font.bold: true }
+
+                        Text {
+                            text: ":"
+                            color: Theme.textMuted
+                            font.family: root.fontFamily
+                            font.pixelSize: root.fontSize
+                            font.bold: true
+                            visible: root.alarmMode === "in"
+                        }
                         AlarmField {
-                            id: ssField; value: root.atSS
+                            id: ssField
+                            value: root.inSS
+                            maxValue: 59
+                            visible: root.alarmMode === "in"
                             onCommitted: root.commitSS(value)
                             onSubmitRequested: root.setAlarm()
                             onCloseRequested: root.active = false
+                        }
+
+                        // AM/PM toggle (only in "at" mode)
+                        Rectangle {
+                            id: ampmToggle
+                            Layout.preferredWidth: 56
+                            Layout.preferredHeight: 22
+                            radius: 11
+                            color: Theme.buttonBg
+                            visible: root.alarmMode === "at"
+
+                            Rectangle {
+                                width: parent.width / 2
+                                height: parent.height
+                                radius: 11
+                                x: root.atPeriod === "PM" ? parent.width / 2 : 0
+                                color: Theme.blue
+                                Behavior on x { NumberAnimation { duration: 120 } }
+                            }
+
+                            RowLayout {
+                                anchors.fill: parent
+                                spacing: 0
+                                Text {
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    text: "AM"
+                                    font.family: root.fontFamily
+                                    font.pixelSize: root.fontSize - 3
+                                    color: root.atPeriod === "AM" ? Theme.background : Theme.text
+                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.atPeriod = "AM" }
+                                }
+                                Text {
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    text: "PM"
+                                    font.family: root.fontFamily
+                                    font.pixelSize: root.fontSize - 3
+                                    color: root.atPeriod === "PM" ? Theme.background : Theme.text
+                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.atPeriod = "PM" }
+                                }
+                            }
                         }
 
                         Item { Layout.fillWidth: true }
@@ -563,19 +690,18 @@ Item {
                         }
                     }
 
-                    // Status line: confirms what's armed (with a live
-                    // countdown in "in" mode), or flags nothing's set
+                    // Status line
                     Text {
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignHCenter
                         text: {
-                            var _ = root.tick // force re-eval every second while armed
+                            var _ = root.tick
                             if (!root.alarmSet) return "No alarm set"
                             if (root.alarmMode === "in") {
                                 var remain = root.alarmTargetEpoch - Date.now()
                                 return "Alarm in " + root.formatDuration(remain) + (root.alarmRepeat ? " (repeating)" : "")
                             }
-                            return "Alarm set for " + root.atHH + ":" + root.atMM + ":" + root.atSS
+                            return "Alarm set for " + root.atHH + ":" + root.atMM + " " + root.atPeriod
                                 + (root.alarmRepeat ? " (daily)" : " (once, "
                                 + Qt.formatDate(new Date(root.alarmTargetEpoch), "MMM d") + ")")
                         }
