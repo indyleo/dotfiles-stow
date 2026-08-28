@@ -92,6 +92,54 @@ PanelWindow {
         selectionRect.visible = false
     }
 
+    // Wayland layer-shell surfaces don't unmap synchronously when you flip
+    // `visible` - the compositor needs to process that and actually
+    // recomposite a frame without us in it. Firing grim right after
+    // hideSelector() races that, so the overlay (dimming + white selection
+    // rect) can still be in the buffer grim reads, producing a white tint
+    // on the captured region. This delays the actual capture call until
+    // after that unmap has had time to land.
+    property int hideSettleMs: 60
+    property int hideSettleRetries: 3   // extra safety re-arms if a frame is dropped/delayed
+
+    Timer {
+        id: postHideTimer
+        interval: root.hideSettleMs
+        repeat: false
+        property var pendingCallback: null
+        property int attemptsLeft: 0
+        onTriggered: {
+            if (!pendingCallback) return
+            var cb = pendingCallback
+            // Give the compositor a couple of extra idle passes to actually
+            // commit the unmap before we trust it and fire. Cheap insurance
+            // against a single dropped/delayed frame; doesn't add real
+            // latency since animationFrame ticks are ~16ms.
+            if (attemptsLeft > 0) {
+                attemptsLeft--
+                Qt.callLater(function() {
+                    Qt.callLater(function() {
+                        postHideTimer.pendingCallback = null
+                        cb()
+                    })
+                })
+            } else {
+                pendingCallback = null
+                cb()
+            }
+        }
+    }
+
+    // Hides the selector overlay, then invokes callback once the compositor
+    // has had a chance to actually remove it from the screen. Use this
+    // instead of calling hideSelector() immediately followed by a capture.
+    function captureAfterHide(callback) {
+        hideSelector()
+        postHideTimer.pendingCallback = callback
+        postHideTimer.attemptsLeft = root.hideSettleRetries
+        postHideTimer.restart()
+    }
+
     // Full-screen semi-transparent overlay
     Rectangle {
         id: regionOverlay
@@ -156,8 +204,9 @@ PanelWindow {
                     // Single click: capture pixel under cursor
                     var x = Math.round(mouse.x)
                     var y = Math.round(mouse.y)
-                    hideSelector()
-                    capturePixel(x, y)
+                    root.captureAfterHide(function() {
+                        capturePixel(x, y)
+                    })
                 } else if (selectorMode === "region") {
                     selecting = true
                     startX = mouse.x
@@ -180,16 +229,23 @@ PanelWindow {
                 var w = Math.round(selectionRect.width)
                 var h = Math.round(selectionRect.height)
 
-                // Hide the overlay first so it doesn't appear in the screenshot
-                hideSelector()
-
                 if (w < 5 || h < 5) {
+                    // Nothing worth capturing - just hide immediately, no
+                    // need to wait for compositor settle since we're not
+                    // firing grim.
+                    hideSelector()
                     root.screenshotFailed("Region too small")
                     return
                 }
 
                 var geometry = x + "," + y + " " + w + "x" + h
-                captureRegionWithGeometry(geometry)
+
+                // Hide the overlay first, then wait for the compositor to
+                // actually settle before capturing, so it doesn't appear
+                // (as a white tint) in the screenshot.
+                root.captureAfterHide(function() {
+                    captureRegionWithGeometry(geometry)
+                })
             }
 
             onCanceled: {
