@@ -54,7 +54,12 @@ PanelWindow {
 	screen: Quickshell.screens[0]
 	color: "transparent"
 	exclusionMode: ExclusionMode.Normal
-	WlrLayershell.layer: WlrLayer.Top
+	// Every other full-screen picker in this shell (AppLauncher, Dmenu,
+	// EmojiPicker, NerdFontPicker) uses the Overlay layer so it always
+	// renders above fullscreen windows and other layer-shell surfaces.
+	// This one was left on the Top layer, so it could end up hidden
+	// behind a fullscreen app or another overlay (e.g. the power menu).
+	WlrLayershell.layer: WlrLayer.Overlay
 	WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
 	anchors { top: true; bottom: true; left: true; right: true }
 

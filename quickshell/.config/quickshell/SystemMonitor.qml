@@ -34,8 +34,17 @@ PanelWindow {
 	color: "transparent"
 	exclusionMode: ExclusionMode.Ignore
 	WlrLayershell.layer: WlrLayer.Overlay
+	WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
 
 	anchors { top: true; bottom: true; left: true; right: true }
+
+	// Give the window keyboard focus whenever it's shown so the "Close
+	// (Esc)" button below actually does what it says. Previously this
+	// panel never set WlrKeyboardFocus or claimed focus on any item, so
+	// Escape was silently swallowed and only the mouse click / background
+	// click could close it.
+	onVisibleChanged: if (visible) root.forceActiveFocus()
+	Keys.onEscapePressed: root.active = false
 
 	property string bgUrl: ""
 	property var screenshotProvider: null
