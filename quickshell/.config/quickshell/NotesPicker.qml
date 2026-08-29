@@ -323,7 +323,7 @@ PanelWindow {
 					border.color: cal3
 					Text {
 						anchors.centerIn: parent
-						text: "Create"
+						text: " Create"
 						color: cal6
 						font.family: root.fontFamily
 						font.pixelSize: root.fontSize
