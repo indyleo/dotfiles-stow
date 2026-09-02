@@ -75,17 +75,6 @@ export PLUGINDIR="${XDG_DATA_HOME:-$HOME/.local/share}/zplugins"
 # QT Theme
 export QT_QPA_PLATFORMTHEME="qt6ct"
 
-# Bitwarden
-[[ -f "$HOME/Documents/pass/clientid" ]] && export BW_CLIENTID="$(cat "$HOME/Documents/pass/clientid")"
-[[ -f "$HOME/Documents/pass/clientsec" ]] && export BW_CLIENTSECRET="$(cat "$HOME/Documents/pass/clientsec")"
-[[ -f "$HOME/Documents/pass/userpass" ]] && export BW_PASSWORD="$(cat "$HOME/Documents/pass/userpass")"
-
-# Gurk (Signal TUI)
-[[ -f "$HOME/Documents/pass/gurkpass" ]] && export GURK_PASSPHRASE="$(cat "$HOME/Documents/pass/gurkpass")"
-
-# Twt (Twich Chat TUI)
-[[ -f "$HOME/Documents/pass/twt" ]] && export TWT_TOKEN="$(cat "$HOME/Documents/pass/twt")"
-
 # Streaming token (Twich Streaming)
 [[ -f "$HOME/Documents/pass/twitch_token" ]] && export TWITCH_TOKEN="$(cat "$HOME/Documents/pass/twitch_token")"
 
