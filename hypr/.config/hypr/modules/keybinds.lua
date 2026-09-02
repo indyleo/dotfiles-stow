@@ -110,7 +110,6 @@ hl.bind(mainMod .. " + Y", hl.dsp.exec_cmd(scratchpad .. " lfsc lf"))
 hl.bind(mainMod .. " + Z", hl.dsp.exec_cmd(scratchpad .. " qalsc qalc"))
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd(scratchpad .. " wiremixsc wiremix"))
 hl.bind(mainMod .. " + G", hl.dsp.exec_cmd(scratchpad .. " gurks gurks"))
-hl.bind(mainMod .. " + D", hl.dsp.exec_cmd(scratchpad .. " discordo discordo"))
 hl.bind(mainMod .. " + C", hl.dsp.exec_cmd(scratchpad .. " twitch-tui twt"))
 hl.bind(mainMod .. " + M", hl.dsp.exec_cmd(scratchpad .. " musicsc subsonic-tui"))
 
