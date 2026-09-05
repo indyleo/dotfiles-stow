@@ -69,6 +69,9 @@ config.max_fps = 60
 config.scrollback_lines = 10000
 config.mux_output_parser_buffer_size = 1048576
 config.mux_output_parser_coalesce_delay_ms = 1
+-- NOTE: prefer_egl only has an effect when front_end = "OpenGL" - it's a
+-- no-op with WebGpu (current setting). Left in place in case you ever
+-- switch front ends back, but it isn't doing anything right now.
 config.prefer_egl = false
 config.window_close_confirmation = "NeverPrompt"
 
@@ -103,7 +106,15 @@ local function basename(path)
 end
 
 local function safe_name(name)
-	return name:gsub("[%.%s]", "_")
+	return (name:gsub("[%.%s]", "_"))
+end
+
+-- Single-quotes a string for safe interpolation into a POSIX shell command
+-- line. Without this, a search_dirs entry containing a space or other shell
+-- metacharacter would break (or silently misbehave) the `find` invocation
+-- below.
+local function shell_quote(s)
+	return "'" .. s:gsub("'", "'\\''") .. "'"
 end
 
 local function shell_lines(cmd)
@@ -120,6 +131,8 @@ local function shell_lines(cmd)
 end
 
 -- Cache: populated on first picker open, persists for the session.
+-- Force a fresh scan with LEADER+SHIFT+P if you add a new project directory
+-- and don't want to wait for a config reload.
 local _cache = {}
 
 local function scan_dirs()
@@ -130,7 +143,8 @@ local function scan_dirs()
 	local seen = {}
 
 	for _, root in ipairs(search_dirs) do
-		for _, p in ipairs(shell_lines("find " .. root .. " -mindepth 2 -maxdepth 4 -type d -name '.git'")) do
+		local cmd = "find " .. shell_quote(root) .. " -mindepth 2 -maxdepth 4 -type d -name '.git'"
+		for _, p in ipairs(shell_lines(cmd)) do
 			local repo = p:match("^(.+)/%.git$")
 			if repo and not seen[repo] then
 				seen[repo] = true
@@ -140,12 +154,37 @@ local function scan_dirs()
 	end
 
 	table.sort(git_repos)
+
+	-- Build workspace names. Two repos with the same basename (e.g.
+	-- ~/Projects/foo and ~/Github/foo) would otherwise collide and
+	-- open_project() would treat the second one as "already open" and
+	-- just switch to the first repo's workspace instead of opening it.
+	-- Disambiguate by prefixing the parent directory name only when a
+	-- collision actually exists, so names stay short in the common case.
+	local basename_counts = {}
+	for _, repo in ipairs(git_repos) do
+		local b = basename(repo)
+		basename_counts[b] = (basename_counts[b] or 0) + 1
+	end
+
+	local names = {}
+	for _, repo in ipairs(git_repos) do
+		local b = basename(repo)
+		if basename_counts[b] > 1 then
+			local parent = basename(repo:match("^(.+)/[^/]+$") or repo)
+			names[repo] = safe_name(parent .. "_" .. b)
+		else
+			names[repo] = safe_name(b)
+		end
+	end
+
 	_cache.git_repos = git_repos
+	_cache.names = names
 	_cache.scanned = true
 end
 
 local function open_project(window, pane, project_path)
-	local name = safe_name(basename(project_path))
+	local name = (_cache.names and _cache.names[project_path]) or safe_name(basename(project_path))
 
 	for _, ws in ipairs(wezterm.mux.get_workspace_names()) do
 		if ws == name then
@@ -196,6 +235,11 @@ local function pick_projects(window, pane)
 	)
 end
 
+local function refresh_projects(window, pane)
+	_cache.scanned = false
+	pick_projects(window, pane)
+end
+
 ------------------------------------------------------------
 -- Leader and keybindings
 ------------------------------------------------------------
@@ -239,6 +283,7 @@ config.keys = {
 	-- Workspace / project picker
 	----------------------------------------------------------
 	{ key = "p", mods = "LEADER", action = wezterm.action_callback(pick_projects) },
+	{ key = "P", mods = "LEADER|SHIFT", action = wezterm.action_callback(refresh_projects) },
 	{
 		key = "w",
 		mods = "LEADER",

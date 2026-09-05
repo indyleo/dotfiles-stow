@@ -50,6 +50,8 @@ alias cpc="command cp -v config.def.h config.h"
 alias clin="sudo make clean install"
 
 # find dirs and files
+# NOTE: trailing space is intentional - it enables alias-expansion of the
+# next word, so `ff pattern` becomes `find . | grep pattern`.
 alias ff="find . | grep "
 
 # Get Error Messages From Journalctl
@@ -121,18 +123,20 @@ alias 755='chmod -R 755'
 alias 777='chmod -R 777'
 
 # Pkg Manager Aliases
-if [[ -f /usr/bin/apt ]]; then
+# NOTE: switched from `[[ -f /usr/bin/X ]]` to `command -v X` - doesn't
+# hardcode paths and works regardless of where the binary actually lives.
+if command -v apt >/dev/null 2>&1; then
     alias aptin='sudo apt install'
     alias aptup='sudo apt update && sudo apt upgrade'
     alias aptrm='sudo apt remove'
     alias aptpu='sudo apt purge'
     alias aptse='apt search'
-elif [[ -f /usr/bin/dnf ]]; then
+elif command -v dnf >/dev/null 2>&1; then
     alias dnfin='sudo dnf install'
     alias dnfup='sudo dnf update'
     alias dnfrm='sudo dnf remove'
     alias dnfse='dnf search'
-elif [[ -f /usr/bin/pacman ]]; then
+elif command -v pacman >/dev/null 2>&1; then
     alias pacin='sudo pacman -S'
     alias pacup='sudo pacman -Syu'
     alias pacrm='sudo pacman -R'
@@ -140,7 +144,7 @@ elif [[ -f /usr/bin/pacman ]]; then
     alias pacse='pacman -Qs'
 fi
 
-if command -v pacseek >/dev/null; then
+if command -v pacseek >/dev/null 2>&1; then
     alias pcs='pacseek'
 fi
 

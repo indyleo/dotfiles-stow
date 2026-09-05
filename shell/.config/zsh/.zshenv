@@ -1,56 +1,24 @@
 # Path Variables
-if [[ -d "$HOME/go/bin" ]]; then
-    PATH="$HOME/go/bin:$PATH"
-fi
-
-if [[ -d "/usr/local/go/bin" ]]; then
-    PATH="/usr/local/go/bin:$PATH"
-fi
-
-if [[ -d "$HOME/.cargo/bin" ]]; then
-    PATH="$HOME/.cargo/bin:$PATH"
-fi
-
-if [[ -d "$HOME/.local/scripts" ]]; then
-    PATH="$HOME/.local/scripts:$PATH"
-fi
-
-if [[ -d "$HOME/.local/bin" ]]; then
-    PATH="$HOME/.local/bin:$PATH"
-fi
-
-if [[ -d "$HOME/Applications" ]]; then
-    PATH="$HOME/Applications:$PATH"
-fi
-
-if [[ -d "/usr/games" ]]; then
-    PATH="/usr/games:$PATH"
-fi
+for _pathdir in \
+    "$HOME/go/bin" \
+    "/usr/local/go/bin" \
+    "$HOME/.cargo/bin" \
+    "$HOME/.local/scripts" \
+    "$HOME/.local/bin" \
+    "$HOME/Applications" \
+    "/usr/games"
+do
+    [[ -d "$_pathdir" ]] && PATH="$_pathdir:$PATH"
+done
+unset _pathdir
 
 # XDG Exports
-if [[ -z "$XDG_CONFIG_HOME" ]]; then
-    export XDG_CONFIG_HOME="$HOME/.config"
-fi
-
-if [[ -z "$XDG_DATA_HOME" ]]; then
-    export XDG_DATA_HOME="$HOME/.local/share"
-fi
-
-if [[ -z "$XDG_STATE_HOME" ]]; then
-    export XDG_STATE_HOME="$HOME/.local/state"
-fi
-
-if [[ -z "$XDG_CACHE_HOME" ]]; then
-    export XDG_CACHE_HOME="$HOME/.cache"
-fi
-
-if [[ -z "$XDG_SCRIPTS_HOME" ]]; then
-    export XDG_SCRIPTS_HOME="$HOME/.local/scripts"
-fi
-
-if [[ -z "$XDG_SCRIPTS_DEV" ]]; then
-    export XDG_SCRIPTS_DEV="$HOME/Scripts"
-fi
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_SCRIPTS_HOME="${XDG_SCRIPTS_HOME:-$HOME/.local/scripts}"
+export XDG_SCRIPTS_DEV="${XDG_SCRIPTS_DEV:-$HOME/Scripts}"
 
 # Some Nice Exports
 export EDITOR="nvim"

@@ -3,8 +3,8 @@ function up() {
     local d=""
     local limit="$1"
 
-    # Default to limit of 1
-    if [[ -z "$limit" ]] || [[ "$limit" -le 0 ]]; then
+    # Default to limit of 1 if empty, non-numeric, or <= 0
+    if [[ -z "$limit" ]] || [[ ! "$limit" =~ ^[0-9]+$ ]] || (( limit <= 0 )); then
         limit=1
     fi
 
@@ -100,25 +100,26 @@ fi
 
 function massrename() {
     local prefix="${1:-file}"
+    local ext
+    local n=1
     for f in *.*; do
+        [[ -f "$f" ]] || continue
         ext="${f##*.}"
-        mv -f -- "$f" "${prefix}${n}.$ext"
-        ((n++))
+        # -n (no-clobber) so we never silently overwrite a colliding name
+        if mv -n -- "$f" "${prefix}${n}.$ext"; then
+            ((n++))
+        fi
     done
-    echo "Renamed ${n} files"
+    echo "Renamed $((n - 1)) files"
 }
 
 # Be Lazy With Git
 function lazygall() {
-    git add .
-    git commit -m "$1"
-    git push
+    git add . && git commit -m "$1" && git push
 }
 
 function lazygup() {
-    git add -u
-    git commit -m "$1"
-    git push
+    git add -u && git commit -m "$1" && git push
 }
 
 # Lf CD
@@ -136,7 +137,7 @@ function lc() {
         command rm -f -- "$tmp"
         if [[ -d $dir && $dir != "$PWD" ]]; then
             cd "$dir" || return
-            echo "  Changed to: $dir"
+            echo "  Changed to: $dir"
         fi
     fi
 }

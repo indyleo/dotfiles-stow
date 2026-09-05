@@ -1,89 +1,21 @@
-# Path Variables
-if [[ -d "$HOME/go/bin" ]]; then
-    PATH="$HOME/go/bin:$PATH"
-fi
-
-if [[ -d "/usr/local/go/bin" ]]; then
-    PATH="/usr/local/go/bin:$PATH"
-fi
-
-if [[ -d "$HOME/.cargo/bin" ]]; then
-    PATH="$HOME/.cargo/bin:$PATH"
-fi
-
-if [[ -d "$HOME/.local/scripts" ]]; then
-    PATH="$HOME/.local/scripts:$PATH"
-fi
-
-if [[ -d "$HOME/.local/bin" ]]; then
-    PATH="$HOME/.local/bin:$PATH"
-fi
-
-if [[ -d "$HOME/Applications" ]]; then
-    PATH="$HOME/Applications:$PATH"
-fi
-
-if [[ -d "/usr/games" ]]; then
-    PATH="/usr/games:$PATH"
-fi
-
-# XDG Exports
-if [[ -z "$XDG_CONFIG_HOME" ]]; then
-    export XDG_CONFIG_HOME="$HOME/.config"
-fi
-
-if [[ -z "$XDG_DATA_HOME" ]]; then
-    export XDG_DATA_HOME="$HOME/.local/share"
-fi
-
-if [[ -z "$XDG_STATE_HOME" ]]; then
-    export XDG_STATE_HOME="$HOME/.local/state"
-fi
-
-if [[ -z "$XDG_CACHE_HOME" ]]; then
-    export XDG_CACHE_HOME="$HOME/.cache"
-fi
-
-if [[ -z "$XDG_SCRIPTS_HOME" ]]; then
-    export XDG_SCRIPTS_HOME="$HOME/.local/scripts"
-fi
-
-if [[ -z "$XDG_SCRIPTS_DEV" ]]; then
-    export XDG_SCRIPTS_DEV="$HOME/Scripts"
-fi
-
-# Some Nice Exports
-export EDITOR="nvim"
-export VISUAL="nvim"
-export PAGER="moor"
-export MANPAGER="moor"
-export TERM="xterm-256color"
-export COLORTERM="truecolor"
-export OPENER="xdg-open"
-export BROWSER="librewolf"
-export TERMINAL="foot"
-export TUIF="lf"
-export GUIF="thunar"
-export READER="zathura"
-export LOCKER="hyprlock"
-
-# Setting ZDOTDIR
-export ZDOTDIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"
-export SDOTDIR="${XDG_CONFIG_HOME:-$HOME/.config}/shell"
-export PLUGINDIR="${XDG_DATA_HOME:-$HOME/.local/share}/zplugins"
+# NOTE: PATH/XDG/editor exports used to be duplicated here verbatim from
+# .zshenv. .zshenv always runs *before* .zprofile on every zsh startup
+# (login or not), so re-running the exact same PATH scans and exports here
+# was pure redundant work on every login shell. Removed - only genuinely
+# login-specific setup lives below.
 
 # QT Theme
 export QT_QPA_PLATFORMTHEME="qt6ct"
 
-# Streaming token (Twich Streaming)
+# Streaming token (Twitch Streaming)
 [[ -f "$HOME/Documents/pass/twitch_token" ]] && export TWITCH_TOKEN="$(cat "$HOME/Documents/pass/twitch_token")"
 
 # Start Hyprland
-if [[ "$(tty)" = /dev/tty1 ]];then
-    pgrep hyprland || start-hyprland
-fi
+# if [[ "$(tty)" = /dev/tty1 ]];then
+# pgrep hyprland || start-hyprland
+# fi
 
 # Start Dwm
-# if [[ "$(tty)" = /dev/tty1 ]];then
-# pgrep dwm || startx
-# fi
+if [[ "$(tty)" = /dev/tty1 ]]; then
+    pgrep dwm || startx
+fi
