@@ -17,7 +17,7 @@ vim.g.maplocalleader = " "
 --- Non-Plugin ----
 
 -- Disable arrow keys in normal and visual modes
-for _, key in ipairs { "<Up>", "<Down>", "<Left>", "<Right> " } do
+for _, key in ipairs { "<Up>", "<Down>", "<Left>", "<Right>" } do
   map({ "n", "v", "x" }, key, "<Nop>", "Disable " .. key)
 end
 
@@ -73,7 +73,7 @@ map("v", "<leader>/", ":ToggleCommentVisual<CR>", "Toggle comment Visual")
 -- Folding
 map("n", "<leader>za", ":ToggleAllFolds<CR>", "Toggle all folds")
 map("n", "<leader>zs", ":ToggleFold<CR>", "Toggle fold under cursor")
-map("n", "<leader>zq", ":PeekFold<CR>", "Peek folded lines or LSP hover")
+map("n", "<leader>zq", ":PeekFold<CR>", "Peek folded lines under cursor")
 map("n", "]z", ":NextFold<CR>", "Goes to next fold")
 map("n", "[z", ":PrevFold<CR>", "Goes to previous fold")
 map("n", "<leader>zR", ":FoldsForceRefresh<CR>", "Refresh all folds forcefully")
@@ -116,7 +116,7 @@ map("x", "P", '"_dP', "Paste over selection without overwriting register")
 map("t", "<Esc><Esc>", "<C-\\><C-n>", "Exit terminal to normal mode")
 
 -- Terminal toggles
-map({ "n", "t" }, "<leader>tr", ":ToggleTerm<CR>", "Toggle terminal")
+map({ "n", "t" }, "<leader>tr", ":ToggleTerminal<CR>", "Toggle terminal")
 map({ "n", "t" }, "<leader>tg", ":ToggleGit<CR>", "Toggle lazygit")
 map({ "n", "t" }, "<leader>tc", ":ToggleClaude<CR>", "Toggle claude")
 

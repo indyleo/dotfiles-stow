@@ -55,10 +55,23 @@ autocmd("TextYankPost", {
 })
 
 -- Trim trailing whitespace
+-- NOTE: previously ran unconditionally on every filetype via `%s/\s\+$//e`,
+-- which (a) jumped the cursor/view to the last substitution on every save,
+-- and (b) stripped Markdown's "two trailing spaces = hard line break"
+-- syntax. Now preserves the view and skips filetypes where trailing
+-- whitespace is meaningful.
 autocmd({ "BufWritePre" }, {
   group = augroup "TrimTrailingWhitespace",
   pattern = "*",
-  command = [[%s/\s\+$//e]],
+  callback = function()
+    local ft = vim.bo.filetype
+    if ft == "markdown" or ft == "diff" then
+      return
+    end
+    local view = vim.fn.winsaveview()
+    vim.cmd [[keeppatterns %s/\s\+$//e]]
+    vim.fn.winrestview(view)
+  end,
 })
 
 -- Hide "[Process exited 0]" when closing a terminal
@@ -105,8 +118,12 @@ autocmd("BufWritePost", {
   pattern = "config.def.h",
   callback = function(args)
     if not proc_check "autocompile" then
-      local shellcmd = { "cp -v config.def.h config.h && sudo make clean install" }
+      local shellcmd = "cp -v config.def.h config.h && sudo make clean install"
       if was_modified[args.buf] and vim.bo.filetype ~= "" and vim.fn.expand "%" ~= "" then
+        -- NOTE: vim.cmd.CommandRun(shellcmd) previously passed a plain array
+        -- table, which nvim_cmd() rejects (it expects an `args` field, not a
+        -- bare list) -- the command silently never ran. vim.cmd.CommandRun
+        -- with the shell string as a normal argument works correctly.
         vim.cmd.CommandRun(shellcmd)
       end
     else

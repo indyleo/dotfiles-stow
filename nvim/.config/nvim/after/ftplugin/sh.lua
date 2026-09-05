@@ -1,13 +1,14 @@
 -- Shell filetype plugin --
-vim.api.nvim_create_autocmd("BufEnter", {
-  group = vim.api.nvim_create_augroup("ShellMaps", { clear = true }),
-  callback = function(args)
-    local keymap = vim.keymap.set
-    local bufnr = args.buf
-    local langopts = function(desc)
-      return { desc = "Shell: " .. desc, buffer = bufnr, noremap = true, silent = true }
-    end
-    -- Run format for function name(){}
-    keymap("n", "<leader>mu", [[:%s/^\s*\(\w\+\)\s*()/function \1()/<CR>]], langopts "formats the file to use function name(){} not name(){}")
-  end,
-})
+-- See after/ftplugin/c.lua for why this no longer wraps in a BufEnter
+-- autocmd on a shared, clearable augroup.
+local bufnr = vim.api.nvim_get_current_buf()
+local langopts = function(desc)
+  return { desc = "Shell: " .. desc, buffer = bufnr, noremap = true, silent = true }
+end
+-- Run format for function name(){}
+vim.keymap.set(
+  "n",
+  "<leader>mu",
+  [[:%s/^\s*\(\w\+\)\s*()/function \1()/<CR>]],
+  langopts "formats the file to use function name(){} not name(){}"
+)

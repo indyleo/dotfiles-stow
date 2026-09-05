@@ -1,7 +1,7 @@
 -- ========================
 -- THEME-AWARE STATUSLINE (Async Git + Diagnostics)
 -- ========================
-local api, fn, uv = vim.api, vim.fn, vim.loop or vim.uv
+local api, fn, uv = vim.api, vim.fn, vim.uv or vim.loop
 
 -- ========================
 -- Theme selection
@@ -64,13 +64,20 @@ local mode_map = {
   i = { name = "INSERT", hl = "Insert" },
   v = { name = "VISUAL", hl = "Visual" },
   V = { name = "V-LINE", hl = "Visual" },
-  [""] = { name = "V-BLOCK", hl = "Visual" },
+  -- NOTE: these were both written as `[""]` (an empty-string key) rather
+  -- than the actual control characters mode() returns for blockwise-visual
+  -- (CTRL-V, decimal 22) and blockwise-select (CTRL-S, decimal 19). Since
+  -- both entries used the same empty-string key, the second silently
+  -- overwrote the first in the table literal, and neither ever matched a
+  -- real mode -- Visual-Block and Select-Block always fell through to the
+  -- `mode_map[m] or {name = m, ...}` fallback, showing a raw control byte.
+  ["\22"] = { name = "V-BLOCK", hl = "Visual" },
   R = { name = "REPLACE", hl = "Replace" },
   c = { name = "COMMAND", hl = "Command" },
   t = { name = "TERMINAL", hl = "Terminal" },
   s = { name = "SELECT", hl = "Visual" },
   S = { name = "S-LINE", hl = "Visual" },
-  [""] = { name = "S-BLOCK", hl = "Visual" },
+  ["\19"] = { name = "S-BLOCK", hl = "Visual" },
   ["r"] = { name = "PROMPT", hl = "Replace" },
   ["!"] = { name = "SHELL", hl = "Command" },
 }

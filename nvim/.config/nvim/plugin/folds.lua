@@ -158,7 +158,9 @@ local function ensure_folding(bufnr)
 
   if has_ts_parser(ft) then
     fold_options.foldmethod = "expr"
-    fold_options.foldexpr = "nvim_treesitter#foldexpr()"
+    -- Use core Neovim's built-in treesitter foldexpr (see options.lua for
+    -- why the old `nvim_treesitter#foldexpr()` no longer works).
+    fold_options.foldexpr = "v:lua.vim.treesitter.foldexpr()"
   else
     local method = (M.config.ft_fallback and M.config.ft_fallback[ft]) or "syntax"
     fold_options.foldmethod = method

@@ -79,7 +79,12 @@ local str_opts = {
   titlestring = "Neovim - %t (%{expand('%:p:h')})",
   winborder = "rounded",
   foldmethod = "expr",
-  foldexpr = "nvim_treesitter#foldexpr()",
+  -- NOTE: `nvim_treesitter#foldexpr()` was the old nvim-treesitter (legacy
+  -- branch) Vimscript folding function. The `main`/default branch installed
+  -- via lua/config/pack.lua removed it, so this would throw "Unknown
+  -- function" errors on every fold recompute. Neovim core has shipped its
+  -- own treesitter-based foldexpr since 0.10 -- use that instead.
+  foldexpr = "v:lua.vim.treesitter.foldexpr()",
   foldcolumn = "1",
   completeopt = "menuone,noselect",
   statusline = "%!v:lua.status_line()",

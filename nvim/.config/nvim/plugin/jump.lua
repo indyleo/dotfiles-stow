@@ -74,13 +74,20 @@ local function collect_matches(pattern, word_start)
   local cur_col = cursor[2]
 
   local search_pat = word_start and ("\\<" .. vim.fn.escape(pattern, "\\")) or vim.fn.escape(pattern, "\\")
+  -- NOTE: previously `vim.regex(search_pat)` was called (and the regex
+  -- re-compiled from scratch) on every single match position inside the
+  -- innermost while loop -- i.e. once per match per line, every time a
+  -- keystroke refreshes matches across the whole visible window. Compiling
+  -- once per call is all that's needed since the pattern doesn't change
+  -- while scanning.
+  local regex = vim.regex(search_pat)
 
   local matches = {}
   for rel, line in ipairs(lines) do
     local lnum = top + rel - 1
     local col = 0
     while true do
-      local s, e = vim.regex(search_pat):match_str(line:sub(col + 1))
+      local s, e = regex:match_str(line:sub(col + 1))
       if not s then
         break
       end

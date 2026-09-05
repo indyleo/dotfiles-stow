@@ -639,8 +639,16 @@ local function toggle_comment_operator(motion_type)
 end
 
 -- Operator callback for setting operatorfunc
-M.operator_callback = function()
-  toggle_comment_operator(vim.v.operator)
+-- NOTE: when 'operatorfunc' is invoked (via `g@{motion}`), Neovim calls this
+-- function with ONE argument: the motion type string ("line", "char", or
+-- "block"). The previous version ignored that argument and read
+-- `vim.v.operator` instead, which holds the *operator* that was used to
+-- enter operator-pending mode (here always the literal string "g@", since
+-- that's the mapping `set_operatorfunc` returns) -- never "line"/"char"/
+-- "block". As a result `toggle_comment_operator` always fell through to its
+-- `else return end` branch and `gc{motion}` silently did nothing.
+M.operator_callback = function(motion_type)
+  toggle_comment_operator(motion_type)
 end
 
 -- Dot-repeat support
@@ -730,4 +738,3 @@ M.toggle_comment_visual = toggle_comment_visual
 M.toggle_comment_operator = toggle_comment_operator
 
 return M
-

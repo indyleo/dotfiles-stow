@@ -101,14 +101,22 @@ local function open_lf_in_float(opts)
     local file_dir = fn.fnamemodify(file_path, ":p:h")
     set_cwd(file_dir)
 
+    -- NOTE: the old code set `lf_win = nil` *before* the final
+    -- `nvim_win_is_valid(lf_win)` check below, so that check always ran
+    -- against `nil` instead of the actual floating window handle -- the
+    -- leftover lf floating window was never closed after picking a file
+    -- when we'd switched focus to a previous window. Keep a local copy of
+    -- the window we actually need to close.
+    local old_lf_win = lf_win
     local prev_win = fn.win_getid(fn.winnr "#")
 
-    if api.nvim_win_is_valid(prev_win) and prev_win ~= lf_win then
+    if api.nvim_win_is_valid(prev_win) and prev_win ~= old_lf_win then
       api.nvim_set_current_win(prev_win)
     else
-      if api.nvim_win_is_valid(lf_win) then
-        api.nvim_win_close(lf_win, true)
+      if api.nvim_win_is_valid(old_lf_win) then
+        api.nvim_win_close(old_lf_win, true)
       end
+      old_lf_win = nil
     end
 
     lf_win = nil
@@ -116,8 +124,8 @@ local function open_lf_in_float(opts)
 
     vim.cmd("edit " .. fn.fnameescape(file_path))
 
-    if api.nvim_win_is_valid(lf_win) then
-      api.nvim_win_close(lf_win, true)
+    if old_lf_win and api.nvim_win_is_valid(old_lf_win) then
+      api.nvim_win_close(old_lf_win, true)
     end
   end
 
