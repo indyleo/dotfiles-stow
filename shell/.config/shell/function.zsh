@@ -150,7 +150,7 @@ function scrky() {
     local x_pos=$((screen_width - window_width - 10))
 
     screenkey --no-systray --opacity 0.85 \
-        --bg-color "#2e3440" --font-color "#d8dee9" \
+        --bg-color "#282828" --font-color "#d5c4a1" \
         -p fixed -g ${window_width}x40+${x_pos}+10 &
     SCREENKEY_PID=$!
     if [[ -n $ZSH_VERSION ]]; then
