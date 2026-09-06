@@ -1,4 +1,3 @@
-
 set previewer ~/.config/lf/preview
 set preview true
 set hidden true
@@ -22,7 +21,6 @@ map "'"
 
 ### CORE NAVIGATION ###
 map <enter> open
-map p paste
 map x cut
 map y copy
 map R reload
@@ -66,7 +64,17 @@ cmd mk ${{
     dir) mkdir -pv -- "$name" ;;
     file) :> "$name" ;;
     script) mkscript -n "$name" && lf -remote "send $id cd '~/Scripts/'" ;;
-    proj) projtool mkproj -n "$name" && lf -remote "send $id cd '~/Projects/$name'" ;;
+    proj)
+      projtool mkproj -n "$name" || exit
+      # NOTE: $name is free-typed user input and may contain a single quote
+      # (e.g. "John's App"), which would break out of the single-quoted
+      # argument lf -remote sends below (lf's own doc.md: single-quoted
+      # values have no escape mechanism, only double-quoted ones do).
+      # Escape backslashes/quotes and use double quotes instead so lf's
+      # own parser reconstructs the path correctly.
+      esc_name=$(printf '%s' "$name" | sed 's/\\/\\\\/g; s/"/\\"/g')
+      lf -remote "send $id cd \"$HOME/Projects/$esc_name\""
+      ;;
     *) echo "Unknown type." ;;
   esac
   lf -remote 'send reload'
@@ -74,9 +82,15 @@ cmd mk ${{
 map mm mk
 
 ### DELETE / TRASH ###
+# NOTE: undo records below use \x1f (a control character that can't appear
+# in a real filename) as the field separator instead of a literal "|".
+# A literal "|" is a legal (if rare) character in a Unix filename, and using
+# it as an unescaped delimiter would silently corrupt/truncate the record
+# for any file that happens to contain one.
 cmd trash %{{
+    sep=$(printf '\037')
     for f in $fx; do
-				echo "trash|$f" >> /tmp/lf_undo_$USER
+        printf 'trash%s%s\n' "$sep" "$f" >> /tmp/lf_undo_$USER
         trash-put -vr "$f"
     done
 }}
@@ -100,14 +114,53 @@ map tt trash-list
 map tr trash-restore
 map te trash-empty
 
+### PASTE (with undo support) ###
+# lf's built-in `paste` doesn't log anything for `cmd undo` to act on, so the
+# "paste" branch in `cmd undo` below was previously dead code - there was no
+# way to trigger it. This wraps paste to actually record what it creates.
+# Trade-off: this loses the built-in paste's live progress ruler for very
+# large copies, in exchange for working undo. If you never use undo for
+# paste, you can delete this block and `map p paste` will use lf's built-in
+# implementation again (numbered-suffix conflict handling either way).
+cmd paste %{{
+    sep=$(printf '\037')
+    sel_file="${XDG_DATA_HOME:-$HOME/.local/share}/lf/files"
+    [ -f "$sel_file" ] || exit
+    load=$(cat "$sel_file")
+    mode=$(printf '%s\n' "$load" | sed -n '1p')
+    list=$(printf '%s\n' "$load" | sed '1d')
+    [ -z "$list" ] && exit
+
+    printf '%s\n' "$list" | while IFS= read -r src; do
+        [ -z "$src" ] && continue
+        base=$(basename -- "$src")
+        target="$PWD/$base"
+        n=1
+        while [ -e "$target" ]; do
+            target="$PWD/${base}_$n"
+            n=$((n + 1))
+        done
+        if [ "$mode" = 'copy' ]; then
+            cp -r -- "$src" "$target"
+        else
+            mv -- "$src" "$target"
+        fi
+        printf 'paste%s%s\n' "$sep" "$target" >> /tmp/lf_undo_$USER
+    done
+    lf -remote 'send clear'
+    lf -remote 'send reload'
+}}
+map p paste
+
 ### TOGGLE EXECUTABLE / PERMISSIONS ###
 cmd chmod %{{
+  sep=$(printf '\037')
   oldperms=$(stat -c "%a" "$f")
   printf "Chmod bits: "
   read -r bits
   [ -z "$bits" ] && exit
   chmod "$bits" "$f"
-  echo "chmod|$oldperms|$f" >> /tmp/lf_undo_$USER
+  printf 'chmod%s%s%s%s\n' "$sep" "$oldperms" "$sep" "$f" >> /tmp/lf_undo_$USER
   lf -remote 'send reload'
 }}
 map et chmod
@@ -137,11 +190,16 @@ cmd fzf_jump ${{
         --preview '[ -d {} ] && eza -a --tree --level=2 --group-directories-first --color=always --icons {} 2>/dev/null || batcat --color=always --style=numbers --line-range=:100 {} 2>/dev/null || cat {}' \
         </dev/tty)
   [ -z "$res" ] && exit
+  # NOTE: $res is a real filesystem path and could contain a single quote.
+  # See the same note in `cmd mk` above - use double quotes + backslash
+  # escaping so lf's remote parser handles it correctly either way.
+  esc_res=$(printf '%s' "$res" | sed 's/\\/\\\\/g; s/"/\\"/g')
   if [ -d "$res" ]; then
-    lf -remote "send $id cd '$res'"
+    lf -remote "send $id cd \"$esc_res\""
   else
-    lf -remote "send $id cd '$(dirname "$res")'"
-    lf -remote "send $id select '$res'"
+    esc_dir=$(dirname "$res" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    lf -remote "send $id cd \"$esc_dir\""
+    lf -remote "send $id select \"$esc_res\""
     lf -remote "send $id open"
   fi
 }}
@@ -151,10 +209,14 @@ map fj fzf_jump
 cmd follow-link ${{
   [ ! -L "$f" ] && echo "Not a symlink." && exit
   target=$(readlink -f "$f")
+  # See the quoting note in `cmd mk` above - $target could contain a
+  # single quote.
+  esc_target=$(printf '%s' "$target" | sed 's/\\/\\\\/g; s/"/\\"/g')
   if [ -d "$target" ]; then
-    lf -remote "send $id cd '$target'"
+    lf -remote "send $id cd \"$esc_target\""
   elif [ -f "$target" ]; then
-    lf -remote "send $id cd '$(dirname "$target")'"
+    esc_dir=$(dirname "$target" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    lf -remote "send $id cd \"$esc_dir\""
     ${EDITOR:-nvim} "$target"
   fi
 }}
@@ -162,6 +224,7 @@ map gf follow-link
 
 ### RENAME ###
 cmd rename ${{
+  sep=$(printf '\037')
   old="$f"
   oldname=$(basename "$old")
   printf "New name: "
@@ -169,7 +232,7 @@ cmd rename ${{
   [ -z "$newname" ] && exit
   newpath="$(dirname "$old")/$newname"
   mv -- "$old" "$newpath"
-  echo "rename|$old|$newpath" >> /tmp/lf_undo_$USER
+  printf 'rename%s%s%s%s\n' "$sep" "$old" "$sep" "$newpath" >> /tmp/lf_undo_$USER
   lf -remote 'send reload'
 }}
 map r rename
@@ -209,7 +272,7 @@ map <enter> open
 # Iso Burner
 cmd burn ${{
     [ -z "$f" ] && echo "No file selected." && exit
-		echo "🔥 Burning ISO: $f"
+    echo "🔥 Burning ISO: $f"
     caligula burn "$f"
 }}
 map bi burn
@@ -233,7 +296,12 @@ cmd scp ${{
   read -rp "Host (user@host:/path): " host
   [ -z "$host" ] && exit
   if [ -n "$fx" ]; then
-    echo "$fx" | xargs -I{} scp -P "$port" "{}" "$host"
+    # NOTE: xargs' own default word-splitting (blanks, including spaces) is
+    # unaware of lf's `ifs` setting. Piping $fx (newline-separated, possibly
+    # containing filenames with spaces) into plain `xargs -I{}` would split
+    # a single filename like "My File.txt" into two bogus items. `-d '\n'`
+    # (GNU xargs) makes it split on newlines only, matching our `ifs`.
+    printf '%s\n' "$fx" | xargs -d '\n' -I{} scp -P "$port" "{}" "$host"
   else
     scp -P "$port" "$f" "$host"
   fi
@@ -241,10 +309,11 @@ cmd scp ${{
 map cs scp
 
 cmd undo ${{
+  sep=$(printf '\037')
   [ ! -f /tmp/lf_undo_$USER ] && echo "Nothing to undo." && exit
   last=$(tail -1 /tmp/lf_undo_$USER)
-  action=$(echo "$last" | cut -d'|' -f1)
-  data=$(echo "$last" | cut -d'|' -f2-)
+  action=$(printf '%s' "$last" | cut -d"$sep" -f1)
+  data=$(printf '%s' "$last" | cut -d"$sep" -f2-)
 
   case "$action" in
     paste)
@@ -253,33 +322,36 @@ cmd undo ${{
       lf -remote 'send reload'
       ;;
     rename)
-      old=$(echo "$data" | cut -d'|' -f1)
-      new=$(echo "$data" | cut -d'|' -f2)
+      old=$(printf '%s' "$data" | cut -d"$sep" -f1)
+      new=$(printf '%s' "$data" | cut -d"$sep" -f2)
       mv -- "$new" "$old"
       sed -i '$d' /tmp/lf_undo_$USER
       lf -remote 'send reload'
       ;;
     chmod)
-      perms=$(echo "$data" | cut -d'|' -f1)
-      fp=$(echo "$data" | cut -d'|' -f2)
+      perms=$(printf '%s' "$data" | cut -d"$sep" -f1)
+      fp=$(printf '%s' "$data" | cut -d"$sep" -f2)
       chmod "$perms" "$fp"
       sed -i '$d' /tmp/lf_undo_$USER
       lf -remote 'send reload'
       ;;
-		trash)
-			path=$(echo "$data" | cut -d'|' -f2)
-			filename=$(basename "$path")
-			trashinfo=~/.local/share/Trash/info/${filename}.trashinfo
-			trashed=~/.local/share/Trash/files/${filename}
-			if [ -e "$trashed" ] && [ -f "$trashinfo" ]; then
-				mv "$trashed" "$path"
-				rm "$trashinfo"
-				sed -i '$d' /tmp/lf_undo_$USER
-			else
-				echo "Can't find $filename in trash"
-			fi
-			lf -remote 'send reload'
-			;;
+    trash)
+      path="$data"
+      filename=$(basename "$path")
+      trashinfo=~/.local/share/Trash/info/${filename}.trashinfo
+      trashed=~/.local/share/Trash/files/${filename}
+      if [ -e "$trashed" ] && [ -f "$trashinfo" ]; then
+        mv "$trashed" "$path"
+        rm "$trashinfo"
+        sed -i '$d' /tmp/lf_undo_$USER
+      else
+        echo "Can't find $filename in trash"
+      fi
+      lf -remote 'send reload'
+      ;;
   esac
 }}
 map u undo
+
+# For Vim Users
+# vim:ft=conf

@@ -137,7 +137,7 @@ function lc() {
         command rm -f -- "$tmp"
         if [[ -d $dir && $dir != "$PWD" ]]; then
             cd "$dir" || return
-            echo "  Changed to: $dir"
+            echo "󰉋 Changed to: $dir"
         fi
     fi
 }
