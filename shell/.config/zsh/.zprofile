@@ -11,11 +11,11 @@ export QT_QPA_PLATFORMTHEME="qt6ct"
 [[ -f "$HOME/Documents/pass/twitch_token" ]] && export TWITCH_TOKEN="$(cat "$HOME/Documents/pass/twitch_token")"
 
 # Start Hyprland
-# if [[ "$(tty)" = /dev/tty1 ]];then
-# pgrep hyprland || start-hyprland
-# fi
+if [[ "$(tty)" = /dev/tty1 ]];then
+    pgrep hyprland || start-hyprland
+fi
 
 # Start Dwm
-if [[ "$(tty)" = /dev/tty1 ]]; then
-    pgrep dwm || startx
-fi
+# if [[ "$(tty)" = /dev/tty1 ]]; then
+# pgrep dwm || startx
+# fi
