@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 # Usage: ./scratchpad.sh <name> <command> [--gui]
 # Example TUI: ./scratchpad.sh htop htop
 # Example GUI: ./scratchpad.sh feishin feishin --gui

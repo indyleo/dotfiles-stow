@@ -23,7 +23,10 @@ hl.bind(mainMod .. " + SHIFT + C", hl.dsp.exec_cmd("qs ipc call clipboard toggle
 hl.bind(mainMod .. " + SHIFT + E", hl.dsp.exec_cmd("qs ipc call pick emoji"))
 hl.bind(mainMod .. " + ALT + E", hl.dsp.exec_cmd("qs ipc call pick icon"))
 hl.bind(mainMod .. " + SHIFT + P", hl.dsp.exec_cmd("qs ipc call powermenu toggle"))
-hl.bind(mainMod .. " + ALT + R", hl.dsp.exec_cmd("qs ipc call recorder actionPicker"))
+-- NOTE: moved off SUPER+ALT+R - it collided with the "recording toggle"
+-- bind further down (both bound to the same key combo; the later one
+-- silently wins, so this action was completely unreachable).
+hl.bind(mainMod .. " + CTRL + R", hl.dsp.exec_cmd("qs ipc call recorder actionPicker"))
 
 -- --- Window Management ---
 hl.bind(mainMod .. " + Q", hl.dsp.window.close())
