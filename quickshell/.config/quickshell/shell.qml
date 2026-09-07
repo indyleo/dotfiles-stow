@@ -319,6 +319,7 @@ ShellRoot {
 		function window(): void  { screenshot.screenshotWindow() }
 		function monitor(): void { screenshot.screenshotMonitor() }
 		function region(): void  { screenshot.screenshotRegion() }
+		function qr(): void      { screenshot.qrScanner() }
 		function color(): void   { screenshot.colorPicker() }
 	}
 

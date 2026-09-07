@@ -24,6 +24,7 @@ PanelWindow {
     signal screenshotCaptured(string filePath)
     signal colorPicked(string hexColor)
     signal screenshotFailed(string reason)
+    signal qrDecoded(string text)   // NEW: emitted when a QR code is decoded
 
     // Public API
     function screenshotFull()    { captureFull() }
@@ -31,6 +32,7 @@ PanelWindow {
     function screenshotMonitor() { captureMonitor() }
     function screenshotRegion()  { showRegionSelector() }
     function colorPicker()       { showColorPicker() }
+    function qrScanner()         { showQrScanner() }  // NEW
 
     // Timestamp helper
     function getTimestamp() {
@@ -69,8 +71,8 @@ PanelWindow {
         saveImageProc.running = true
     }
 
-    // --- Selection overlay (region + color) ---
-    property string selectorMode: ""   // "region" or "color"
+    // --- Selection overlay (region, color, and now qr) ---
+    property string selectorMode: ""   // "region", "color", or "qr"
 
     function showRegionSelector() {
         selectorMode = "region"
@@ -81,6 +83,18 @@ PanelWindow {
 
     function showColorPicker() {
         selectorMode = "color"
+        root.visible = true
+        selectionRect.visible = false
+        regionMouseArea.selecting = false
+    }
+
+    // NEW: show overlay for QR scanning (same as region but mode = "qr")
+    function showQrScanner() {
+        if (!root.zbarAvailable) {
+            root.screenshotFailed("QR scanning requires zbarimg (install zbar-tools)")
+            return
+        }
+        selectorMode = "qr"
         root.visible = true
         selectionRect.visible = false
         regionMouseArea.selecting = false
@@ -148,7 +162,7 @@ PanelWindow {
         color: Qt.rgba(0, 0, 0, 0.3)
         focus: true
 
-        // Rectangle showing the selection (only used in region mode)
+        // Rectangle showing the selection (used in region and QR modes)
         Rectangle {
             id: selectionRect
             color: Qt.rgba(1, 1, 1, 0.2)
@@ -207,7 +221,7 @@ PanelWindow {
                     root.captureAfterHide(function() {
                         capturePixel(x, y)
                     })
-                } else if (selectorMode === "region") {
+                } else if (selectorMode === "region" || selectorMode === "qr") {
                     selecting = true
                     startX = mouse.x
                     startY = mouse.y
@@ -220,7 +234,7 @@ PanelWindow {
             }
 
             onReleased: (mouse) => {
-                if (selectorMode !== "region" || !selecting || mouse.button !== Qt.LeftButton) return
+                if ((selectorMode !== "region" && selectorMode !== "qr") || !selecting || mouse.button !== Qt.LeftButton) return
                 selecting = false
 
                 // Get geometry relative to the overlay (full-screen)
@@ -230,9 +244,7 @@ PanelWindow {
                 var h = Math.round(selectionRect.height)
 
                 if (w < 5 || h < 5) {
-                    // Nothing worth capturing - just hide immediately, no
-                    // need to wait for compositor settle since we're not
-                    // firing grim.
+                    // Nothing worth capturing - just hide immediately
                     hideSelector()
                     root.screenshotFailed("Region too small")
                     return
@@ -240,12 +252,15 @@ PanelWindow {
 
                 var geometry = x + "," + y + " " + w + "x" + h
 
-                // Hide the overlay first, then wait for the compositor to
-                // actually settle before capturing, so it doesn't appear
-                // (as a white tint) in the screenshot.
-                root.captureAfterHide(function() {
-                    captureRegionWithGeometry(geometry)
-                })
+                if (selectorMode === "qr") {
+                    root.captureAfterHide(function() {
+                        captureQrRegion(geometry)
+                    })
+                } else {
+                    root.captureAfterHide(function() {
+                        captureRegionWithGeometry(geometry)
+                    })
+                }
             }
 
             onCanceled: {
@@ -259,7 +274,7 @@ PanelWindow {
         }
     }
 
-    // Capture a region with the given geometry
+    // --- Region capture (unchanged) ---
     function captureRegionWithGeometry(geometry) {
         var temp = "/tmp/qs-region-" + Date.now() + ".png"
         regionGrimProc._tempPath = temp
@@ -280,9 +295,68 @@ PanelWindow {
         }
     }
 
-    // ImageMagick 7 renamed its CLI to `magick`; many systems still only
-    // have IM6's `convert`. Detect which is available once at startup so
-    // the color picker doesn't just fail on IM6-only systems.
+    // --- NEW: QR capture and decode ---
+    function captureQrRegion(geometry) {
+        var temp = "/tmp/qs-qr-" + Date.now() + ".png"
+        qrGrimProc._tempPath = temp
+        qrGrimProc.command = ["grim", "-g", geometry, temp]
+        qrGrimProc.running = false
+        qrGrimProc.running = true
+    }
+
+    Process {
+        id: qrGrimProc
+        property string _tempPath
+        onExited: (code, status) => {
+            if (code === 0) {
+                // Now decode the QR code from the captured image
+                qrDecodeProc._tempPath = _tempPath
+                qrDecodeProc.command = ["zbarimg", "--quiet", "--raw", _tempPath]
+                qrDecodeProc.running = false
+                qrDecodeProc.running = true
+            } else {
+                root.screenshotFailed("grim QR capture failed (exit " + code + ")")
+            }
+        }
+    }
+
+    Process {
+        id: qrDecodeProc
+        property string _tempPath
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var decoded = text.trim()
+                if (decoded) {
+                    root.qrDecoded(decoded)
+                    // Copy decoded text to clipboard
+                    copyTextProc.command = ["wl-copy", decoded]
+                    copyTextProc.running = false
+                    copyTextProc.running = true
+                    // Show notification
+                    qrNotifyProc.command = ["notify-send", "QR Code Scanned", decoded + " copied to clipboard."]
+                    qrNotifyProc.running = false
+                    qrNotifyProc.running = true
+                } else {
+                    root.screenshotFailed("No QR code detected in selection")
+                }
+            }
+        }
+        onExited: (code, status) => {
+            if (code !== 0) {
+                root.screenshotFailed("QR decode failed (exit " + code + ")")
+            }
+        }
+    }
+
+    // Notification for QR success
+    Process {
+        id: qrNotifyProc
+        onExited: (code, status) => {
+            if (code !== 0) console.warn("[QR] Notification failed (exit " + code + ")")
+        }
+    }
+
+    // --- ImageMagick detection (unchanged) ---
     property string magickBin: "magick"
 
     Process {
@@ -302,7 +376,24 @@ PanelWindow {
         }
     }
 
-    // Capture a single pixel at (x, y) and extract its color
+    // --- NEW: zbarimg detection ---
+    property bool zbarAvailable: false
+
+    Process {
+        id: detectZbarProc
+        running: true
+        command: ["sh", "-c", "command -v zbarimg >/dev/null 2>&1 && echo yes || echo no"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.zbarAvailable = (text.trim() === "yes")
+                if (!root.zbarAvailable) {
+                    console.warn("[Screenshot] zbarimg not found - QR scanning will be unavailable")
+                }
+            }
+        }
+    }
+
+    // --- Capture a single pixel at (x, y) and extract its color ---
     function capturePixel(x, y) {
         if (root.magickBin === "none") {
             root.screenshotFailed("Color picker requires ImageMagick (magick or convert), which isn't installed")
@@ -521,7 +612,7 @@ PanelWindow {
     Process {
         id: copyTextProc
         onExited: (code, status) => {
-            if (code === 0) console.log("[ColorPicker] Color copied to clipboard")
+            if (code === 0) console.log("[Clipboard] Text copied to clipboard")
         }
     }
 
@@ -550,10 +641,6 @@ PanelWindow {
     Process {
         id: saveNotifyProc
         onExited: (code, status) => {
-            // Only the notification failed here (e.g. notify-send isn't
-            // installed) - the screenshot itself already saved
-            // successfully, so this is a soft warning, not a user-facing
-            // failure.
             if (code !== 0) console.warn("[Screenshot] notify-send failed or is not installed (exit " + code + "); the screenshot was still saved")
         }
     }
