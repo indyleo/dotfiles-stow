@@ -2,7 +2,7 @@
 
 A minimalistic, keyboard-driven browser startpage with a Gruvbox theme, a
 SearXNG search bar, quicklinks, live system/weather info, and a bit of
-matrix-rain flavor. Single `index.html`, no build step, no dependencies.
+matrix-rain flavor. Plain HTML/CSS/JS, no build step, no dependencies.
 
 ## Features
 
@@ -54,13 +54,14 @@ site's search (or just `!bang` with no query for the homepage). Current bangs:
 
 ## Customizing
 
-This is a single self-contained `index.html`, so everything is edited in
-place — there's no build step.
+Markup lives in `index.html`, styling in `style.css`, and behavior in
+`scripts.js` - there's no build step, just edit the relevant file directly.
 
-- **Quicklinks**: edit the `.category` blocks inside `.quicklinks-box`. Icons
-  are looked up at `favicons/<name>.ico` (or `.svg`); missing icons fail
-  silently (`onerror` hides the broken `<img>`), so you don't need a full
-  set to get started — a `favicons/` folder just isn't included in this repo.
+- **Quicklinks**: edit the `.category` blocks inside `.quicklinks-box` in
+  `index.html`. Icons are looked up at `favicons/<name>.ico` (or `.svg`);
+  missing icons fail silently (`onerror` hides the broken `<img>`), so you
+  don't need a full set to get started — a `favicons/` folder just isn't
+  included in this repo.
 - **Quotes / phrases**: edit `quotes.txt` and `randomphrases.txt`, one entry
   per line.
 - **Search backend**: this defaults to a personal SearXNG instance
@@ -69,19 +70,22 @@ place — there's no build step.
   1. the `<form action="...">` URL in the search bar,
   2. `form-action` in the `Content-Security-Policy` `<meta>` tag,
   3. any `connect-src` entries that reference it.
-- **Bangs**: add entries to the `BANG_MAP` object in the script — each needs
-  a `base` (homepage), `search` (search URL prefix), and `label`.
-- **Theme**: colors are all CSS custom properties under `:root` in the
-  `<style>` block (Gruvbox Dark Hard by default).
+- **Bangs**: add entries to the `BANG_MAP` object in `scripts.js` — each
+  needs a `base` (homepage), `search` (search URL prefix), and `label`.
+- **Theme**: colors are all CSS custom properties under `:root` in
+  `style.css` (Gruvbox Dark Hard by default).
 - **CSP**: if you add any new external requests (a different weather API,
   ping targets, etc.), remember to add the domain to `connect-src` in the
-  `Content-Security-Policy` meta tag or the request will be blocked.
+  `Content-Security-Policy` meta tag in `index.html`, or the request will be
+  blocked.
 
 ## Files
 
 | File                     | Purpose                                      |
 | ------------------------ | -------------------------------------------- |
-| `index.html`             | Everything — markup, styles, and script      |
+| `index.html`             | Markup, plus the CSP meta tag                |
+| `style.css`              | All styling, including the theme variables   |
+| `scripts.js`             | All behavior — clock, search, hints, widgets |
 | `quotes.txt`             | Pool of quotes shown under the greeting      |
 | `randomphrases.txt`      | Pool of short phrases used in the greeting   |
 | `starticon.png`          | Favicon                                      |
