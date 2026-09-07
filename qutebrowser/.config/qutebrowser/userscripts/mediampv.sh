@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 # This script sends the current URL to mpv
 # Requires: mpv and yt-dlp
 

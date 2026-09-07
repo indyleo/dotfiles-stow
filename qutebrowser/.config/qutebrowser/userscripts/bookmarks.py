@@ -166,17 +166,25 @@ def browse(folder, browser, breadcrumb=None):
         if choice == BACK:
             return
 
-        # Strip icon prefix (either icon, one space)
-        label = choice[len(ICON_FOLDER) :].strip() if choice.startswith(ICON_FOLDER) else choice[len(ICON_LINK) :].strip()
-
-        matched = None
-        for child in children:
-            if child["title"] == label:
-                matched = child
-                break
-
-        if matched is None:
+        # NOTE: this used to look up the selection by matching title TEXT
+        # against each child - if two sibling bookmarks (or folders) share
+        # the same title but different URLs (which real bookmark exports
+        # do have, e.g. two links both titled "GitHub"), only the first
+        # one was ever reachable, since the lookup can't tell them apart.
+        # Match by the selection's position in the menu instead - `entries`
+        # and `children` are built in lockstep (one entries[] item per
+        # children[] item, offset by 1 if BACK is present), so the index
+        # unambiguously identifies which child was picked regardless of
+        # duplicate titles.
+        try:
+            idx = entries.index(choice)
+        except ValueError:
             return
+        if breadcrumb:
+            idx -= 1  # account for the prepended BACK entry
+        if idx < 0 or idx >= len(children):
+            return
+        matched = children[idx]
 
         if matched["type"] == "folder":
             browse(matched, browser, breadcrumb + [matched["title"]])
