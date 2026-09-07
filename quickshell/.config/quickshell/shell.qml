@@ -65,6 +65,9 @@ ShellRoot {
 	property bool showTail: false
 	property string weatherIcon: "󰖐"
 	property string weatherText: "--"
+	property string kbdIcon: "󰌌"
+	property string kbdText: "N/A"
+	property bool showKbd: false
 
 	// All the stat pills above depend on an external "sysstats" script.
 	// Previously, if it wasn't installed, every pill just kept showing its
@@ -138,6 +141,8 @@ ShellRoot {
 					root.tailText = "N/A"
 					root.weatherText = "N/A"
 					root.kernelVersion = "N/A"
+					root.kbdText = "N/A"
+					root.showKbd = false
 				}
 			}
 		}
@@ -195,6 +200,19 @@ ShellRoot {
 		}
 	}
 
+	Process {
+		id: kbdProc
+		command: ["sysstats", "kbd"]
+		stdout: SplitParser {
+			onRead: data => {
+				if (!data) return;
+				root.parseSysstats(data, "kbdIcon", "kbdText");
+				// Hide if output says "N/A"
+				root.showKbd = !data.includes("N/A");
+			}
+		}
+	}
+
 	Timer {
 		interval: 2000; running: root.sysstatsAvailable; repeat: true; triggeredOnStart: true
 		onTriggered: {
@@ -204,6 +222,7 @@ ShellRoot {
 			wifiProc.running = false; wifiProc.running = true
 			ethProc.running = false; ethProc.running = true
 			tailProc.running = false; tailProc.running = true
+			kbdProc.running = false; kbdProc.running = true
 		}
 	}
 	Timer {
@@ -749,7 +768,44 @@ ShellRoot {
 							MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.MiddleButton; hoverEnabled: true; onEntered: brightRow.hovered = true; onExited: brightRow.hovered = false; onClicked: (m) => { if(m.button === Qt.MiddleButton) brightRow.pinned = !brightRow.pinned } }
 						}
 
-						Rectangle { width: 1; height: 12; color: root.cal3; visible: bright.available && battery.show }
+						// Separator between brightness and keyboard
+						Rectangle { width: 1; height: 12; color: root.cal3; visible: bright.available && root.showKbd }
+
+						// Keyboard backlight
+						Item {
+							visible: root.showKbd
+							Layout.preferredHeight: 20; Layout.preferredWidth: kbdRow.implicitWidth
+							Row {
+								id: kbdRow; spacing: 0; property bool pinned: false; property bool hovered: false; readonly property bool expanded: pinned || hovered
+								Text { text: root.kbdIcon; color: root.cal10; font.pixelSize: root.fontSize + 2; font.family: root.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+								Item { height: 20; width: parent.expanded ? kbdTxt.implicitWidth + 8 : 0; clip: true; anchors.verticalCenter: parent.verticalCenter; Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+								Text { id: kbdTxt; anchors.left: parent.left; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: root.kbdText; color: root.cal10; font.pixelSize: root.fontSize; font.family: root.fontFamily; opacity: parent.width > 5 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } } }
+							}
+							MouseArea {
+								anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+								acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+								hoverEnabled: true
+								onEntered: kbdRow.hovered = true; onExited: kbdRow.hovered = false
+								onWheel: (wheel) => {
+									if (wheel.angleDelta.y > 0) {
+										shellCmd.command = ["sysctl", "kbd", "--inc", "10"]; shellCmd.running = false; shellCmd.running = true
+									} else {
+										shellCmd.command = ["sysctl", "kbd", "--dec", "10"]; shellCmd.running = false; shellCmd.running = true
+									}
+								}
+								onClicked: (m) => {
+									if (m.button === Qt.MiddleButton) {
+										kbdRow.pinned = !kbdRow.pinned
+									} else if (m.button === Qt.LeftButton) {
+										shellCmd.command = ["sysctl", "kbd", "--toggle"]; shellCmd.running = false; shellCmd.running = true
+									}
+								}
+							}
+						}
+
+						// Separator between keyboard and battery
+						Rectangle { width: 1; height: 12; color: root.cal3; visible: root.showKbd && battery.show }
+
 						// Battery
 						Item {
 							visible: battery.show; Layout.preferredHeight: 20; Layout.preferredWidth: batRow.implicitWidth
