@@ -89,6 +89,7 @@ hl.bind("ALT + XF86AudioPlay", hl.dsp.exec_cmd("mediactl --source browser play-p
 
 -- --- Screenshots & Recording ---
 hl.bind("Print", hl.dsp.exec_cmd("qs ipc call screenshot region"))
+hl.bind("CTRL + Print", hl.dsp.exec_cmd("qs ipc call screenshot qr"))
 hl.bind(mainMod .. " + Print", hl.dsp.exec_cmd("qs ipc call screenshot monitor"))
 hl.bind(mainMod .. " + SHIFT + Print", hl.dsp.exec_cmd("qs ipc call screenshot full"))
 hl.bind(mainMod .. " + CTRL + Print", hl.dsp.exec_cmd("qs ipc call screenshot window"))
