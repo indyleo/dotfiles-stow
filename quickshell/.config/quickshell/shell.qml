@@ -86,6 +86,7 @@ ShellRoot {
 	MediaController { id: media }
 	AudioController { id: audio }
 	BrightnessController { id: bright }
+	KbdController { id: kbdController }                     // NEW
 	NotificationController { id: notifs }
 	BatteryController { id: battery }
 	SystemMonitor { id: sysMon; active: root.sysMonVisible; screenshotProvider: screenshot; screenRecorder: screenRecorder }
@@ -262,6 +263,18 @@ ShellRoot {
 		function micToggle(): void { const l = audio.micToggle(); if (l >= 0) root.osdShow("MIC", l, root.cal14) }
 		function briUp(): void     { const l = bright.up();       if (l >= 0) root.osdShow("BRI", l, root.cal10) }
 		function briDown(): void   { const l = bright.down();     if (l >= 0) root.osdShow("BRI", l, root.cal10) }
+		function briToggle(): void { const l = bright.toggle();   if (l >= 0) root.osdShow("BRI", l, root.cal10) }   // NEW
+		function kbdUp(): void     { kbdController.inc() }                                                     // NEW
+		function kbdDown(): void   { kbdController.dec() }                                                     // NEW
+		function kbdToggle(): void { kbdController.toggle() }                                                  // NEW
+	}
+
+	// NEW: Connect keyboard controller adjustments to the OSD
+	Connections {
+		target: kbdController
+		function onAdjusted(level) {
+			root.osdShow("KBD", level, root.cal10)
+		}
 	}
 
 	readonly property int mosdTimeoutMs: 3500
