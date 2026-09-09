@@ -44,9 +44,6 @@ hl.bind(mainMod .. " + SHIFT + equal", hl.dsp.layout("addmaster"))
 hl.bind(mainMod .. " + SHIFT + minus", hl.dsp.layout("removemaster"))
 
 -- --- System & Hardware ---
--- NOTE: these used to call `sysctl` directly; they now call into the
--- quickshell OSD (IpcHandler target "osd" in shell.qml), which runs the
--- actual wpctl/brightnessctl change command itself and pops the bar.
 hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("qs ipc call osd briUp"), { repeating = true })
 hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("qs ipc call osd briDown"), { repeating = true })
 hl.bind(mainMod .. " + SHIFT + L", hl.dsp.exec_cmd("hyprlock"))
