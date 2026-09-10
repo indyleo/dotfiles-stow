@@ -207,5 +207,5 @@ config.bind(">", "forward")
 config.bind("P?", "config-cycle tabs.width 16% 4%")
 config.bind("Pf", "fullscreen")
 
-config.bind("wi", "spawn --userscript pwa_install")
-config.bind("wl", "spawn --userscript pwa_launch")
+config.bind("wi", "spawn --userscript wa_install")
+config.bind("wl", "spawn --userscript wa_launch")
