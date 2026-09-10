@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+url="$QUTE_URL"
+host=$(python3 -c "from urllib.parse import urlparse; print(urlparse('$url').hostname)")
+base="$HOME/.local/share/qute-pwa/$host"
+
+if [ ! -d "$base" ]; then
+    echo "message-error 'pwa_launch: no app found for $host'" >> "$QUTE_FIFO"
+    exit 0
+fi
+
+nohup qutebrowser --basedir "$base" "$url" >/dev/null 2>&1 &
+disown
+
+echo "message-info 'pwa_launch: launching $host'" >> "$QUTE_FIFO"
+echo "tab-close" >> "$QUTE_FIFO"
