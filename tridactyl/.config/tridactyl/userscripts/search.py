@@ -35,7 +35,6 @@ import threading
 import urllib.error
 import urllib.parse
 import urllib.request
-
 from datetime import datetime
 
 # ── Display server detection ──────────────────────────────────────────────────
@@ -71,7 +70,7 @@ BANGS: dict[str, tuple[str, str]] = {
     "!gw": ("Gentoo Wiki", "https://wiki.gentoo.org/index.php?search={}"),
     "!nw": ("NixOS Wiki", "https://wiki.nixos.org/w/index.php?search={}"),
     # ── Reference ─────────────────────────────────────────────────────────────
-    "!wiki": ("Wikipedia", "https://en.wikipedia.org/wiki/{}"),
+    "!wiki": ("Wikipedia", "https://en.wikipedia.org/wiki/Special:Search?search={}"),
     "!wikt": ("Wiktionary", "https://en.wiktionary.org/wiki/{}"),
     "!wb": ("Wolfram Alpha", "https://www.wolframalpha.com/input?i={}"),
     # ── Media / entertainment ─────────────────────────────────────────────────
