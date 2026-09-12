@@ -241,6 +241,338 @@ local function refresh_projects(window, pane)
 end
 
 ------------------------------------------------------------
+-- Master / stack tiling
+--
+-- Layout:
+--   +-------------+----------------+
+--   |             |    stack 1     |
+--   |   master    +----------------+
+--   |             |    stack 2     |
+--   |             +----------------+
+--   |             |    stack 3     |
+--   +-------------+----------------+
+--
+-- IMPORTANT:
+-- WezTerm's split sizes are relative to the pane being split, not
+-- the whole column. To keep the stack equal, the stack panes are
+-- built as a nested chain, and the new pane is always split off of
+-- the CURRENT bottom-most stack pane (resolved from live geometry,
+-- not insertion order), then equalize_stack() rebalances every
+-- boundary in the column to the true 1/N split afterward:
+--
+--   2 panes: 50 / 50
+--   3 panes: 33 / 33 / 33
+--   4 panes: 25 / 25 / 25 / 25
+------------------------------------------------------------
+local tile_state = {}
+
+local function get_tile_state(tab)
+	local id = tab:tab_id()
+	local state = tile_state[id]
+
+	if not state then
+		state = {
+			master = nil,
+			stack = {},
+		}
+		tile_state[id] = state
+	end
+
+	local live = {}
+	for _, p in ipairs(tab:panes()) do
+		live[p:pane_id()] = true
+	end
+
+	if state.master and not live[state.master] then
+		state.master = nil
+	end
+
+	local stack = {}
+	for _, pane_id in ipairs(state.stack) do
+		if live[pane_id] and pane_id ~= state.master then
+			stack[#stack + 1] = pane_id
+		end
+	end
+	state.stack = stack
+
+	return state
+end
+
+local function find_pane(tab, pane_id)
+	if not pane_id then
+		return nil
+	end
+
+	for _, p in ipairs(tab:panes()) do
+		if p:pane_id() == pane_id then
+			return p
+		end
+	end
+
+	return nil
+end
+
+local function register_existing_layout(tab)
+	local state = get_tile_state(tab)
+
+	if state.master then
+		return state
+	end
+
+	local panes = tab:panes_with_info()
+	if #panes == 0 then
+		return state
+	end
+
+	-- Existing layouts are assumed to have the left-most pane as
+	-- master. Everything else is treated as the stack.
+	table.sort(panes, function(a, b)
+		if a.left == b.left then
+			return a.top < b.top
+		end
+		return a.left < b.left
+	end)
+
+	state.master = panes[1].pane:pane_id()
+
+	for i = 2, #panes do
+		state.stack[#state.stack + 1] = panes[i].pane:pane_id()
+	end
+
+	return state
+end
+
+-- Resolves the bottom-most stack pane from actual geometry rather than
+-- insertion order or a cached "anchor" id. This is what the new pane
+-- always gets split off of, so the stack grows as a flat run of
+-- siblings-by-position instead of nesting deeper inside one shrinking
+-- pane every time.
+local function bottom_stack_pane(tab, state)
+	local infos = tab:panes_with_info()
+	local by_id = {}
+	for _, info in ipairs(infos) do
+		by_id[info.pane:pane_id()] = info
+	end
+
+	local stack_infos = {}
+	for _, pane_id in ipairs(state.stack) do
+		local info = by_id[pane_id]
+		if info then
+			stack_infos[#stack_infos + 1] = info
+		end
+	end
+
+	if #stack_infos == 0 then
+		return nil
+	end
+
+	table.sort(stack_infos, function(a, b)
+		return a.top < b.top
+	end)
+
+	return stack_infos[#stack_infos].pane
+end
+
+local function equalize_stack(window, tab, state)
+	if #state.stack < 2 then
+		return
+	end
+
+	-- IMPORTANT: AdjustPaneSize always resizes whichever pane is
+	-- currently ACTIVE in the GUI -- the `pane` argument passed to
+	-- window:perform_action() is documented upstream to have no
+	-- effect on which pane actually gets resized (see wezterm issue
+	-- #4038: "adjustPaneSize only acts on the active pane even in
+	-- the scope of perform_action"). So every target pane must be
+	-- explicitly activated immediately before its AdjustPaneSize
+	-- call, or the resize silently lands on whatever pane happened
+	-- to be focused instead. We restore the original focus once
+	-- equalization is done.
+	local original_active = tab:active_pane()
+
+	-- Normalize the stack using the actual pane geometry.  WezTerm's
+	-- AdjustPaneSize changes the boundary adjacent to the active pane,
+	-- so we adjust each boundary independently from top to bottom.
+	-- A tiny yield after each change lets the mux update its geometry
+	-- before we measure the next boundary.
+	for pass = 1, 4 do
+		local infos = tab:panes_with_info()
+		local by_id = {}
+
+		for _, info in ipairs(infos) do
+			by_id[info.pane:pane_id()] = info
+		end
+
+		local stack_infos = {}
+		for _, pane_id in ipairs(state.stack) do
+			local info = by_id[pane_id]
+			if info then
+				stack_infos[#stack_infos + 1] = info
+			end
+		end
+
+		table.sort(stack_infos, function(a, b)
+			return a.top < b.top
+		end)
+
+		if #stack_infos < 2 then
+			break
+		end
+
+		local first = stack_infos[1]
+		local last = stack_infos[#stack_infos]
+		local top = first.top
+		local bottom = last.top + last.height
+		local total = bottom - top
+		local count = #stack_infos
+		local changed = false
+
+		for i = 1, count - 1 do
+			-- The boundary below stack pane i should be exactly this far
+			-- down from the top of the stack column.
+			local desired = top + math.floor(total * i / count + 0.5)
+			local info = stack_infos[i]
+			local current = info.top + info.height
+			local delta = desired - current
+
+			if math.abs(delta) >= 1 then
+				info.pane:activate()
+				window:perform_action(
+					wezterm.action.AdjustPaneSize({
+						delta > 0 and "Down" or "Up",
+						math.abs(delta),
+					}),
+					info.pane
+				)
+
+				changed = true
+				wezterm.sleep_ms(5)
+			end
+		end
+
+		if not changed then
+			break
+		end
+	end
+
+	if original_active then
+		original_active:activate()
+	end
+end
+
+local function spawn_tile(window, pane)
+	local tab = pane:tab()
+	if not tab then
+		return
+	end
+
+	local state = register_existing_layout(tab)
+
+	if not state.master then
+		state.master = pane:pane_id()
+		return
+	end
+
+	-- First stack pane: create the master column and stack column.
+	if #state.stack == 0 then
+		local new_pane = pane:split({
+			direction = "Right",
+			size = 0.5,
+			top_level = true,
+		})
+
+		state.stack[#state.stack + 1] = new_pane:pane_id()
+		new_pane:activate()
+		return
+	end
+
+	-- Always split the CURRENT bottom-most stack pane (resolved from
+	-- actual geometry), then immediately rebalance ALL stack panes.
+	-- The split's initial size is just a reasonable starting point --
+	-- it doesn't need to be exact, since equalize_stack() below
+	-- corrects every boundary to the true 1/N split afterward.
+	local new_count = #state.stack + 1
+	local anchor = bottom_stack_pane(tab, state)
+	if not anchor then
+		return
+	end
+
+	local new_pane = anchor:split({
+		direction = "Bottom",
+		size = 1 / new_count,
+	})
+
+	state.stack[#state.stack + 1] = new_pane:pane_id()
+
+	-- Give the mux a moment to commit the new split before measuring it.
+	wezterm.sleep_ms(10)
+	equalize_stack(window, tab, state)
+	new_pane:activate()
+end
+
+-- Swap the focused stack pane with the master.
+-- WezTerm provides PaneSelect for this exact operation, so the
+-- focused pane can be swapped with whichever pane is selected.
+local function swap_master_stack(window, pane)
+	local tab = pane:tab()
+	if not tab then
+		return
+	end
+
+	local state = register_existing_layout(tab)
+	if not state.master or #state.stack == 0 then
+		return
+	end
+
+	window:perform_action(
+		wezterm.action.PaneSelect({
+			mode = "SwapWithActiveKeepFocus",
+			show_pane_ids = true,
+		}),
+		pane
+	)
+
+	-- PaneSelect performs the swap itself, asynchronously, once the user
+	-- picks a target -- it has no completion callback we can hook. The
+	-- swap exchanges the two panes' on-screen positions but not their
+	-- pane IDs, so our cached state.master/state.stack (which track
+	-- roles by ID) would go stale immediately: state.master would still
+	-- point at a pane that's no longer positioned as master.
+	--
+	-- Rather than guess at the outcome, drop the cached layout for this
+	-- tab entirely. The next tiling operation (spawn_tile, another swap,
+	-- focus_master_stack) will call register_existing_layout, see no
+	-- cached master, and re-derive master/stack from actual pane
+	-- geometry -- which by then reflects the completed swap.
+	tile_state[tab:tab_id()] = nil
+end
+
+-- Master -> first stack pane.
+-- Any stack pane -> master.
+local function focus_master_stack(window, pane)
+	local tab = pane:tab()
+	if not tab then
+		return
+	end
+
+	local state = register_existing_layout(tab)
+	local master = find_pane(tab, state.master)
+
+	if not master then
+		return
+	end
+
+	if pane:pane_id() == master:pane_id() then
+		local first_stack = find_pane(tab, state.stack[1])
+		if first_stack then
+			first_stack:activate()
+		end
+	else
+		master:activate()
+	end
+end
+
+------------------------------------------------------------
 -- Leader and keybindings
 ------------------------------------------------------------
 config.leader = { key = "Space", mods = "CTRL" }
@@ -255,15 +587,19 @@ config.keys = {
 	{ key = "l", mods = "LEADER", action = wezterm.action.ActivatePaneDirection("Right") },
 
 	----------------------------------------------------------
-	-- Splits
+	-- Master / stack tiling
 	----------------------------------------------------------
-	{ key = "-", mods = "LEADER", action = wezterm.action.SplitVertical({ domain = "CurrentPaneDomain" }) },
-	{ key = "\\", mods = "LEADER", action = wezterm.action.SplitHorizontal({ domain = "CurrentPaneDomain" }) },
+	-- Spawn the next tile in the master/stack layout.
+	{ key = "Enter", mods = "LEADER", action = wezterm.action_callback(spawn_tile) },
+	-- Focused stack tile becomes master; old master becomes stack.
+	{ key = "m", mods = "LEADER", action = wezterm.action_callback(swap_master_stack) },
+	-- Master <-> first stack tile.
+	{ key = "Tab", mods = "LEADER", action = wezterm.action_callback(focus_master_stack) },
 
 	----------------------------------------------------------
 	-- Pane close
 	----------------------------------------------------------
-	{ key = "x", mods = "LEADER", action = wezterm.action.CloseCurrentPane({ confirm = true }) },
+	{ key = "q", mods = "LEADER", action = wezterm.action.CloseCurrentPane({ confirm = true }) },
 
 	----------------------------------------------------------
 	-- Tabs
