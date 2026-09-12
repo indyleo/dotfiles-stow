@@ -2,6 +2,16 @@ local wezterm = require("wezterm")
 local config = wezterm.config_builder()
 
 ------------------------------------------------------------
+-- Helpers
+------------------------------------------------------------
+-- Defer a callback by one event-loop tick. Used by the auto-rebalance
+-- handler so the mux has time to commit a pane removal before we read
+-- tab:panes().
+local function schedule(fn)
+	wezterm.time.call_after(0.05, fn)
+end
+
+------------------------------------------------------------
 -- Color Schemes
 ------------------------------------------------------------
 local gruvbox = {
@@ -460,6 +470,79 @@ local function equalize_stack(window, tab, state)
 	end
 end
 
+------------------------------------------------------------
+-- Auto-rebalance stack when a pane closes (polling approach)
+------------------------------------------------------------
+-- WezTerm has no pane-close event, and pane-focus-changed fires
+-- *before* the mux removes the dead pane from tab:panes(), so it
+-- cannot reliably detect a close. Instead we poll the pane count
+-- on every status update. This is cheap because we early-out as
+-- soon as the count matches what we expect.
+local _last_pane_count = {}
+
+wezterm.on("update-status", function(window, pane)
+	local tab = pane:tab()
+	if not tab then
+		return
+	end
+
+	local tab_id = tab:tab_id()
+	local state = tile_state[tab_id]
+	if not state then
+		return
+	end
+
+	local expected = (state.master and 1 or 0) + #state.stack
+	local actual = #tab:panes()
+
+	-- Fast path: count matches, nothing has closed.
+	if actual >= expected then
+		_last_pane_count[tab_id] = actual
+		return
+	end
+
+	-- Count dropped. Guard against firing multiple times for the
+	-- same close by checking we haven't already processed this count.
+	if _last_pane_count[tab_id] == actual then
+		return
+	end
+	_last_pane_count[tab_id] = actual
+
+	-- Rebuild the live set and rebalance.
+	local live = {}
+	for _, p in ipairs(tab:panes()) do
+		live[p:pane_id()] = true
+	end
+
+	local master_alive = state.master and live[state.master]
+
+	local new_stack = {}
+	local stack_changed = false
+	for _, pid in ipairs(state.stack) do
+		if live[pid] then
+			new_stack[#new_stack + 1] = pid
+		else
+			stack_changed = true
+		end
+	end
+
+	if not master_alive then
+		-- Master died; drop cache and let next tiling action re-derive.
+		tile_state[tab_id] = nil
+		return
+	end
+
+	if not stack_changed then
+		return
+	end
+
+	state.stack = new_stack
+
+	if #state.stack >= 2 then
+		equalize_stack(window, tab, state)
+	end
+end)
+
 local function spawn_tile(window, pane)
 	local tab = pane:tab()
 	if not tab then
@@ -599,7 +682,7 @@ config.keys = {
 	----------------------------------------------------------
 	-- Pane close
 	----------------------------------------------------------
-	{ key = "q", mods = "LEADER", action = wezterm.action.CloseCurrentPane({ confirm = true }) },
+	{ key = "q", mods = "LEADER", action = wezterm.action.CloseCurrentPane({ confirm = false }) },
 
 	----------------------------------------------------------
 	-- Tabs
