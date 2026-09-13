@@ -159,7 +159,7 @@ load("nvim-notify", function()
     render = "compact",
     stages = "fade_in_slide_out",
     timeout = 3000,
-    icons = { ERROR = " ", WARN = " ", INFO = " ", DEBUG = " ", TRACE = " " },
+    icons = { ERROR = "󰅚", WARN = "󰀪", INFO = "", DEBUG = "", TRACE = "" },
   }
   vim.notify = require "notify"
 end)
