@@ -16,4 +16,8 @@ hl.config({
 
 		layout = "master",
 	},
+	misc = {
+		enable_swallow = true,
+		swallow_regex = "^(footclient|alacritty|kitty|wezterm|foot)$",
+	},
 })
