@@ -92,7 +92,7 @@ local function open_lf_in_float(opts)
     if normalized_current ~= normalized_new then
       vim.cmd("cd " .. fn.fnameescape(normalized_new))
       api.nvim_echo({
-        { "📁 cwd: " .. normalized_new, "Directory" },
+        { " cwd: " .. normalized_new, "Directory" },
       }, false, {})
     end
   end
