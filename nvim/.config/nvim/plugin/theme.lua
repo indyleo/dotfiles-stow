@@ -201,9 +201,10 @@ local function apply_gruvbox()
   hl(0, "WhichKeyGroup", { fg = c.orange })
   hl(0, "WhichKeyDesc", { fg = c.fg })
   hl(0, "WhichKeySeparator", { fg = c.blood })
-  hl(0, "WhichKeyFloat", { bg = "NONE" })
+  hl(0, "WhichKeyNormal", { bg = "NONE" })
   hl(0, "WhichKeyBorder", { fg = c.blue, bg = "NONE" })
   hl(0, "WhichKeyValue", { fg = c.fg_dim })
+  hl(0, "WhichKeyBorder", { fg = c.blue, bg = "NONE" })
 
   -- ==========================================================================
   -- Telescope
