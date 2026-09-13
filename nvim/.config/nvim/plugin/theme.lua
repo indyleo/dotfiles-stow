@@ -1,418 +1,534 @@
--- ============================================================================
--- GRUVBOX THEME (Transparent Background)
--- ============================================================================
+-- ~/.config/nvim/plugins/gruvbox.lua
 
-local c = {
-  bg = "#282828", -- bg0
-  bg_alt = "#3c3836", -- bg1
-  bg_high = "#504945", -- bg2
-  fg = "#ebdbb2", -- fg1
-  fg_dim = "#bdae93", -- fg2
+local Gruvbox = {}
 
-  -- Accents (Gruvbox)
-  red = "#fb4934",
-  green = "#b8bb26",
-  yellow = "#fabd2f",
-  blue = "#83a598",
-  purple = "#d3869b",
-  orange = "#fe8019",
-  aqua = "#8ec07c",
-  gray = "#928374",
-  blood = "#7c6f64", -- muted gray (used for comments/visual)
+local default_config = {
+  terminal_colors = true,
+  undercurl = true,
+  underline = true,
+  bold = true,
+  italic = {
+    strings = true,
+    emphasis = true,
+    comments = true,
+    operators = false,
+    folds = true,
+  },
+  strikethrough = true,
+  invert_selection = false,
+  invert_signs = false,
+  invert_tabline = false,
+  inverse = true,
+  contrast = "",
+  palette_overrides = {},
+  overrides = {},
+  dim_inactive = false,
+  transparent_mode = true,
 }
 
-local function apply_gruvbox()
-  local hl = vim.api.nvim_set_hl
+Gruvbox.config = vim.deepcopy(default_config)
 
-  -- ==========================================================================
-  -- Neovide / transparency
-  -- ==========================================================================
+Gruvbox.palette = {
+  dark0_hard = "#1d2021",
+  dark0 = "#282828",
+  dark0_soft = "#32302f",
+  dark1 = "#3c3836",
+  dark2 = "#504945",
+  dark3 = "#665c54",
+  dark4 = "#7c6f64",
+  light0_hard = "#f9f5d7",
+  light0 = "#fbf1c7",
+  light0_soft = "#f2e5bc",
+  light1 = "#ebdbb2",
+  light2 = "#d5c4a1",
+  light3 = "#bdae93",
+  light4 = "#a89984",
+  bright_red = "#fb4934",
+  bright_green = "#b8bb26",
+  bright_yellow = "#fabd2f",
+  bright_blue = "#83a598",
+  bright_purple = "#d3869b",
+  bright_aqua = "#8ec07c",
+  bright_orange = "#fe8019",
+  neutral_red = "#cc241d",
+  neutral_green = "#98971a",
+  neutral_yellow = "#d79921",
+  neutral_blue = "#458588",
+  neutral_purple = "#b16286",
+  neutral_aqua = "#689d6a",
+  neutral_orange = "#d65d0e",
+  faded_red = "#9d0006",
+  faded_green = "#79740e",
+  faded_yellow = "#b57614",
+  faded_blue = "#076678",
+  faded_purple = "#8f3f71",
+  faded_aqua = "#427b58",
+  faded_orange = "#af3a03",
+  dark_red = "#722529",
+  light_red = "#fc9487",
+  dark_green = "#62693e",
+  light_green = "#d5d39b",
+  dark_aqua = "#49503b",
+  light_aqua = "#e8e5b5",
+  gray = "#928374",
+}
+
+local function get_colors()
+  local p = Gruvbox.palette
+  local config = Gruvbox.config
+
+  for color, hex in pairs(config.palette_overrides) do
+    p[color] = hex
+  end
+
+  -- fixed dark background; this file doesn't support a light variant
+  return {
+    bg0 = p.dark0,
+    bg1 = p.dark1,
+    bg2 = p.dark2,
+    bg3 = p.dark3,
+    bg4 = p.dark4,
+    fg0 = p.light0,
+    fg1 = p.light1,
+    fg2 = p.light2,
+    fg3 = p.light3,
+    fg4 = p.light4,
+    red = p.bright_red,
+    green = p.bright_green,
+    yellow = p.bright_yellow,
+    blue = p.bright_blue,
+    purple = p.bright_purple,
+    aqua = p.bright_aqua,
+    orange = p.bright_orange,
+    neutral_red = p.neutral_red,
+    neutral_green = p.neutral_green,
+    neutral_yellow = p.neutral_yellow,
+    neutral_blue = p.neutral_blue,
+    neutral_purple = p.neutral_purple,
+    neutral_aqua = p.neutral_aqua,
+    dark_red = p.dark_red,
+    dark_green = p.dark_green,
+    dark_aqua = p.dark_aqua,
+    gray = p.gray,
+  }
+end
+
+local function get_groups()
+  local colors = get_colors()
+  local config = Gruvbox.config
+  local t = config.transparent_mode
+
+  if config.terminal_colors then
+    local term_colors = {
+      colors.bg0,
+      colors.neutral_red,
+      colors.neutral_green,
+      colors.neutral_yellow,
+      colors.neutral_blue,
+      colors.neutral_purple,
+      colors.neutral_aqua,
+      colors.fg4,
+      colors.gray,
+      colors.red,
+      colors.green,
+      colors.yellow,
+      colors.blue,
+      colors.purple,
+      colors.aqua,
+      colors.fg1,
+    }
+    for index, value in ipairs(term_colors) do
+      vim.g["terminal_color_" .. index - 1] = value
+    end
+  end
+
+  local groups = {
+    GruvboxFg0 = { fg = colors.fg0 },
+    GruvboxFg1 = { fg = colors.fg1 },
+    GruvboxFg2 = { fg = colors.fg2 },
+    GruvboxFg3 = { fg = colors.fg3 },
+    GruvboxFg4 = { fg = colors.fg4 },
+    GruvboxGray = { fg = colors.gray },
+    GruvboxBg0 = { fg = colors.bg0 },
+    GruvboxBg1 = { fg = colors.bg1 },
+    GruvboxBg2 = { fg = colors.bg2 },
+    GruvboxBg3 = { fg = colors.bg3 },
+    GruvboxBg4 = { fg = colors.bg4 },
+    GruvboxRed = { fg = colors.red },
+    GruvboxRedBold = { fg = colors.red, bold = config.bold },
+    GruvboxGreen = { fg = colors.green },
+    GruvboxGreenBold = { fg = colors.green, bold = config.bold },
+    GruvboxYellow = { fg = colors.yellow },
+    GruvboxYellowBold = { fg = colors.yellow, bold = config.bold },
+    GruvboxBlue = { fg = colors.blue },
+    GruvboxBlueBold = { fg = colors.blue, bold = config.bold },
+    GruvboxPurple = { fg = colors.purple },
+    GruvboxPurpleBold = { fg = colors.purple, bold = config.bold },
+    GruvboxAqua = { fg = colors.aqua },
+    GruvboxAquaBold = { fg = colors.aqua, bold = config.bold },
+    GruvboxOrange = { fg = colors.orange },
+    GruvboxOrangeBold = { fg = colors.orange, bold = config.bold },
+    GruvboxRedSign = t and { fg = colors.red, reverse = config.invert_signs } or { fg = colors.red, bg = colors.bg1, reverse = config.invert_signs },
+    GruvboxGreenSign = t and { fg = colors.green, reverse = config.invert_signs } or { fg = colors.green, bg = colors.bg1, reverse = config.invert_signs },
+    GruvboxYellowSign = t and { fg = colors.yellow, reverse = config.invert_signs } or { fg = colors.yellow, bg = colors.bg1, reverse = config.invert_signs },
+    GruvboxBlueSign = t and { fg = colors.blue, reverse = config.invert_signs } or { fg = colors.blue, bg = colors.bg1, reverse = config.invert_signs },
+    GruvboxPurpleSign = t and { fg = colors.purple, reverse = config.invert_signs } or { fg = colors.purple, bg = colors.bg1, reverse = config.invert_signs },
+    GruvboxAquaSign = t and { fg = colors.aqua, reverse = config.invert_signs } or { fg = colors.aqua, bg = colors.bg1, reverse = config.invert_signs },
+    GruvboxOrangeSign = t and { fg = colors.orange, reverse = config.invert_signs } or { fg = colors.orange, bg = colors.bg1, reverse = config.invert_signs },
+    GruvboxRedUnderline = { undercurl = config.undercurl, sp = colors.red },
+    GruvboxGreenUnderline = { undercurl = config.undercurl, sp = colors.green },
+    GruvboxYellowUnderline = { undercurl = config.undercurl, sp = colors.yellow },
+    GruvboxBlueUnderline = { undercurl = config.undercurl, sp = colors.blue },
+    GruvboxPurpleUnderline = { undercurl = config.undercurl, sp = colors.purple },
+    GruvboxAquaUnderline = { undercurl = config.undercurl, sp = colors.aqua },
+    GruvboxOrangeUnderline = { undercurl = config.undercurl, sp = colors.orange },
+    Normal = t and { fg = colors.fg1, bg = nil } or { fg = colors.fg1, bg = colors.bg0 },
+    NormalFloat = t and { fg = colors.fg1, bg = nil } or { fg = colors.fg1, bg = colors.bg1 },
+    NormalNC = t and { fg = colors.fg0, bg = nil } or (config.dim_inactive and { fg = colors.fg0, bg = colors.bg1 } or { link = "Normal" }),
+    MsgArea = t and { bg = nil } or {},
+    CursorLine = { bg = colors.bg1 },
+    CursorColumn = { link = "CursorLine" },
+    TabLineFill = { fg = colors.bg4, bg = colors.bg1, reverse = config.invert_tabline },
+    TabLineSel = { fg = colors.green, bg = colors.bg1, reverse = config.invert_tabline },
+    TabLine = { link = "TabLineFill" },
+    MatchParen = { bg = colors.bg3, bold = config.bold },
+    ColorColumn = { bg = colors.bg1 },
+    Conceal = { fg = colors.blue },
+    CursorLineNr = { fg = colors.yellow, bg = colors.bg1 },
+    NonText = { link = "GruvboxBg2" },
+    SpecialKey = { link = "GruvboxFg4" },
+    Visual = { bg = colors.bg3, reverse = config.invert_selection },
+    VisualNOS = { link = "Visual" },
+    Search = { fg = colors.yellow, bg = colors.bg0, reverse = config.inverse },
+    IncSearch = { fg = colors.orange, bg = colors.bg0, reverse = config.inverse },
+    CurSearch = { link = "IncSearch" },
+    QuickFixLine = { link = "GruvboxPurple" },
+    Underlined = { fg = colors.blue, underline = config.underline },
+    StatusLine = { fg = colors.fg1, bg = colors.bg2 },
+    StatusLineNC = { fg = colors.fg4, bg = colors.bg1 },
+    WinBar = { fg = colors.fg4, bg = colors.bg0 },
+    WinBarNC = { fg = colors.fg3, bg = colors.bg1 },
+    WinSeparator = t and { fg = colors.bg3, bg = nil } or { fg = colors.bg3, bg = colors.bg0 },
+    WildMenu = { fg = colors.blue, bg = colors.bg2, bold = config.bold },
+    Directory = { link = "GruvboxGreenBold" },
+    Title = { link = "GruvboxGreenBold" },
+    ErrorMsg = { fg = colors.bg0, bg = colors.red, bold = config.bold },
+    MoreMsg = { link = "GruvboxYellowBold" },
+    ModeMsg = { link = "GruvboxYellowBold" },
+    Question = { link = "GruvboxOrangeBold" },
+    WarningMsg = { link = "GruvboxRedBold" },
+    LineNr = { fg = colors.bg4 },
+    SignColumn = t and { bg = nil } or { bg = colors.bg1 },
+    Folded = { fg = colors.gray, bg = colors.bg1, italic = config.italic.folds },
+    FoldColumn = t and { fg = colors.gray, bg = nil } or { fg = colors.gray, bg = colors.bg1 },
+    Cursor = { reverse = config.inverse },
+    vCursor = { link = "Cursor" },
+    iCursor = { link = "Cursor" },
+    lCursor = { link = "Cursor" },
+    Special = { link = "GruvboxOrange" },
+    Comment = { fg = colors.gray, italic = config.italic.comments },
+    Todo = { fg = colors.bg0, bg = colors.yellow, bold = config.bold, italic = config.italic.comments },
+    Done = { fg = colors.orange, bold = config.bold, italic = config.italic.comments },
+    Error = { fg = colors.red, bold = config.bold, reverse = config.inverse },
+    Statement = { link = "GruvboxRed" },
+    Conditional = { link = "GruvboxRed" },
+    Repeat = { link = "GruvboxRed" },
+    Label = { link = "GruvboxRed" },
+    Exception = { link = "GruvboxRed" },
+    Operator = { fg = colors.orange, italic = config.italic.operators },
+    Keyword = { fg = colors.red, bold = config.bold },
+    Identifier = { link = "GruvboxBlue" },
+    Function = { link = "GruvboxGreenBold" },
+    PreProc = { link = "GruvboxAqua" },
+    Include = { link = "GruvboxAqua" },
+    Define = { link = "GruvboxAqua" },
+    Macro = { link = "GruvboxAqua" },
+    PreCondit = { link = "GruvboxAqua" },
+    Constant = { link = "GruvboxPurple" },
+    Character = { link = "GruvboxPurple" },
+    String = { fg = colors.green, italic = config.italic.strings },
+    Boolean = { link = "GruvboxPurple" },
+    Number = { link = "GruvboxPurple" },
+    Float = { link = "GruvboxPurple" },
+    Type = { link = "GruvboxYellow" },
+    StorageClass = { link = "GruvboxOrange" },
+    Structure = { link = "GruvboxAqua" },
+    Typedef = { link = "GruvboxYellow" },
+    Pmenu = { fg = colors.fg1, bg = colors.bg2 },
+    PmenuSel = { fg = colors.bg2, bg = colors.blue, bold = config.bold },
+    PmenuSbar = { bg = colors.bg2 },
+    PmenuThumb = { bg = colors.bg4 },
+    DiffDelete = { bg = colors.dark_red },
+    DiffAdd = { bg = colors.dark_green },
+    DiffChange = { bg = colors.dark_aqua },
+    DiffText = { bg = colors.yellow, fg = colors.bg0 },
+    SpellCap = { link = "GruvboxBlueUnderline" },
+    SpellBad = { link = "GruvboxRedUnderline" },
+    SpellLocal = { link = "GruvboxAquaUnderline" },
+    SpellRare = { link = "GruvboxPurpleUnderline" },
+    Whitespace = { fg = colors.bg2 },
+    Delimiter = { link = "GruvboxOrange" },
+    EndOfBuffer = t and { fg = colors.bg0, bg = nil } or { link = "NonText" },
+    DiagnosticError = { link = "GruvboxRed" },
+    DiagnosticWarn = { link = "GruvboxYellow" },
+    DiagnosticInfo = { link = "GruvboxBlue" },
+    DiagnosticDeprecated = { strikethrough = config.strikethrough },
+    DiagnosticHint = { link = "GruvboxAqua" },
+    DiagnosticOk = { link = "GruvboxGreen" },
+    DiagnosticSignError = { link = "GruvboxRedSign" },
+    DiagnosticSignWarn = { link = "GruvboxYellowSign" },
+    DiagnosticSignInfo = { link = "GruvboxBlueSign" },
+    DiagnosticSignHint = { link = "GruvboxAquaSign" },
+    DiagnosticSignOk = { link = "GruvboxGreenSign" },
+    DiagnosticUnderlineError = { link = "GruvboxRedUnderline" },
+    DiagnosticUnderlineWarn = { link = "GruvboxYellowUnderline" },
+    DiagnosticUnderlineInfo = { link = "GruvboxBlueUnderline" },
+    DiagnosticUnderlineHint = { link = "GruvboxAquaUnderline" },
+    DiagnosticUnderlineOk = { link = "GruvboxGreenUnderline" },
+    DiagnosticFloatingError = { link = "GruvboxRed" },
+    DiagnosticFloatingWarn = { link = "GruvboxOrange" },
+    DiagnosticFloatingInfo = { link = "GruvboxBlue" },
+    DiagnosticFloatingHint = { link = "GruvboxAqua" },
+    DiagnosticFloatingOk = { link = "GruvboxGreen" },
+    DiagnosticVirtualTextError = { fg = colors.red, bg = nil },
+    DiagnosticVirtualTextWarn = { fg = colors.yellow, bg = nil },
+    DiagnosticVirtualTextInfo = { fg = colors.blue, bg = nil },
+    DiagnosticVirtualTextHint = { fg = colors.aqua, bg = nil },
+    DiagnosticVirtualTextOk = { fg = colors.green, bg = nil },
+    LspReferenceRead = { bg = colors.bg2 },
+    LspReferenceTarget = { link = "Visual" },
+    LspReferenceText = { bg = colors.bg2 },
+    LspReferenceWrite = { bg = colors.bg2, underline = config.underline },
+    LspCodeLens = { link = "GruvboxGray" },
+    LspSignatureActiveParameter = { link = "Search" },
+    LspInlayHint = { link = "Comment" },
+    gitcommitSelectedFile = { link = "GruvboxGreen" },
+    gitcommitDiscardedFile = { link = "GruvboxRed" },
+    GitSignsAdd = { link = "GruvboxGreen" },
+    GitSignsChange = { link = "GruvboxOrange" },
+    GitSignsDelete = { link = "GruvboxRed" },
+    GitSignsChangedelete = { link = "GruvboxOrange" },
+    GitSignsTopdelete = { link = "GruvboxRed" },
+    GitSignsCurrentLineBlame = { fg = colors.gray, italic = true },
+    GitSignsAddPreview = { fg = colors.green, bg = colors.bg1 },
+    GitSignsDeletePreview = { fg = colors.red, bg = colors.bg1 },
+    NvimTreeNormal = t and { fg = colors.fg1, bg = nil } or { fg = colors.fg1, bg = colors.bg0 },
+    NvimTreeWinSeparator = t and { fg = colors.bg3, bg = nil } or { fg = colors.bg3, bg = colors.bg0 },
+    NvimTreeSymlink = { fg = colors.neutral_aqua },
+    NvimTreeRootFolder = { fg = colors.neutral_purple, bold = true },
+    NvimTreeFolderIcon = { fg = colors.neutral_blue, bold = true },
+    NvimTreeFolderName = { fg = colors.blue },
+    NvimTreeOpenedFolderName = { fg = colors.blue, bold = true },
+    NvimTreeFileIcon = { fg = colors.light2 },
+    NvimTreeExecFile = { fg = colors.neutral_green, bold = true },
+    NvimTreeOpenedFile = { fg = colors.bright_red, bold = true },
+    NvimTreeSpecialFile = { fg = colors.neutral_yellow, bold = true, underline = true },
+    NvimTreeImageFile = { fg = colors.neutral_purple },
+    NvimTreeIndentMarker = { fg = colors.dark3 },
+    NvimTreeGitDirty = { fg = colors.neutral_yellow },
+    NvimTreeGitStaged = { fg = colors.neutral_yellow },
+    NvimTreeGitMerge = { fg = colors.neutral_purple },
+    NvimTreeGitRenamed = { fg = colors.neutral_purple },
+    NvimTreeGitNew = { fg = colors.neutral_yellow },
+    NvimTreeGitDeleted = { fg = colors.neutral_red },
+    NvimTreeWindowPicker = { bg = colors.aqua },
+    NeoTreeNormal = t and { fg = colors.fg1, bg = nil } or { fg = colors.fg1, bg = colors.bg0 },
+    NeoTreeWinSeparator = t and { fg = colors.bg3, bg = nil } or { fg = colors.bg3, bg = colors.bg0 },
+    NeoTreeDirectoryIcon = { fg = colors.neutral_aqua },
+    NeoTreeDirectoryName = { link = "GruvboxGreenBold" },
+    NeoTreeRootName = { fg = colors.orange, bold = true },
+    NeoTreeIndentMarker = { fg = colors.bg2 },
+    NeoTreeGitAdded = { link = "GruvboxGreen" },
+    NeoTreeGitModified = { link = "GruvboxYellow" },
+    NeoTreeGitDeleted = { link = "GruvboxRed" },
+    NeoTreeFloatBorder = { link = "GruvboxGray" },
+    NeoTreeTitleBar = { fg = colors.fg1, bg = colors.bg2 },
+    -- which-key.nvim (not in the original table)
+    WhichKey = { fg = colors.blue, bold = config.bold },
+    WhichKeyGroup = { link = "GruvboxOrange" },
+    WhichKeyDesc = { fg = colors.fg1 },
+    WhichKeySeparator = { fg = colors.gray },
+    WhichKeyNormal = t and { bg = nil } or { bg = colors.bg1 },
+    WhichKeyBorder = { fg = colors.blue, bg = nil },
+    WhichKeyValue = { fg = colors.fg3 },
+    WhichKeyTitle = { link = "NormalFloat" },
+    -- fzf-lua (not in the original table)
+    FzfLuaNormal = t and { fg = colors.fg1, bg = nil } or { fg = colors.fg1, bg = colors.bg0 },
+    FzfLuaBorder = { fg = colors.blue, bg = nil },
+    FzfLuaTitle = { fg = colors.bg0, bg = colors.blue, bold = config.bold },
+    FzfLuaPreviewNormal = t and { fg = colors.fg1, bg = nil } or { fg = colors.fg1, bg = colors.bg0 },
+    FzfLuaPreviewBorder = { fg = colors.bg2, bg = nil },
+    FzfLuaPreviewTitle = { fg = colors.bg0, bg = colors.yellow, bold = config.bold },
+    FzfLuaCursor = { fg = colors.bg0, bg = colors.fg1 },
+    FzfLuaCursorLine = { bg = colors.bg2 },
+    FzfLuaCursorLineNr = { fg = colors.yellow, bold = config.bold },
+    FzfLuaScrollBorderEmpty = { fg = colors.bg2 },
+    FzfLuaScrollBorderFull = { fg = colors.blue },
+    FzfLuaHeaderBind = { fg = colors.orange },
+    FzfLuaHeaderText = { fg = colors.fg3 },
+    FzfLuaPathColNr = { fg = colors.purple },
+    FzfLuaPathLineNr = { fg = colors.gray },
+    FzfLuaBufName = { fg = colors.blue },
+    FzfLuaBufNr = { fg = colors.purple },
+    FzfLuaBufFlagCur = { fg = colors.yellow },
+    FzfLuaBufFlagAlt = { fg = colors.orange },
+    FzfLuaTabTitle = { fg = colors.yellow, bold = config.bold },
+    FzfLuaTabMarker = { fg = colors.red },
+    FzfLuaLiveSym = { fg = colors.yellow, bold = config.bold },
+    FzfLuaFzfMatch = { fg = colors.yellow, bold = config.bold },
+    FzfLuaFzfPointer = { fg = colors.red },
+    FzfLuaFzfMarker = { fg = colors.green },
+    -- bufferline.nvim (not in the original table)
+    BufferLineFill = { bg = nil },
+    BufferLineBackground = { fg = colors.fg3, bg = nil },
+    BufferLineBufferSelected = { fg = colors.yellow, bg = colors.bg2, bold = config.bold },
+    BufferLineIndicatorSelected = { fg = colors.yellow },
+    BufferLineSeparator = { fg = colors.bg0, bg = nil },
+    BufferLineModified = { fg = colors.orange },
+    BufferLineModifiedSelected = { fg = colors.orange },
+    BufferLineCloseButton = { fg = colors.fg3 },
+    BufferLineCloseButtonSelected = { fg = colors.red },
+    -- indent-blankline.nvim / ibl (not in the original table)
+    IblIndent = { fg = colors.bg2 },
+    IblScope = { fg = colors.orange },
+    IblWhitespace = { fg = colors.bg2 },
+    -- trouble.nvim (not in the original table)
+    TroubleNormal = { bg = nil },
+    TroubleText = { fg = colors.fg1 },
+    TroubleCount = { fg = colors.yellow },
+    TroubleFile = { fg = colors.blue },
+    TroubleIndent = { fg = colors.bg2 },
+    TroubleFoldIcon = { fg = colors.orange },
+    TroubleLocation = { fg = colors.gray },
+    -- noice.nvim
+    NoiceCursor = { link = "TermCursor" },
+    NoiceCmdlinePopupBorder = { fg = colors.blue, bg = nil },
+    NoiceCmdlinePopupTitle = { fg = colors.yellow, bold = config.bold },
+    NoiceCmdlineIcon = { link = "NoiceCmdlinePopupBorder" },
+    NoiceConfirmBorder = { link = "NoiceCmdlinePopupBorder" },
+    NoiceCmdlinePopupBorderSearch = { fg = colors.yellow, bg = nil },
+    NoiceCmdlineIconSearch = { link = "NoiceCmdlinePopupBorderSearch" },
+    -- nvim-cmp / blink.cmp
+    CmpBorder = { fg = colors.bg2, bg = nil },
+    CmpDocBorder = { fg = colors.bg2, bg = nil },
+    BlinkCmpMenuBorder = { fg = colors.bg2, bg = nil },
+    BlinkCmpDocBorder = { fg = colors.bg2, bg = nil },
+    CmpItemAbbr = { link = "GruvboxFg0" },
+    CmpItemAbbrDeprecated = { link = "GruvboxFg1" },
+    CmpItemAbbrMatch = { link = "GruvboxBlueBold" },
+    CmpItemAbbrMatchFuzzy = { link = "GruvboxBlueUnderline" },
+    CmpItemMenu = { link = "GruvboxGray" },
+    CmpItemKindFunction = { link = "GruvboxGreen" },
+    CmpItemKindMethod = { link = "GruvboxGreen" },
+    CmpItemKindVariable = { link = "GruvboxBlue" },
+    CmpItemKindField = { link = "GruvboxBlue" },
+    CmpItemKindProperty = { link = "GruvboxBlue" },
+    CmpItemKindKeyword = { link = "GruvboxRed" },
+    CmpItemKindClass = { link = "GruvboxYellow" },
+    CmpItemKindInterface = { link = "GruvboxYellow" },
+    CmpItemKindModule = { link = "GruvboxAqua" },
+    CmpItemKindSnippet = { link = "GruvboxGreen" },
+    CmpItemKindConstant = { link = "GruvboxOrange" },
+    CmpItemKindText = { link = "GruvboxOrange" },
+    CmpItemKindFile = { link = "GruvboxBlue" },
+    -- markdown / prose
+    markdownH1 = { link = "GruvboxGreenBold" },
+    markdownH2 = { link = "GruvboxGreenBold" },
+    markdownH3 = { link = "GruvboxYellowBold" },
+    markdownCode = { link = "GruvboxAqua" },
+    markdownCodeBlock = { link = "GruvboxAqua" },
+    markdownLinkText = { fg = colors.gray, underline = config.underline },
+    -- treesitter
+    ["@comment"] = { link = "Comment" },
+    ["@string"] = { link = "String" },
+    ["@string.escape"] = { fg = colors.orange },
+    ["@function"] = { link = "Function" },
+    ["@function.builtin"] = { fg = colors.green, italic = true },
+    ["@function.call"] = { link = "Function" },
+    ["@method"] = { link = "Function" },
+    ["@method.call"] = { link = "Function" },
+    ["@constructor"] = { link = "GruvboxYellow" },
+    ["@variable"] = { link = "GruvboxFg1" },
+    ["@variable.builtin"] = { link = "GruvboxRed" },
+    ["@variable.parameter"] = { fg = colors.fg1, italic = true },
+    ["@variable.member"] = { link = "GruvboxBlue" },
+    ["@property"] = { link = "GruvboxBlue" },
+    ["@field"] = { link = "GruvboxBlue" },
+    ["@constant"] = { link = "Constant" },
+    ["@constant.builtin"] = { fg = colors.purple, bold = config.bold },
+    ["@keyword"] = { link = "Keyword" },
+    ["@keyword.function"] = { link = "Keyword" },
+    ["@keyword.return"] = { link = "Keyword" },
+    ["@tag"] = { link = "GruvboxRed" },
+    ["@tag.attribute"] = { link = "GruvboxYellow" },
+    ["@tag.delimiter"] = { link = "GruvboxBlue" },
+    ["@punctuation.bracket"] = { link = "Delimiter" },
+    ["@punctuation.delimiter"] = { link = "Delimiter" },
+    ["@punctuation.special"] = { link = "GruvboxOrange" },
+    ["@text.title"] = { link = "Title" },
+    ["@text.literal"] = { link = "String" },
+    ["@text.uri"] = { link = "Underlined" },
+  }
+
+  for group, hl in pairs(config.overrides) do
+    if groups[group] then
+      groups[group].link = nil
+    end
+    groups[group] = vim.tbl_extend("force", groups[group] or {}, hl)
+  end
+
+  return groups
+end
+
+---@param config table?
+Gruvbox.setup = function(config)
+  Gruvbox.config = vim.deepcopy(default_config)
+  Gruvbox.config = vim.tbl_deep_extend("force", Gruvbox.config, config or {})
+end
+
+Gruvbox.load = function()
+  if vim.g.colors_name then
+    vim.cmd.hi "clear"
+  end
+  vim.g.colors_name = "gruvbox"
+  vim.o.termguicolors = true
+  vim.o.background = "dark"
+
+  local groups = get_groups()
+
+  for group, settings in pairs(groups) do
+    vim.api.nvim_set_hl(0, group, settings)
+  end
+end
+
+-- ============================================================================
+-- Apply immediately, like a normal init-time colorscheme script — no plugin
+-- manager entry, no `require("gruvbox")` from an installed package.
+-- ============================================================================
+
+local function apply()
+  Gruvbox.setup { transparent_mode = true }
+  Gruvbox.load()
+
   if vim.g.neovide then
     vim.g.neovide_background_opacity = 0.85
     vim.g.neovide_normal_opacity = 0.85
     vim.g.neovide_cursor_vfx_mode = "railgun"
-    vim.g.neovide_cursor_vfx_color = c.red
+    vim.g.neovide_cursor_vfx_color = Gruvbox.palette.bright_red
     vim.g.neovide_cursor_animation_length = 0.08
     vim.g.neovide_cursor_trail_size = 0.5
     vim.g.neovide_floating_shadow = false
     vim.g.neovide_floating_blur_amount_x = 2.0
     vim.g.neovide_floating_blur_amount_y = 2.0
-    hl(0, "Normal", { fg = c.fg, bg = c.bg })
-  else
-    hl(0, "Normal", { fg = c.fg, bg = "NONE" })
-    hl(0, "NormalFloat", { fg = c.fg, bg = "NONE" })
-    hl(0, "NormalNC", { fg = c.fg_dim, bg = "NONE" })
-    hl(0, "SignColumn", { bg = "NONE" })
-    hl(0, "MsgArea", { bg = "NONE" })
-    hl(0, "EndOfBuffer", { fg = c.bg, bg = "NONE" })
+    vim.api.nvim_set_hl(0, "Normal", { fg = Gruvbox.palette.light1, bg = Gruvbox.palette.dark0 })
   end
-
-  -- ==========================================================================
-  -- Core UI
-  -- ==========================================================================
-  hl(0, "FloatBorder", { fg = c.blue, bg = "NONE" })
-  hl(0, "FloatTitle", { fg = c.yellow, bold = true, bg = "NONE" })
-  hl(0, "CursorLine", { bg = c.bg_high })
-  hl(0, "CursorColumn", { bg = c.bg_high })
-  hl(0, "ColorColumn", { bg = c.bg_alt })
-  hl(0, "LineNr", { fg = "#665c54" })
-  hl(0, "CursorLineNr", { fg = c.yellow, bold = true })
-  hl(0, "Visual", { bg = c.bg_high })
-  hl(0, "VisualNOS", { bg = c.bg_high })
-  hl(0, "Search", { fg = c.bg, bg = c.orange })
-  hl(0, "IncSearch", { fg = c.bg, bg = c.yellow })
-  hl(0, "CurSearch", { fg = c.bg, bg = c.yellow })
-  hl(0, "Pmenu", { fg = c.fg_dim, bg = c.bg_alt })
-  hl(0, "PmenuSel", { fg = c.bg, bg = c.blue })
-  hl(0, "PmenuSbar", { bg = c.bg_alt })
-  hl(0, "PmenuThumb", { bg = c.bg_high })
-  hl(0, "WinSeparator", { fg = c.bg_high, bg = "NONE" })
-  hl(0, "VertSplit", { fg = c.bg_high, bg = "NONE" })
-  hl(0, "StatusLine", { fg = c.fg, bg = c.bg_alt })
-  hl(0, "StatusLineNC", { fg = c.blood, bg = c.bg_alt })
-  hl(0, "TabLine", { fg = c.fg_dim, bg = c.bg_alt })
-  hl(0, "TabLineSel", { fg = c.yellow, bg = c.bg_high, bold = true })
-  hl(0, "TabLineFill", { bg = "NONE" })
-  hl(0, "MatchParen", { fg = c.orange, bold = true, underline = true })
-  hl(0, "Directory", { fg = c.blue })
-  hl(0, "Title", { fg = c.yellow, bold = true })
-  hl(0, "NonText", { fg = c.bg_high })
-  hl(0, "Whitespace", { fg = c.bg_high })
-  hl(0, "Folded", { fg = c.fg_dim, bg = c.bg_alt })
-  hl(0, "FoldColumn", { fg = c.blood, bg = "NONE" })
-  hl(0, "WildMenu", { fg = c.bg, bg = c.blue })
-  hl(0, "ModeMsg", { fg = c.yellow })
-  hl(0, "MoreMsg", { fg = c.green })
-  hl(0, "Question", { fg = c.green })
-  hl(0, "WinBar", { fg = c.fg_dim, bg = "NONE" })
-  hl(0, "WinBarNC", { fg = c.blood, bg = "NONE" })
-
-  -- ==========================================================================
-  -- Syntax (base groups)
-  -- ==========================================================================
-  hl(0, "Comment", { fg = c.gray, italic = true })
-  hl(0, "Keyword", { fg = c.red, bold = true })
-  hl(0, "Statement", { fg = c.red })
-  hl(0, "Conditional", { fg = c.red })
-  hl(0, "Repeat", { fg = c.red })
-  hl(0, "Label", { fg = c.red })
-  hl(0, "Exception", { fg = c.red })
-  hl(0, "Function", { fg = c.green })
-  hl(0, "String", { fg = c.green })
-  hl(0, "Character", { fg = c.green })
-  hl(0, "Constant", { fg = c.purple })
-  hl(0, "Number", { fg = c.purple })
-  hl(0, "Boolean", { fg = c.purple })
-  hl(0, "Float", { fg = c.purple })
-  hl(0, "Type", { fg = c.yellow })
-  hl(0, "StorageClass", { fg = c.yellow })
-  hl(0, "Structure", { fg = c.yellow })
-  hl(0, "Typedef", { fg = c.yellow })
-  hl(0, "Identifier", { fg = c.blue })
-  hl(0, "Operator", { fg = c.orange })
-  hl(0, "PreProc", { fg = c.orange })
-  hl(0, "Include", { fg = c.orange })
-  hl(0, "Define", { fg = c.orange })
-  hl(0, "Macro", { fg = c.orange })
-  hl(0, "Special", { fg = c.orange })
-  hl(0, "SpecialChar", { fg = c.orange })
-  hl(0, "Delimiter", { fg = c.fg_dim })
-  hl(0, "Underlined", { fg = c.blue, underline = true })
-  hl(0, "Error", { fg = c.red, bold = true })
-  hl(0, "Todo", { fg = c.bg, bg = c.yellow, bold = true })
-
-  -- ==========================================================================
-  -- Treesitter
-  -- ==========================================================================
-  hl(0, "@variable", { fg = c.fg })
-  hl(0, "@variable.builtin", { fg = c.red })
-  hl(0, "@variable.parameter", { fg = c.fg, italic = true })
-  hl(0, "@variable.member", { fg = c.blue })
-  hl(0, "@property", { fg = c.blue })
-  hl(0, "@field", { fg = c.blue })
-  hl(0, "@constructor", { fg = c.yellow })
-  hl(0, "@constant", { fg = c.purple })
-  hl(0, "@constant.builtin", { fg = c.purple, bold = true })
-  hl(0, "@string.escape", { fg = c.orange })
-  hl(0, "@tag", { fg = c.red })
-  hl(0, "@tag.attribute", { fg = c.yellow })
-  hl(0, "@tag.delimiter", { fg = c.blue })
-  hl(0, "@text.title", { fg = c.yellow, bold = true })
-  hl(0, "@text.literal", { fg = c.green })
-  hl(0, "@text.uri", { fg = c.blue, underline = true })
-  hl(0, "@punctuation.bracket", { fg = c.fg_dim })
-  hl(0, "@punctuation.delimiter", { fg = c.fg_dim })
-  hl(0, "@punctuation.special", { fg = c.orange })
-  hl(0, "@keyword.function", { fg = c.red, bold = true })
-  hl(0, "@keyword.return", { fg = c.red, bold = true })
-  hl(0, "@function.builtin", { fg = c.green, italic = true })
-  hl(0, "@function.call", { fg = c.green })
-  hl(0, "@method", { fg = c.green })
-  hl(0, "@method.call", { fg = c.green })
-  hl(0, "@comment", { fg = c.gray, italic = true })
-
-  -- ==========================================================================
-  -- LSP
-  -- ==========================================================================
-  hl(0, "LspReferenceText", { bg = c.bg_high })
-  hl(0, "LspReferenceRead", { bg = c.bg_high })
-  hl(0, "LspReferenceWrite", { bg = c.bg_high, underline = true })
-  hl(0, "LspSignatureActiveParameter", { fg = c.yellow, bold = true })
-  hl(0, "LspCodeLens", { fg = c.blood, italic = true })
-  hl(0, "LspInlayHint", { fg = c.blood, bg = c.bg_alt, italic = true })
-
-  hl(0, "DiagnosticError", { fg = c.red })
-  hl(0, "DiagnosticWarn", { fg = c.yellow })
-  hl(0, "DiagnosticInfo", { fg = c.blue })
-  hl(0, "DiagnosticHint", { fg = c.green })
-  hl(0, "DiagnosticOk", { fg = c.green })
-  hl(0, "DiagnosticUnderlineError", { undercurl = true, sp = c.red })
-  hl(0, "DiagnosticUnderlineWarn", { undercurl = true, sp = c.yellow })
-  hl(0, "DiagnosticUnderlineInfo", { undercurl = true, sp = c.blue })
-  hl(0, "DiagnosticUnderlineHint", { undercurl = true, sp = c.green })
-  hl(0, "DiagnosticVirtualTextError", { fg = c.red, bg = "NONE" })
-  hl(0, "DiagnosticVirtualTextWarn", { fg = c.yellow, bg = "NONE" })
-  hl(0, "DiagnosticVirtualTextInfo", { fg = c.blue, bg = "NONE" })
-  hl(0, "DiagnosticVirtualTextHint", { fg = c.green, bg = "NONE" })
-  hl(0, "DiagnosticFloatingError", { fg = c.red })
-  hl(0, "DiagnosticFloatingWarn", { fg = c.yellow })
-  hl(0, "DiagnosticFloatingInfo", { fg = c.blue })
-  hl(0, "DiagnosticFloatingHint", { fg = c.green })
-  hl(0, "DiagnosticSignError", { fg = c.red })
-  hl(0, "DiagnosticSignWarn", { fg = c.yellow })
-  hl(0, "DiagnosticSignInfo", { fg = c.blue })
-  hl(0, "DiagnosticSignHint", { fg = c.green })
-
-  -- LSP semantic tokens (only kick in if server provides them; harmless otherwise)
-  hl(0, "@lsp.type.class", { fg = c.yellow })
-  hl(0, "@lsp.type.interface", { fg = c.yellow })
-  hl(0, "@lsp.type.enum", { fg = c.yellow })
-  hl(0, "@lsp.type.enumMember", { fg = c.purple })
-  hl(0, "@lsp.type.parameter", { fg = c.fg, italic = true })
-  hl(0, "@lsp.type.property", { fg = c.blue })
-  hl(0, "@lsp.type.variable", { fg = c.fg })
-  hl(0, "@lsp.type.namespace", { fg = c.aqua })
-  hl(0, "@lsp.mod.readonly", { italic = true })
-
-  -- ==========================================================================
-  -- which-key
-  -- ==========================================================================
-  hl(0, "WhichKey", { fg = c.blue, bold = true })
-  hl(0, "WhichKeyGroup", { fg = c.orange })
-  hl(0, "WhichKeyDesc", { fg = c.fg })
-  hl(0, "WhichKeySeparator", { fg = c.blood })
-  hl(0, "WhichKeyNormal", { bg = "NONE" })
-  hl(0, "WhichKeyBorder", { fg = c.blue, bg = "NONE" })
-  hl(0, "WhichKeyValue", { fg = c.fg_dim })
-  hl(0, "WhichKeyBorder", { fg = c.blue, bg = "NONE" })
-
-  -- ==========================================================================
-  -- Telescope
-  -- ==========================================================================
-  hl(0, "TelescopeNormal", { fg = c.fg, bg = "NONE" })
-  hl(0, "TelescopeBorder", { fg = c.bg_high, bg = "NONE" })
-  hl(0, "TelescopePromptNormal", { fg = c.fg, bg = c.bg_alt })
-  hl(0, "TelescopePromptBorder", { fg = c.blue, bg = c.bg_alt })
-  hl(0, "TelescopePromptTitle", { fg = c.bg, bg = c.blue, bold = true })
-  hl(0, "TelescopeResultsBorder", { fg = c.bg_high, bg = "NONE" })
-  hl(0, "TelescopeResultsTitle", { fg = c.bg, bg = c.green, bold = true })
-  hl(0, "TelescopePreviewBorder", { fg = c.bg_high, bg = "NONE" })
-  hl(0, "TelescopePreviewTitle", { fg = c.bg, bg = c.yellow, bold = true })
-  hl(0, "TelescopeSelection", { bg = c.bg_high, fg = c.fg })
-  hl(0, "TelescopeSelectionCaret", { fg = c.red })
-  hl(0, "TelescopeMatching", { fg = c.yellow, bold = true })
-  hl(0, "TelescopePromptPrefix", { fg = c.red })
-
-  -- ==========================================================================
-  -- fzf-lua
-  -- ==========================================================================
-  hl(0, "FzfLuaNormal", { fg = c.fg, bg = "NONE" })
-  hl(0, "FzfLuaBorder", { fg = c.blue, bg = "NONE" })
-  hl(0, "FzfLuaTitle", { fg = c.bg, bg = c.blue, bold = true })
-  hl(0, "FzfLuaPreviewNormal", { fg = c.fg, bg = "NONE" })
-  hl(0, "FzfLuaPreviewBorder", { fg = c.bg_high, bg = "NONE" })
-  hl(0, "FzfLuaPreviewTitle", { fg = c.bg, bg = c.yellow, bold = true })
-  hl(0, "FzfLuaCursor", { fg = c.bg, bg = c.fg })
-  hl(0, "FzfLuaCursorLine", { bg = c.bg_high })
-  hl(0, "FzfLuaCursorLineNr", { fg = c.yellow, bold = true })
-  hl(0, "FzfLuaScrollBorderEmpty", { fg = c.bg_high })
-  hl(0, "FzfLuaScrollBorderFull", { fg = c.blue })
-  hl(0, "FzfLuaHeaderBind", { fg = c.orange })
-  hl(0, "FzfLuaHeaderText", { fg = c.fg_dim })
-  hl(0, "FzfLuaPathColNr", { fg = c.purple })
-  hl(0, "FzfLuaPathLineNr", { fg = c.blood })
-  hl(0, "FzfLuaBufName", { fg = c.blue })
-  hl(0, "FzfLuaBufNr", { fg = c.purple })
-  hl(0, "FzfLuaBufFlagCur", { fg = c.yellow })
-  hl(0, "FzfLuaBufFlagAlt", { fg = c.orange })
-  hl(0, "FzfLuaTabTitle", { fg = c.yellow, bold = true })
-  hl(0, "FzfLuaTabMarker", { fg = c.red })
-  hl(0, "FzfLuaLiveSym", { fg = c.yellow, bold = true })
-  hl(0, "FzfLuaFzfMatch", { fg = c.yellow, bold = true })
-  hl(0, "FzfLuaFzfPointer", { fg = c.red })
-  hl(0, "FzfLuaFzfMarker", { fg = c.green })
-
-  -- ==========================================================================
-  -- Gitsigns
-  -- ==========================================================================
-  hl(0, "GitSignsAdd", { fg = c.green })
-  hl(0, "GitSignsChange", { fg = c.yellow })
-  hl(0, "GitSignsDelete", { fg = c.red })
-  hl(0, "GitSignsChangedelete", { fg = c.orange })
-  hl(0, "GitSignsTopdelete", { fg = c.red })
-  hl(0, "GitSignsCurrentLineBlame", { fg = c.blood, italic = true })
-  hl(0, "GitSignsAddPreview", { fg = c.green, bg = c.bg_alt })
-  hl(0, "GitSignsDeletePreview", { fg = c.red, bg = c.bg_alt })
-
-  -- ==========================================================================
-  -- Completion (nvim-cmp / blink.cmp)
-  -- ==========================================================================
-  hl(0, "CmpItemAbbrMatch", { fg = c.yellow, bold = true })
-  hl(0, "CmpItemAbbrMatchFuzzy", { fg = c.yellow })
-  hl(0, "CmpItemAbbrDeprecated", { fg = c.blood, strikethrough = true })
-  hl(0, "CmpItemKindFunction", { fg = c.green })
-  hl(0, "CmpItemKindMethod", { fg = c.green })
-  hl(0, "CmpItemKindVariable", { fg = c.blue })
-  hl(0, "CmpItemKindField", { fg = c.blue })
-  hl(0, "CmpItemKindProperty", { fg = c.blue })
-  hl(0, "CmpItemKindKeyword", { fg = c.red })
-  hl(0, "CmpItemKindClass", { fg = c.yellow })
-  hl(0, "CmpItemKindInterface", { fg = c.yellow })
-  hl(0, "CmpItemKindModule", { fg = c.aqua })
-  hl(0, "CmpItemKindSnippet", { fg = c.purple })
-  hl(0, "CmpItemKindConstant", { fg = c.purple })
-  hl(0, "CmpItemKindText", { fg = c.fg_dim })
-  hl(0, "CmpItemKindFile", { fg = c.fg_dim })
-  hl(0, "CmpBorder", { fg = c.bg_high, bg = "NONE" })
-  hl(0, "CmpDocBorder", { fg = c.bg_high, bg = "NONE" })
-  hl(0, "BlinkCmpMenuBorder", { fg = c.bg_high, bg = "NONE" })
-  hl(0, "BlinkCmpDocBorder", { fg = c.bg_high, bg = "NONE" })
-  hl(0, "BlinkCmpLabelMatch", { fg = c.yellow, bold = true })
-
-  -- ==========================================================================
-  -- nvim-tree / neo-tree
-  -- ==========================================================================
-  hl(0, "NvimTreeNormal", { fg = c.fg, bg = "NONE" })
-  hl(0, "NvimTreeFolderIcon", { fg = c.blue })
-  hl(0, "NvimTreeFolderName", { fg = c.blue })
-  hl(0, "NvimTreeOpenedFolderName", { fg = c.blue, bold = true })
-  hl(0, "NvimTreeRootFolder", { fg = c.orange, bold = true })
-  hl(0, "NvimTreeGitDirty", { fg = c.yellow })
-  hl(0, "NvimTreeGitNew", { fg = c.green })
-  hl(0, "NvimTreeGitDeleted", { fg = c.red })
-  hl(0, "NvimTreeIndentMarker", { fg = c.bg_high })
-  hl(0, "NvimTreeWinSeparator", { fg = c.bg_high, bg = "NONE" })
-  hl(0, "NvimTreeSpecialFile", { fg = c.purple, underline = true })
-  hl(0, "NvimTreeExecFile", { fg = c.green })
-
-  hl(0, "NeoTreeNormal", { fg = c.fg, bg = "NONE" })
-  hl(0, "NeoTreeDirectoryIcon", { fg = c.blue })
-  hl(0, "NeoTreeDirectoryName", { fg = c.blue })
-  hl(0, "NeoTreeRootName", { fg = c.orange, bold = true })
-  hl(0, "NeoTreeGitAdded", { fg = c.green })
-  hl(0, "NeoTreeGitModified", { fg = c.yellow })
-  hl(0, "NeoTreeGitDeleted", { fg = c.red })
-  hl(0, "NeoTreeIndentMarker", { fg = c.bg_high })
-  hl(0, "NeoTreeWinSeparator", { fg = c.bg_high, bg = "NONE" })
-
-  -- ==========================================================================
-  -- lualine (pass as a custom theme table in setup, not global hl)
-  -- ==========================================================================
-  -- Example: require("lualine").setup({ options = { theme = gruvbox_lualine_theme } })
-  -- kept here for reference/export if you want it:
-  -- local lualine_theme = {
-  --   normal = { a = { fg = c.bg, bg = c.blue, gui = "bold" }, b = { fg = c.fg, bg = c.bg_alt }, c = { fg = c.fg_dim, bg = "NONE" } },
-  --   insert = { a = { fg = c.bg, bg = c.green, gui = "bold" } },
-  --   visual = { a = { fg = c.bg, bg = c.purple, gui = "bold" } },
-  --   replace = { a = { fg = c.bg, bg = c.red, gui = "bold" } },
-  --   command = { a = { fg = c.bg, bg = c.yellow, gui = "bold" } },
-  --   inactive = { a = { fg = c.blood, bg = c.bg_alt }, b = { fg = c.blood, bg = c.bg_alt }, c = { fg = c.blood, bg = "NONE" } },
-  -- }
-
-  -- ==========================================================================
-  -- bufferline
-  -- ==========================================================================
-  hl(0, "BufferLineFill", { bg = "NONE" })
-  hl(0, "BufferLineBackground", { fg = c.fg_dim, bg = "NONE" })
-  hl(0, "BufferLineBufferSelected", { fg = c.yellow, bg = c.bg_high, bold = true })
-  hl(0, "BufferLineIndicatorSelected", { fg = c.yellow })
-  hl(0, "BufferLineSeparator", { fg = c.bg, bg = "NONE" })
-  hl(0, "BufferLineModified", { fg = c.orange })
-  hl(0, "BufferLineModifiedSelected", { fg = c.orange })
-  hl(0, "BufferLineCloseButton", { fg = c.fg_dim })
-  hl(0, "BufferLineCloseButtonSelected", { fg = c.red })
-
-  -- ==========================================================================
-  -- indent-blankline (ibl)
-  -- ==========================================================================
-  hl(0, "IblIndent", { fg = c.bg_high })
-  hl(0, "IblScope", { fg = c.orange })
-  hl(0, "IblWhitespace", { fg = c.bg_high })
-
-  -- ==========================================================================
-  -- Trouble
-  -- ==========================================================================
-  hl(0, "TroubleNormal", { bg = "NONE" })
-  hl(0, "TroubleText", { fg = c.fg })
-  hl(0, "TroubleCount", { fg = c.yellow })
-  hl(0, "TroubleFile", { fg = c.blue })
-  hl(0, "TroubleIndent", { fg = c.bg_high })
-  hl(0, "TroubleFoldIcon", { fg = c.orange })
-  hl(0, "TroubleLocation", { fg = c.blood })
-
-  -- ==========================================================================
-  -- noice / notify
-  -- ==========================================================================
-  hl(0, "NotifyERRORBorder", { fg = c.red })
-  hl(0, "NotifyWARNBorder", { fg = c.yellow })
-  hl(0, "NotifyINFOBorder", { fg = c.blue })
-  hl(0, "NotifyDEBUGBorder", { fg = c.blood })
-  hl(0, "NotifyTRACEBorder", { fg = c.purple })
-  hl(0, "NotifyERRORIcon", { fg = c.red })
-  hl(0, "NotifyWARNIcon", { fg = c.yellow })
-  hl(0, "NotifyINFOIcon", { fg = c.blue })
-  hl(0, "NotifyERRORTitle", { fg = c.red })
-  hl(0, "NotifyWARNTitle", { fg = c.yellow })
-  hl(0, "NotifyINFOTitle", { fg = c.blue })
-  hl(0, "NoiceCmdlinePopupBorder", { fg = c.blue })
-  hl(0, "NoiceCmdlineIcon", { fg = c.yellow })
-  hl(0, "NoiceCmdlinePopupTitle", { fg = c.yellow, bold = true })
-
-  -- ==========================================================================
-  -- Mini.icons / mini.statusline (if used)
-  -- ==========================================================================
-  hl(0, "MiniStatuslineModeNormal", { fg = c.bg, bg = c.blue, bold = true })
-  hl(0, "MiniStatuslineModeInsert", { fg = c.bg, bg = c.green, bold = true })
-  hl(0, "MiniStatuslineModeVisual", { fg = c.bg, bg = c.purple, bold = true })
-  hl(0, "MiniStatuslineModeCommand", { fg = c.bg, bg = c.yellow, bold = true })
-  hl(0, "MiniStatuslineModeReplace", { fg = c.bg, bg = c.red, bold = true })
-  hl(0, "MiniStatuslineFilename", { fg = c.fg_dim, bg = c.bg_alt })
-
-  -- ==========================================================================
-  -- Terminal colors
-  -- ==========================================================================
-  vim.g.terminal_color_0 = c.bg_alt
-  vim.g.terminal_color_1 = c.red
-  vim.g.terminal_color_2 = c.green
-  vim.g.terminal_color_3 = c.yellow
-  vim.g.terminal_color_4 = c.blue
-  vim.g.terminal_color_5 = c.purple
-  vim.g.terminal_color_6 = c.aqua
-  vim.g.terminal_color_7 = c.fg_dim
-  vim.g.terminal_color_8 = c.blood
-  vim.g.terminal_color_9 = c.red
-  vim.g.terminal_color_10 = c.green
-  vim.g.terminal_color_11 = c.yellow
-  vim.g.terminal_color_12 = c.blue
-  vim.g.terminal_color_13 = c.purple
-  vim.g.terminal_color_14 = c.aqua
-  vim.g.terminal_color_15 = c.fg
 end
 
--- Apply
-apply_gruvbox()
+apply()
 
 vim.api.nvim_create_autocmd("ColorScheme", {
   pattern = "*",
-  callback = apply_gruvbox,
+  callback = apply,
 })
+
+return Gruvbox
