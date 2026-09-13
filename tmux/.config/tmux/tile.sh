@@ -18,6 +18,9 @@
 
 set -uo pipefail
 
+# ---------- globals ------------------------------------------------------
+MASTER_PERCENT=55
+
 # ---------- helpers ------------------------------------------------------
 
 # tmux layout checksum: same algorithm tmux uses in layout_checksum().
@@ -92,8 +95,8 @@ build_layout() {
         done
     done
 
-    # Master column: 50% width, full height.
-    local master_w=$(( W / 2 ))
+    # Master column: MASTER_PERCENT% width, full height.
+    local master_w=$(( W * MASTER_PERCENT / 100 ))
     local stack_x=$(( master_w + 1 ))
     local stack_w=$(( W - stack_x ))
     (( stack_w < 1 )) && stack_w=1

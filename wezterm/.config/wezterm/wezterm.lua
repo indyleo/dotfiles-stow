@@ -252,7 +252,6 @@ end
 
 ------------------------------------------------------------
 -- Master / stack tiling
---
 -- Layout:
 --   +-------------+----------------+
 --   |             |    stack 1     |
@@ -261,19 +260,10 @@ end
 --   |             +----------------+
 --   |             |    stack 3     |
 --   +-------------+----------------+
---
--- IMPORTANT:
--- WezTerm's split sizes are relative to the pane being split, not
--- the whole column. To keep the stack equal, the stack panes are
--- built as a nested chain, and the new pane is always split off of
--- the CURRENT bottom-most stack pane (resolved from live geometry,
--- not insertion order), then equalize_stack() rebalances every
--- boundary in the column to the true 1/N split afterward:
---
---   2 panes: 50 / 50
---   3 panes: 33 / 33 / 33
---   4 panes: 25 / 25 / 25 / 25
 ------------------------------------------------------------
+-- Fraction of the tab width occupied by the master pane.
+-- Stack column gets the remainder (1 - MASTER_RATIO).
+local MASTER_RATIO = 0.55
 local tile_state = {}
 
 local function get_tile_state(tab)
@@ -560,7 +550,7 @@ local function spawn_tile(window, pane)
 	if #state.stack == 0 then
 		local new_pane = pane:split({
 			direction = "Right",
-			size = 0.5,
+			size = 1 - MASTER_RATIO,
 			top_level = true,
 		})
 
