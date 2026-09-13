@@ -37,7 +37,7 @@ local api = vim.api
 -- Configuration
 ------------------------------------------------------------
 
-local MASTER_PERCENT = 60
+local MASTER_PERCENT = 55
 local MAX_STACK = 12
 local MIN_STACK_HEIGHT = 2
 
