@@ -511,23 +511,25 @@ load("render-markdown.nvim", function()
 end)
 
 -- ── image.nvim ──────────────────────────────────────────────────────────
-load("image.nvim", function()
-  require("image").setup {
-    backend = vim.g.neovide and "kitty" or "sixel",
-    integrations = {
-      markdown = {
-        enabled = true,
-        clear_in_insert_mode = false,
-        download_remote_images = true,
-        only_render_image_at_cursor = true,
-        only_render_image_at_cursor_mode = "popup",
-        filetypes = { "markdown", "vimwiki" },
+if not vim.g.neovide then
+  load("image.nvim", function()
+    require("image").setup {
+      backend = "sixel",
+      integrations = {
+        markdown = {
+          enabled = true,
+          clear_in_insert_mode = false,
+          download_remote_images = true,
+          only_render_image_at_cursor = true,
+          only_render_image_at_cursor_mode = "popup",
+          filetypes = { "markdown", "vimwiki" },
+        },
       },
-    },
-    max_height_window_percentage = 50,
-    kitty_method = "normal",
-  }
-end)
+      max_height_window_percentage = 50,
+      kitty_method = "normal",
+    }
+  end)
+end
 
 -- ── which-key ───────────────────────────────────────────────────────────
 load("which-key.nvim", function()
