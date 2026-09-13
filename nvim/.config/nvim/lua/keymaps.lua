@@ -34,13 +34,9 @@ for k, v in pairs(resize_map) do
 end
 map("n", "<M-=>", "<C-w>=", "Equalize window sizes")
 
--- Make splits
-map("n", "<M-v>", ":vsplit<CR>", "Vertical split")
-map("n", "<M-s>", ":split<CR>", "Horizontal split")
-map("n", "<M-q>", ":close!<CR>", "Close split")
-
 -- Master/stack tiling (plugin/tile.lua)
-map("n", "<leader>wc", ":TileSpawn<CR>", "Tile: spawn/grow next tile")
+map("n", "<M-CR>", ":TileSpawn<CR>", "Vertical split")
+map("n", "<M-q>", ":close!<CR>", "Close split")
 map("n", "<leader>wm", ":TileSwapMaster<CR>", "Tile: swap with master")
 map("n", "<leader>wf", ":TileFocus<CR>", "Tile: focus master/stack")
 map("n", "<leader>we", ":TileEqualize<CR>", "Tile: re-equalize stack")

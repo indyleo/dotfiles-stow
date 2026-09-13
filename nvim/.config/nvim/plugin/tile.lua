@@ -1,322 +1,663 @@
 -- plugin/tile.lua
--- Master/stack window tiling, ported from the wezterm master/stack
--- setup:
 --
---   +-------------+----------------+
---   |             |    stack 1     |
---   |   master    +----------------+
---   |             |    stack 2     |
---   |             +----------------+
---   |             |    stack 3     |
---   +-------------+----------------+
+-- Master / stack tiling for Neovim.
 --
--- Commands:
---   :TileSpawn       -- spawn/grow the next tile
---   :TileSwapMaster  -- swap focused stack window with master
---   :TileFocus       -- jump between master and first stack window
---   :TileEqualize    -- manually re-equalize the stack heights
+-- Layout:
 --
--- Keymaps live in lua/keymaps.lua (see the "Master/stack tiling"
--- section), matching how :Lf, :MarksAdd, :JumpWord etc. are wired up
--- elsewhere in this config.
+--   +----------------------+----------------------+
+--   |                      |       stack 1        |
+--   |                      +----------------------+
+--   |       MASTER         |       stack 2        |
+--   |                      +----------------------+
+--   |                      |       stack 3        |
+--   +----------------------+----------------------+
+--
+-- :TileSpawn
+--   Create master + stack 1 on first call.
+--   Add another stack pane on subsequent calls.
+--
+-- :TileSwapMaster
+--   Swap the current stack buffer with master.
+--
+-- :TileFocus
+--   Master <-> first stack.
+--
+-- :TileEqualize
+--   Equalize stack heights.
+
 if vim.g.loaded_tile_plugin then
   return
 end
+
 vim.g.loaded_tile_plugin = true
 
 local api = vim.api
 
 ------------------------------------------------------------
--- State
---
--- Keyed by tabpage handle -- Neovim has no per-tab "workspace" like
--- wezterm's mux, so each tabpage just gets its own independent
--- master/stack.
+-- Configuration
 ------------------------------------------------------------
+
+local MASTER_PERCENT = 60
+local MAX_STACK = 12
+local MIN_STACK_HEIGHT = 2
+
+------------------------------------------------------------
+-- State
+------------------------------------------------------------
+
 local tile_state = {}
 
-local function get_state(tabpage)
-  tabpage = tabpage or api.nvim_get_current_tabpage()
-  local state = tile_state[tabpage]
+local function valid_win(win)
+  return win ~= nil and api.nvim_win_is_valid(win)
+end
 
-  if not state then
-    state = { master = nil, stack = {} }
-    tile_state[tabpage] = state
+local function get_state(tab)
+  if not tile_state[tab] then
+    tile_state[tab] = {
+      master = nil,
+      stack = {},
+    }
   end
 
-  -- Prune dead windows.
-  local live = {}
-  for _, w in ipairs(api.nvim_tabpage_list_wins(tabpage)) do
-    live[w] = true
-  end
+  return tile_state[tab]
+end
 
-  if state.master and not live[state.master] then
+local function clean_state(tab)
+  local state = get_state(tab)
+
+  if state.master and not valid_win(state.master) then
     state.master = nil
   end
 
   local stack = {}
-  for _, w in ipairs(state.stack) do
-    if live[w] and w ~= state.master then
-      stack[#stack + 1] = w
+
+  for _, win in ipairs(state.stack) do
+    if valid_win(win) then
+      stack[#stack + 1] = win
     end
   end
+
   state.stack = stack
 
   return state
 end
 
-local function win_row_col(win)
-  local pos = api.nvim_win_get_position(win) -- { row, col }, screen-relative
-  return pos[1], pos[2]
-end
+------------------------------------------------------------
+-- Find stack windows by their actual position
+------------------------------------------------------------
 
--- If this tabpage hasn't been tiled by us yet (e.g. Neovim started with
--- a manual split layout already in place), adopt whatever's there:
--- left-most window becomes master, everything else becomes the stack.
-local function register_existing_layout(tabpage)
-  local state = get_state(tabpage)
-  if state.master then
-    return state
-  end
+local function sort_stack(state)
+  local stack = {}
 
-  local wins = api.nvim_tabpage_list_wins(tabpage)
-  if #wins == 0 then
-    return state
-  end
-
-  table.sort(wins, function(a, b)
-    local a_row, a_col = win_row_col(a)
-    local b_row, b_col = win_row_col(b)
-    if a_col == b_col then
-      return a_row < b_row
+  for _, win in ipairs(state.stack) do
+    if valid_win(win) then
+      stack[#stack + 1] = win
     end
-    return a_col < b_col
+  end
+
+  table.sort(stack, function(a, b)
+    local ap = api.nvim_win_get_position(a)
+    local bp = api.nvim_win_get_position(b)
+
+    if ap[1] ~= bp[1] then
+      return ap[1] < bp[1]
+    end
+
+    return ap[2] < bp[2]
   end)
 
-  state.master = wins[1]
-  for i = 2, #wins do
-    state.stack[#state.stack + 1] = wins[i]
-  end
+  state.stack = stack
 
-  return state
+  return stack
 end
 
-local function find_win(win)
-  if win and api.nvim_win_is_valid(win) then
-    return win
-  end
-  return nil
-end
+local function bottom_stack(state)
+  local stack = sort_stack(state)
 
--- Resolve the bottom-most stack window from actual on-screen position,
--- not insertion order, so new splits always anchor off the true bottom
--- of the column instead of nesting deeper into one shrinking window.
-local function bottom_stack_win(state)
-  local infos = {}
-  for _, w in ipairs(state.stack) do
-    if api.nvim_win_is_valid(w) then
-      infos[#infos + 1] = { win = w, row = win_row_col(w) }
-    end
-  end
-
-  if #infos == 0 then
-    return nil
-  end
-
-  table.sort(infos, function(a, b)
-    return a.row < b.row
-  end)
-
-  return infos[#infos].win
-end
-
-local function equalize_stack(state)
-  local wins = {}
-  local total = 0
-
-  for _, w in ipairs(state.stack) do
-    if api.nvim_win_is_valid(w) then
-      wins[#wins + 1] = w
-      total = total + api.nvim_win_get_height(w)
-    end
-  end
-
-  if #wins < 2 then
-    return
-  end
-
-  local count = #wins
-  local base = math.floor(total / count)
-  local remainder = total - base * count -- give the leftover rows to the top few
-
-  for i, w in ipairs(wins) do
-    local h = base
-    if i <= remainder then
-      h = h + 1
-    end
-    api.nvim_win_set_height(w, h)
-  end
+  return stack[#stack]
 end
 
 ------------------------------------------------------------
--- Actions
+-- Set master width
 ------------------------------------------------------------
 
--- Spawn the next tile. First call on a tabpage just claims the current
--- window as master; every call after that splits off the current
--- bottom of the stack and re-equalizes.
-local function spawn_tile()
-  local tabpage = api.nvim_get_current_tabpage()
-  local state = register_existing_layout(tabpage)
-
-  if not state.master then
-    state.master = api.nvim_get_current_win()
+local function set_master_width(state)
+  if not valid_win(state.master) then
     return
   end
 
   if #state.stack == 0 then
-    -- "belowright" forces the split to the right regardless of 'splitright'.
-    vim.cmd "belowright vsplit"
-    state.stack[#state.stack + 1] = api.nvim_get_current_win()
     return
   end
 
-  local anchor = bottom_stack_win(state)
-  if not anchor then
+  local stack_win = state.stack[1]
+
+  if not valid_win(stack_win) then
     return
   end
+
+  ----------------------------------------------------------
+  -- The master and stack are siblings.
+  --
+  -- Their widths give us the actual usable width.
+  ----------------------------------------------------------
+
+  local master_width = api.nvim_win_get_width(state.master)
+  local stack_width = api.nvim_win_get_width(stack_win)
+
+  local total = master_width + stack_width + 1
+
+  if total <= 0 then
+    return
+  end
+
+  local desired = math.floor(total * MASTER_PERCENT / 100)
+
+  ----------------------------------------------------------
+  -- Keep enough room for the stack.
+  ----------------------------------------------------------
+
+  local max_master = total - 21
+
+  desired = math.max(20, desired)
+  desired = math.min(desired, max_master)
+
+  pcall(api.nvim_win_set_width, state.master, desired)
+end
+
+------------------------------------------------------------
+-- Equalize only the stack
+------------------------------------------------------------
+
+local function equalize_stack(state)
+  local stack = sort_stack(state)
+
+  local count = #stack
+
+  if count == 0 then
+    return
+  end
+
+  if count == 1 then
+    set_master_width(state)
+    return
+  end
+
+  ----------------------------------------------------------
+  -- All stack windows should have the same total height.
+  --
+  -- Use the actual stack column height rather than summing
+  -- arbitrary windows.
+  ----------------------------------------------------------
+
+  local first = stack[1]
+
+  local total_height = api.nvim_win_get_height(first)
+
+  if total_height <= 0 then
+    return
+  end
+
+  ----------------------------------------------------------
+  -- Find the usable height from all panes.
+  ----------------------------------------------------------
+
+  local sum = 0
+
+  for _, win in ipairs(stack) do
+    if valid_win(win) then
+      sum = sum + api.nvim_win_get_height(win)
+    end
+  end
+
+  if sum <= 0 then
+    return
+  end
+
+  local base = math.floor(sum / count)
+  local extra = sum % count
+
+  if base < MIN_STACK_HEIGHT then
+    return
+  end
+
+  ----------------------------------------------------------
+  -- Resize top -> bottom.
+  --
+  -- Do NOT resize the final pane. Neovim will give it the
+  -- remaining space.
+  ----------------------------------------------------------
+
+  for i = 1, count - 1 do
+    local height = base
+
+    if i <= extra then
+      height = height + 1
+    end
+
+    pcall(api.nvim_win_set_height, stack[i], math.max(MIN_STACK_HEIGHT, height))
+  end
+
+  set_master_width(state)
+end
+
+------------------------------------------------------------
+-- Create the first master/stack layout
+------------------------------------------------------------
+
+local function create_first_tile()
+  local tab = api.nvim_get_current_tabpage()
+  local state = get_state(tab)
+
+  ----------------------------------------------------------
+  -- The current window IS the master.
+  ----------------------------------------------------------
+
+  local master = api.nvim_get_current_win()
+
+  if not valid_win(master) then
+    return
+  end
+
+  state.master = master
+  state.stack = {}
+
+  ----------------------------------------------------------
+  -- Save the current buffer.
+  ----------------------------------------------------------
+
+  local buf = api.nvim_win_get_buf(master)
+
+  ----------------------------------------------------------
+  -- IMPORTANT:
+  --
+  -- Explicitly use `vsplit`.
+  --
+  -- This creates:
+  --
+  --   +-------------+-------------+
+  --   |             |             |
+  --   |   MASTER    |    STACK    |
+  --   |             |             |
+  --   +-------------+-------------+
+  --
+  ----------------------------------------------------------
+
+  api.nvim_set_current_win(master)
+
+  vim.cmd "rightbelow vsplit"
+
+  local stack_win = api.nvim_get_current_win()
+
+  ----------------------------------------------------------
+  -- Explicitly give the stack the SAME BUFFER.
+  ----------------------------------------------------------
+
+  api.nvim_win_set_buf(stack_win, buf)
+
+  ----------------------------------------------------------
+  -- Register it.
+  ----------------------------------------------------------
+
+  state.stack = {
+    stack_win,
+  }
+
+  ----------------------------------------------------------
+  -- Master should be wider.
+  ----------------------------------------------------------
+
+  set_master_width(state)
+
+  ----------------------------------------------------------
+  -- Leave focus on master.
+  ----------------------------------------------------------
+
+  api.nvim_set_current_win(master)
+end
+
+------------------------------------------------------------
+-- Create another stack pane
+------------------------------------------------------------
+
+local function create_stack_tile()
+  local tab = api.nvim_get_current_tabpage()
+  local state = get_state(tab)
+
+  local stack = sort_stack(state)
+
+  if #stack == 0 then
+    create_first_tile()
+    return
+  end
+
+  if #stack >= MAX_STACK then
+    vim.notify("Tile: maximum stack size reached (" .. MAX_STACK .. ")", vim.log.levels.WARN)
+    return
+  end
+
+  ----------------------------------------------------------
+  -- The bottom-most stack pane is our anchor.
+  ----------------------------------------------------------
+
+  local anchor = stack[#stack]
+
+  if not valid_win(anchor) then
+    return
+  end
+
+  ----------------------------------------------------------
+  -- Save its buffer.
+  --
+  -- This makes the new pane show the same file instead of
+  -- relying on Neovim's split inheritance.
+  ----------------------------------------------------------
+
+  local buf = api.nvim_win_get_buf(anchor)
+
+  ----------------------------------------------------------
+  -- IMPORTANT:
+  --
+  -- `split` = horizontal split.
+  --
+  -- Since anchor is already in the right-hand column,
+  -- this creates another pane BELOW it in that column.
+  ----------------------------------------------------------
 
   api.nvim_set_current_win(anchor)
-  -- "belowright" forces the split downward regardless of 'splitbelow';
-  -- the initial size doesn't matter since equalize_stack() below
-  -- corrects every boundary afterward.
+
   vim.cmd "belowright split"
-  state.stack[#state.stack + 1] = api.nvim_get_current_win()
+
+  local new_win = api.nvim_get_current_win()
+
+  ----------------------------------------------------------
+  -- Explicitly copy the buffer.
+  ----------------------------------------------------------
+
+  api.nvim_win_set_buf(new_win, buf)
+
+  ----------------------------------------------------------
+  -- Register.
+  ----------------------------------------------------------
+
+  state.stack[#state.stack + 1] = new_win
+
+  ----------------------------------------------------------
+  -- Restore geometry.
+  ----------------------------------------------------------
+
+  equalize_stack(state)
+
+  ----------------------------------------------------------
+  -- Focus the new pane.
+  ----------------------------------------------------------
+
+  api.nvim_set_current_win(new_win)
+end
+
+------------------------------------------------------------
+-- TileSpawn
+------------------------------------------------------------
+
+local function spawn_tile()
+  local tab = api.nvim_get_current_tabpage()
+  local state = clean_state(tab)
+
+  ----------------------------------------------------------
+  -- First-ever TileSpawn.
+  ----------------------------------------------------------
+
+  if not valid_win(state.master) then
+    create_first_tile()
+    return
+  end
+
+  ----------------------------------------------------------
+  -- Master exists but no stack.
+  ----------------------------------------------------------
+
+  if #state.stack == 0 then
+    create_first_tile()
+    return
+  end
+
+  ----------------------------------------------------------
+  -- Add another stack pane.
+  ----------------------------------------------------------
+
+  create_stack_tile()
+end
+
+------------------------------------------------------------
+-- Swap master / stack
+------------------------------------------------------------
+
+local function swap_master_stack()
+  local tab = api.nvim_get_current_tabpage()
+  local state = clean_state(tab)
+
+  if not valid_win(state.master) then
+    return
+  end
+
+  local stack = sort_stack(state)
+
+  if #stack == 0 then
+    return
+  end
+
+  local current = api.nvim_get_current_win()
+  local target = nil
+
+  ----------------------------------------------------------
+  -- Master -> stack 1.
+  ----------------------------------------------------------
+
+  if current == state.master then
+    target = stack[1]
+  else
+    --------------------------------------------------------
+    -- Stack pane -> that same stack pane.
+    --------------------------------------------------------
+
+    for _, win in ipairs(stack) do
+      if win == current then
+        target = win
+        break
+      end
+    end
+  end
+
+  if not valid_win(target) then
+    return
+  end
+
+  ----------------------------------------------------------
+  -- Save buffers.
+  ----------------------------------------------------------
+
+  local master_buf = api.nvim_win_get_buf(state.master)
+  local target_buf = api.nvim_win_get_buf(target)
+
+  ----------------------------------------------------------
+  -- Save views.
+  ----------------------------------------------------------
+
+  local master_view
+  local target_view
+
+  api.nvim_win_call(state.master, function()
+    master_view = vim.fn.winsaveview()
+  end)
+
+  api.nvim_win_call(target, function()
+    target_view = vim.fn.winsaveview()
+  end)
+
+  ----------------------------------------------------------
+  -- Swap buffers.
+  ----------------------------------------------------------
+
+  api.nvim_win_set_buf(state.master, target_buf)
+  api.nvim_win_set_buf(target, master_buf)
+
+  ----------------------------------------------------------
+  -- Restore views.
+  ----------------------------------------------------------
+
+  if target_view then
+    api.nvim_win_call(state.master, function()
+      vim.fn.winrestview(target_view)
+    end)
+  end
+
+  if master_view then
+    api.nvim_win_call(target, function()
+      vim.fn.winrestview(master_view)
+    end)
+  end
+
+  ----------------------------------------------------------
+  -- Keep focus on the swapped stack pane.
+  ----------------------------------------------------------
+
+  api.nvim_set_current_win(target)
+end
+
+------------------------------------------------------------
+-- TileFocus
+------------------------------------------------------------
+
+local function focus_tile()
+  local tab = api.nvim_get_current_tabpage()
+  local state = clean_state(tab)
+
+  if not valid_win(state.master) then
+    return
+  end
+
+  local current = api.nvim_get_current_win()
+
+  ----------------------------------------------------------
+  -- Master -> first stack.
+  ----------------------------------------------------------
+
+  if current == state.master then
+    local stack = sort_stack(state)
+
+    if valid_win(stack[1]) then
+      api.nvim_set_current_win(stack[1])
+    end
+
+    return
+  end
+
+  ----------------------------------------------------------
+  -- Anything else -> master.
+  ----------------------------------------------------------
+
+  api.nvim_set_current_win(state.master)
+end
+
+------------------------------------------------------------
+-- Equalize command
+------------------------------------------------------------
+
+local function equalize_tile()
+  local tab = api.nvim_get_current_tabpage()
+  local state = clean_state(tab)
 
   equalize_stack(state)
 end
 
--- Swap the focused stack window with master.
---
--- Neovim has no direct equivalent of wezterm's PaneSelect
--- SwapWithActiveKeepFocus (which swaps two panes' positions in the mux
--- tree). Swapping the *buffers* shown in the two windows is the
--- simplest reliable stand-in -- the content moves between master and
--- stack slots, which is what actually matters here.
-local function swap_master_stack()
-  local tabpage = api.nvim_get_current_tabpage()
-  local state = register_existing_layout(tabpage)
-  if not state.master or #state.stack == 0 then
-    return
-  end
+------------------------------------------------------------
+-- Automatic cleanup
+------------------------------------------------------------
 
-  local cur = api.nvim_get_current_win()
-  local master, target = state.master, nil
+local function rebalance_all()
+  for tab, state in pairs(tile_state) do
+    if not api.nvim_tabpage_is_valid(tab) then
+      tile_state[tab] = nil
+      goto continue
+    end
 
-  if cur == master then
-    target = state.stack[1]
-  else
-    for _, w in ipairs(state.stack) do
-      if w == cur then
-        target = w
-        break
+    --------------------------------------------------------
+    -- Check whether master still exists.
+    --------------------------------------------------------
+
+    if state.master and not valid_win(state.master) then
+      tile_state[tab] = nil
+      goto continue
+    end
+
+    --------------------------------------------------------
+    -- Remove closed stack windows.
+    --------------------------------------------------------
+
+    local stack = {}
+
+    for _, win in ipairs(state.stack) do
+      if valid_win(win) and win ~= state.master then
+        stack[#stack + 1] = win
       end
     end
-    if not target then
-      return -- current window isn't part of this tile at all
+
+    state.stack = stack
+
+    --------------------------------------------------------
+    -- Rebalance.
+    --------------------------------------------------------
+
+    if #state.stack > 0 then
+      equalize_stack(state)
     end
-  end
 
-  if not (find_win(master) and find_win(target)) then
-    return
-  end
-
-  local buf_master = api.nvim_win_get_buf(master)
-  local buf_target = api.nvim_win_get_buf(target)
-  api.nvim_win_set_buf(master, buf_target)
-  api.nvim_win_set_buf(target, buf_master)
-  api.nvim_set_current_win(target)
-end
-
--- Master -> first stack window. Any stack window -> master.
-local function focus_master_stack()
-  local tabpage = api.nvim_get_current_tabpage()
-  local state = register_existing_layout(tabpage)
-  local master = find_win(state.master)
-  if not master then
-    return
-  end
-
-  if api.nvim_get_current_win() == master then
-    local first_stack = find_win(state.stack[1])
-    if first_stack then
-      api.nvim_set_current_win(first_stack)
-    end
-  else
-    api.nvim_set_current_win(master)
+    ::continue::
   end
 end
 
 ------------------------------------------------------------
--- Auto-rebalance stack when a window closes
---
--- Neovim has a real WinClosed event (unlike wezterm, which has none
--- and has to poll pane counts instead). It still fires just before
--- the window is actually gone, so the rebalance is deferred one tick
--- to let the layout settle first.
+-- Autocommands
 ------------------------------------------------------------
+
+local augroup = api.nvim_create_augroup("TileAutoRebalance", { clear = true })
+
 api.nvim_create_autocmd("WinClosed", {
-  group = api.nvim_create_augroup("TileAutoRebalance", { clear = true }),
+  group = augroup,
+
   callback = function()
     vim.schedule(function()
-      for tabpage, state in pairs(tile_state) do
-        if not api.nvim_tabpage_is_valid(tabpage) then
-          tile_state[tabpage] = nil
-          goto continue
-        end
+      rebalance_all()
+    end)
+  end,
+})
 
-        local live = {}
-        for _, w in ipairs(api.nvim_tabpage_list_wins(tabpage)) do
-          live[w] = true
-        end
+api.nvim_create_autocmd("VimResized", {
+  group = augroup,
 
-        if state.master and not live[state.master] then
-          -- Master died; drop the cache and let the next tiling action
-          -- re-derive master/stack from whatever layout remains.
-          tile_state[tabpage] = nil
-          goto continue
-        end
-
-        local new_stack = {}
-        local changed = false
-        for _, w in ipairs(state.stack) do
-          if live[w] then
-            new_stack[#new_stack + 1] = w
-          else
-            changed = true
-          end
-        end
-        state.stack = new_stack
-
-        if changed and #state.stack >= 2 then
-          equalize_stack(state)
-        end
-
-        ::continue::
-      end
+  callback = function()
+    vim.schedule(function()
+      rebalance_all()
     end)
   end,
 })
 
 ------------------------------------------------------------
--- User Commands
+-- Commands
 ------------------------------------------------------------
-local mkcmd = api.nvim_create_user_command
 
-mkcmd("TileSpawn", spawn_tile, { desc = "Master/stack: spawn/grow next tile" })
-mkcmd("TileSwapMaster", swap_master_stack, { desc = "Master/stack: swap focused window with master" })
-mkcmd("TileFocus", focus_master_stack, { desc = "Master/stack: focus master/stack" })
-mkcmd("TileEqualize", function()
-  local state = register_existing_layout(api.nvim_get_current_tabpage())
-  equalize_stack(state)
-end, { desc = "Master/stack: re-equalize stack heights" })
+api.nvim_create_user_command("TileSpawn", spawn_tile, {
+  desc = "Master/stack: spawn next tile",
+})
+
+api.nvim_create_user_command("TileSwapMaster", swap_master_stack, {
+  desc = "Master/stack: swap focused window with master",
+})
+
+api.nvim_create_user_command("TileFocus", focus_tile, {
+  desc = "Master/stack: focus master/stack",
+})
+
+api.nvim_create_user_command("TileEqualize", equalize_tile, {
+  desc = "Master/stack: equalize stack heights",
+})
