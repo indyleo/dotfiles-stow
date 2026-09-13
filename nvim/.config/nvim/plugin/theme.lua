@@ -510,6 +510,11 @@ local function apply()
   Gruvbox.setup { transparent_mode = true }
   Gruvbox.load()
 
+  -- Publish the resolved palette so UI components (statusline, winbar, …)
+  -- can build their highlight groups from the same source of truth.
+  -- Refreshed every time the theme is (re)applied.
+  _G.__colorscheme_palette = get_colors()
+
   if vim.g.neovide then
     vim.g.neovide_background_opacity = 0.85
     vim.g.neovide_normal_opacity = 0.85

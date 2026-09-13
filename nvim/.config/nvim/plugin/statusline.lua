@@ -4,56 +4,82 @@
 local api, fn, uv = vim.api, vim.fn, vim.uv or vim.loop
 
 -- ========================
--- Theme selection
+-- Theme colors
 -- ========================
-local preferd_theme = "gruvbox"
-
--- ========================
--- Theme color definitions (Gruvbox)
--- ========================
-local themes = {
-  gruvbox = {
-    -- Background: #282828 (bg0)
-    -- Foreground/Text: #ebdbb2 (fg1)
-
-    normal = { fg = "#282828", bg = "#b8bb26" }, -- green
-    insert = { fg = "#282828", bg = "#83a598" }, -- blue
-    visual = { fg = "#282828", bg = "#d3869b" }, -- purple
-    replace = { fg = "#282828", bg = "#fb4934" }, -- red
-    command = { fg = "#282828", bg = "#fabd2f" }, -- yellow
-    terminal = { fg = "#282828", bg = "#fe8019" }, -- orange
-    inactive = { fg = "#7c6f64", bg = "#3c3836" }, -- muted fg on bg1
-
-    git = { fg = "#b8bb26", bg = "#282828" }, -- green
-    diag_error = { fg = "#fb4934", bg = "#282828" }, -- red
-    diag_warn = { fg = "#fabd2f", bg = "#282828" }, -- yellow
-    diag_info = { fg = "#83a598", bg = "#282828" }, -- blue
-
-    main = { fg = "#ebdbb2", bg = "#504945" }, -- fg1 on bg2
-    filetype = { fg = "#d3869b", bg = "#282828" }, -- purple
-    encoding = { fg = "#bdae93", bg = "#282828" }, -- fg2
-  },
+-- The active colorscheme (theme.lua) publishes its resolved palette on
+-- _G.__colorscheme_palette. We build our statusline highlight groups from
+-- that, so the statusline stays in sync when the palette is tweaked or the
+-- theme is swapped.
+--
+-- Source theme.lua *before* this file so the export exists on startup.
+-- If it doesn't, the fallback below (identical to the default gruvbox
+-- palette) is used, and any later ColorScheme event picks up the real one.
+local fallback_palette = {
+  bg0 = "#282828",
+  bg1 = "#3c3836",
+  bg2 = "#504945",
+  bg3 = "#665c54",
+  bg4 = "#7c6f64",
+  fg0 = "#fbf1c7",
+  fg1 = "#ebdbb2",
+  fg2 = "#d5c4a1",
+  fg3 = "#bdae93",
+  fg4 = "#a89984",
+  red = "#fb4934",
+  green = "#b8bb26",
+  yellow = "#fabd2f",
+  blue = "#83a598",
+  purple = "#d3869b",
+  aqua = "#8ec07c",
+  orange = "#fe8019",
+  gray = "#928374",
 }
 
-local theme_current = preferd_theme
-
--- Conditional styling based on Neovide
-local gui_attr = (vim.g.neovide or vim.g.neovide_version) and "gui=NONE cterm=NONE" or "gui=bold"
-
--- Function to apply highlights (DRY principle)
-local function apply_highlights()
-  local colors = themes[theme_current]
-  for name, col in pairs(colors) do
-    local group = "StatusLine" .. name:gsub("^%l", string.upper):gsub("_", "")
-    vim.cmd(string.format("highlight! %s guifg=%s guibg=%s %s", group, col.fg, col.bg, gui_attr))
-  end
+local function palette()
+  return _G.__colorscheme_palette or fallback_palette
 end
 
-local colors = themes[theme_current]
+-- Bold mode labels; Neovide looks better with a flatter style.
+local bold_labels = not (vim.g.neovide or vim.g.neovide_version)
 
 -- ========================
--- Initial highlights
+-- Highlight groups
 -- ========================
+-- Filetype icon colors are cached per-filetype against the current palette's
+-- background, so the cache is cleared whenever the palette changes.
+local ft_hl_cache = {}
+
+local function apply_highlights()
+  local c = palette()
+
+  local groups = {
+    -- Mode segments: dark text on the mode's accent color.
+    StatusLineNormal = { fg = c.bg0, bg = c.green, bold = bold_labels },
+    StatusLineInsert = { fg = c.bg0, bg = c.blue, bold = bold_labels },
+    StatusLineVisual = { fg = c.bg0, bg = c.purple, bold = bold_labels },
+    StatusLineReplace = { fg = c.bg0, bg = c.red, bold = bold_labels },
+    StatusLineCommand = { fg = c.bg0, bg = c.yellow, bold = bold_labels },
+    StatusLineTerminal = { fg = c.bg0, bg = c.orange, bold = bold_labels },
+    StatusLineInactive = { fg = c.bg4, bg = c.bg1, bold = bold_labels },
+
+    -- Content segments: accent text on the statusline's dark background.
+    StatusLineGit = { fg = c.green, bg = c.bg0, bold = bold_labels },
+    StatusLineDiagerror = { fg = c.red, bg = c.bg0, bold = bold_labels },
+    StatusLineDiagwarn = { fg = c.yellow, bg = c.bg0, bold = bold_labels },
+    StatusLineDiaginfo = { fg = c.blue, bg = c.bg0, bold = bold_labels },
+
+    StatusLineMain = { fg = c.fg1, bg = c.bg2, bold = bold_labels },
+    StatusLineFiletype = { fg = c.purple, bg = c.bg0, bold = bold_labels },
+    StatusLineEncoding = { fg = c.fg3, bg = c.bg0, bold = bold_labels },
+  }
+
+  for group, hl in pairs(groups) do
+    api.nvim_set_hl(0, group, hl)
+  end
+
+  ft_hl_cache = {}
+end
+
 apply_highlights()
 
 -- ========================
@@ -64,20 +90,13 @@ local mode_map = {
   i = { name = "INSERT", hl = "Insert" },
   v = { name = "VISUAL", hl = "Visual" },
   V = { name = "V-LINE", hl = "Visual" },
-  -- NOTE: these were both written as `[""]` (an empty-string key) rather
-  -- than the actual control characters mode() returns for blockwise-visual
-  -- (CTRL-V, decimal 22) and blockwise-select (CTRL-S, decimal 19). Since
-  -- both entries used the same empty-string key, the second silently
-  -- overwrote the first in the table literal, and neither ever matched a
-  -- real mode -- Visual-Block and Select-Block always fell through to the
-  -- `mode_map[m] or {name = m, ...}` fallback, showing a raw control byte.
-  ["\22"] = { name = "V-BLOCK", hl = "Visual" },
+  ["\22"] = { name = "V-BLOCK", hl = "Visual" }, -- CTRL-V
   R = { name = "REPLACE", hl = "Replace" },
   c = { name = "COMMAND", hl = "Command" },
   t = { name = "TERMINAL", hl = "Terminal" },
   s = { name = "SELECT", hl = "Visual" },
   S = { name = "S-LINE", hl = "Visual" },
-  ["\19"] = { name = "S-BLOCK", hl = "Visual" },
+  ["\19"] = { name = "S-BLOCK", hl = "Visual" }, -- CTRL-S
   ["r"] = { name = "PROMPT", hl = "Replace" },
   ["!"] = { name = "SHELL", hl = "Command" },
 }
@@ -89,7 +108,7 @@ local function mode_display()
 end
 
 -- ========================
--- Async Git info (cached with TTL)
+-- Async Git info (cached with TTL, single-flight per cwd)
 -- ========================
 local git_cache = {}
 local GIT_CACHE_TTL = 5000 -- 5 seconds
@@ -98,9 +117,12 @@ local function git_info()
   local cwd = fn.getcwd()
   local cache = git_cache[cwd]
 
-  -- Return cached value if still valid
   if cache and (uv.now() - cache.time) < GIT_CACHE_TTL then
     return cache.value
+  end
+
+  if cache and cache.fetching then
+    return cache.value or ""
   end
 
   if fn.executable "git" == 0 then
@@ -108,12 +130,12 @@ local function git_info()
     return ""
   end
 
-  -- Return old cached value while fetching new one
   local old_value = cache and cache.value or ""
+  git_cache[cwd] = { value = old_value, time = cache and cache.time or 0, fetching = true }
 
   vim.system({ "git", "rev-parse", "--abbrev-ref", "HEAD" }, { cwd = cwd }, function(res)
     if res.code ~= 0 then
-      git_cache[cwd] = { value = "", time = uv.now() }
+      git_cache[cwd] = { value = "", time = uv.now(), fetching = false }
       return
     end
 
@@ -136,10 +158,10 @@ local function git_info()
 
       local result = string.format(" %s", branch)
       if stats.added > 0 or stats.modified > 0 or stats.deleted > 0 then
-        result = result .. string.format(" +%d ~%d -%d", stats.added, stats.modified, stats.deleted)
+        result = result .. string.format(" +%d ~%d -%d ", stats.added, stats.modified, stats.deleted)
       end
 
-      git_cache[cwd] = { value = result, time = uv.now() }
+      git_cache[cwd] = { value = result, time = uv.now(), fetching = false }
       vim.schedule(vim.cmd.redrawstatus)
     end)
   end)
@@ -148,26 +170,37 @@ local function git_info()
 end
 
 -- ========================
--- Diagnostics with icons
+-- Diagnostics with icons (fixed, ordered iteration)
 -- ========================
+local diag_order = {
+  vim.diagnostic.severity.ERROR,
+  vim.diagnostic.severity.WARN,
+  vim.diagnostic.severity.INFO,
+  vim.diagnostic.severity.HINT,
+}
+
 local diag_icons = {
-  [vim.diagnostic.severity.ERROR] = "E",
-  [vim.diagnostic.severity.WARN] = "W",
-  [vim.diagnostic.severity.INFO] = "I",
-  [vim.diagnostic.severity.HINT] = "H",
+  [vim.diagnostic.severity.ERROR] = "󰅚 ",
+  [vim.diagnostic.severity.WARN] = "󰀪 ",
+  [vim.diagnostic.severity.INFO] = " ",
+  [vim.diagnostic.severity.HINT] = " ",
+}
+
+local diag_hl = {
+  [vim.diagnostic.severity.ERROR] = "StatusLineDiagerror",
+  [vim.diagnostic.severity.WARN] = "StatusLineDiagwarn",
+  [vim.diagnostic.severity.INFO] = "StatusLineDiaginfo",
+  [vim.diagnostic.severity.HINT] = "StatusLineDiaginfo",
 }
 
 local function diagnostics()
   local diags = vim.diagnostic.count(0)
   local parts = {}
 
-  for severity, icon in pairs(diag_icons) do
+  for _, severity in ipairs(diag_order) do
     local count = diags[severity] or 0
     if count > 0 then
-      local hl_name = severity == vim.diagnostic.severity.ERROR and "StatusLineDiagerror"
-        or severity == vim.diagnostic.severity.WARN and "StatusLineDiagwarn"
-        or "StatusLineDiaginfo"
-      table.insert(parts, string.format("%%#%s#%s%d", hl_name, icon, count))
+      table.insert(parts, string.format("%%#%s# %s%d", diag_hl[severity], diag_icons[severity], count))
     end
   end
 
@@ -190,11 +223,26 @@ local function file_info()
 end
 
 -- ========================
--- File type
+-- File type (icon highlight cached per-filetype)
 -- ========================
 local function filetype()
   local ft = vim.bo.filetype
-  return ft ~= "" and (" " .. ft .. " ") or ""
+  if ft == "" then
+    return ""
+  end
+
+  local ok, devicons = pcall(require, "nvim-web-devicons")
+  if not ok then
+    return string.format(" %s ", ft)
+  end
+
+  if not ft_hl_cache[ft] then
+    local icon, color = devicons.get_icon_color_by_filetype(ft, { default = true })
+    api.nvim_set_hl(0, "StatusLineFtIcon", { fg = color, bg = palette().bg0 })
+    ft_hl_cache[ft] = icon
+  end
+
+  return string.format(" %%#StatusLineFtIcon#%s%%#StatusLineFiletype# %s ", ft_hl_cache[ft], ft)
 end
 
 -- ========================
@@ -268,36 +316,66 @@ function _G.status_line_inactive()
 end
 
 -- ========================
--- Apply and Auto-refresh
+-- Apply and Auto-refresh (guarded against re-sourcing)
 -- ========================
+local group = api.nvim_create_augroup("StatuslineCustom", { clear = true })
 
-api.nvim_create_autocmd({ "ColorScheme", "WinEnter", "BufEnter" }, {
+api.nvim_create_autocmd({ "WinEnter", "BufEnter" }, {
+  group = group,
   callback = function()
     vim.wo.statusline = "%!v:lua.status_line()"
   end,
 })
 
 api.nvim_create_autocmd({ "WinLeave" }, {
+  group = group,
   callback = function()
     vim.wo.statusline = "%!v:lua.status_line_inactive()"
   end,
 })
 
--- Periodic git refresh
-local timer = uv.new_timer()
-timer:start(
-  5000,
-  5000,
-  vim.schedule_wrap(function()
-    git_cache = {} -- Clear cache periodically
+-- Refresh highlights and window option when the colorscheme changes.
+-- Scheduled so the colorscheme's own ColorScheme handler (which regenerates
+-- _G.__colorscheme_palette) runs first, regardless of sourcing order.
+api.nvim_create_autocmd("ColorScheme", {
+  group = group,
+  callback = function()
+    vim.schedule(function()
+      apply_highlights()
+      vim.wo.statusline = "%!v:lua.status_line()"
+    end)
+  end,
+})
+
+-- Redraw promptly on LSP/diagnostic changes rather than waiting on the timer
+api.nvim_create_autocmd({ "LspAttach", "LspDetach", "DiagnosticChanged" }, {
+  group = group,
+  callback = function()
     vim.cmd.redrawstatus()
-  end)
-)
+  end,
+})
 
 -- Clear git cache on file write
 api.nvim_create_autocmd({ "BufWritePost" }, {
+  group = group,
   callback = function()
     git_cache = {}
     vim.cmd.redrawstatus()
   end,
 })
+
+-- Periodic git refresh (single timer, survives re-sourcing this file)
+if not _G.__statusline_git_timer then
+  _G.__statusline_git_timer = uv.new_timer()
+  _G.__statusline_git_timer:start(
+    5000,
+    5000,
+    vim.schedule_wrap(function()
+      git_cache = {}
+      vim.cmd.redrawstatus()
+    end)
+  )
+end
+
+-- Apply to the current window immediately (autocmds handle future ones).
+vim.wo.statusline = "%!v:lua.status_line()"
