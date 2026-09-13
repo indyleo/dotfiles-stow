@@ -513,7 +513,7 @@ end)
 -- ── image.nvim ──────────────────────────────────────────────────────────
 load("image.nvim", function()
   require("image").setup {
-    backend = "sixel",
+    backend = vim.g.neovide and "kitty" or "sixel",
     integrations = {
       markdown = {
         enabled = true,

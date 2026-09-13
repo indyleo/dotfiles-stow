@@ -183,3 +183,37 @@ vim.api.nvim_create_autocmd("LspAttach", {
     vim.notify("LSP attached to: " .. vim.fn.expand "%:t", vim.log.levels.INFO)
   end,
 })
+
+--- Neovide / GUI ----
+if vim.g.neovide then
+  -- Font scaling
+  local function resize_font(delta)
+    vim.g.neovide_scale_factor = math.max(0.5, (vim.g.neovide_scale_factor or 1.0) + delta)
+  end
+  map({ "n", "i" }, "<C-=>", function()
+    resize_font(0.1)
+  end, "Neovide: increase font scale")
+  map({ "n", "i" }, "<C-->", function()
+    resize_font(-0.1)
+  end, "Neovide: decrease font scale")
+  map({ "n", "i" }, "<C-0>", function()
+    vim.g.neovide_scale_factor = 1.0
+  end, "Neovide: reset font scale")
+
+  -- Fullscreen toggle
+  map("n", "<F11>", function()
+    vim.g.neovide_fullscreen = not vim.g.neovide_fullscreen
+  end, "Neovide: toggle fullscreen")
+
+  -- Opacity toggle (handy when you need to peek at what's behind the window)
+  map("n", "<leader>gt", function()
+    vim.g.neovide_opacity = (vim.g.neovide_opacity < 1.0) and 1.0 or 0.85
+  end, "Neovide: toggle transparency")
+
+  -- System clipboard copy/paste using the OS modifier (Cmd on macOS, Ctrl elsewhere via neovide_input_use_logo)
+  map("v", "<D-c>", '"+y', "Neovide: copy to system clipboard")
+  map({ "n", "v" }, "<D-v>", '"+p', "Neovide: paste from system clipboard")
+  map("i", "<D-v>", "<C-r>+", "Neovide: paste from system clipboard (insert)")
+  map("c", "<D-v>", "<C-r>+", "Neovide: paste from system clipboard (cmdline)")
+  map("t", "<D-v>", '<C-\\><C-n>"+pi', "Neovide: paste from system clipboard (terminal)")
+end
