@@ -82,6 +82,19 @@ end
 
 apply_highlights()
 
+-- If theme.lua hasn't run yet, re-apply once the palette becomes available.
+if not _G.__colorscheme_palette then
+  vim.api.nvim_create_autocmd("VimEnter", {
+    once = true,
+    callback = function()
+      vim.schedule(function()
+        apply_highlights()
+        vim.cmd.redrawstatus()
+      end)
+    end,
+  })
+end
+
 -- ========================
 -- Mode mapping
 -- ========================

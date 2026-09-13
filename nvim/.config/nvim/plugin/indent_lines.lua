@@ -4,10 +4,10 @@
 -- ============================================================================
 local config = {
   enabled = true, -- Enable/disable the plugin
-  char = "▎", -- Character for indent lines (try: "│", "▏", "▎", "▍")
+  char = "▎", -- Character for indent lines
   show_current_context = true, -- Highlight the current code block scope
-  debounce_ms = 100, -- Delay before redrawing (lower = more responsive, higher = better performance)
-  max_lines = 10000, -- Don't draw indent lines for files larger than this
+  debounce_ms = 100, -- Delay before redrawing
+  max_lines = 10000, -- Don't draw indent lines for larger files
 }
 
 -- Add custom excluded filetypes here
@@ -24,30 +24,57 @@ local custom_excluded_buftypes = {
 -- END OF USER CONFIGURATION
 -- ============================================================================
 
--- FIX 1: Define a fallback theme constant so validate_config() has something
--- to reference when theme_current holds an invalid value.
-local FALLBACK_THEME = "gruvbox"
-
--- Theme colors with context color
-local colors = {
-  gruvbox = {
-    normal = {
-      "#fb4934", -- red
-      "#b8bb26", -- green
-      "#fabd2f", -- yellow
-      "#83a598", -- blue
-      "#d3869b", -- purple (magenta)
-      "#fe8019", -- orange
-      "#ebdbb2", -- fg1 (white-ish)
-    },
-    context = "#fabd2f", -- yellow (highlight)
-  },
+-- ============================================================================
+-- Theme palette (theme-aware)
+-- ============================================================================
+-- theme.lua publishes its resolved palette on _G.__colorscheme_palette. We
+-- build our indent-line highlight groups from that, so guide colors stay in
+-- sync when the palette is tweaked or the colorscheme is swapped.
+--
+-- Source theme.lua *before* this file so the export exists on startup. If it
+-- doesn't, the fallback below (identical to theme.lua's default gruvbox
+-- palette) is used, and the ColorScheme autocmd below picks up the real one.
+local fallback_palette = {
+  bg0 = "#282828",
+  bg1 = "#3c3836",
+  bg2 = "#504945",
+  bg3 = "#665c54",
+  bg4 = "#7c6f64",
+  fg0 = "#fbf1c7",
+  fg1 = "#ebdbb2",
+  fg2 = "#d5c4a1",
+  fg3 = "#bdae93",
+  fg4 = "#a89984",
+  red = "#fb4934",
+  green = "#b8bb26",
+  yellow = "#fabd2f",
+  blue = "#83a598",
+  purple = "#d3869b",
+  aqua = "#8ec07c",
+  orange = "#fe8019",
+  gray = "#928374",
 }
 
--- Current theme (mutable)
-local theme_current = FALLBACK_THEME
+local function palette()
+  return _G.__colorscheme_palette or fallback_palette
+end
 
--- Filetypes to exclude
+-- Successive indent levels cycle through these palette keys. The current
+-- scope's guide uses a dedicated accent so it stands out from the cycle.
+local INDENT_CYCLE = { "red", "green", "yellow", "blue", "purple", "orange", "fg1" }
+local CONTEXT_KEY = "yellow"
+
+local function apply_highlights()
+  local c = palette()
+  for i, key in ipairs(INDENT_CYCLE) do
+    vim.api.nvim_set_hl(0, "IndentLine" .. i, { fg = c[key] })
+  end
+  vim.api.nvim_set_hl(0, "IndentLineContext", { fg = c[CONTEXT_KEY] })
+end
+
+-- ============================================================================
+-- Exclusion lists
+-- ============================================================================
 local excluded_filetypes = {
   "help",
   "lazy",
@@ -74,12 +101,10 @@ local excluded_filetypes = {
   "",
 }
 
--- Add custom excluded filetypes
 for _, ft in ipairs(custom_excluded_filetypes) do
   table.insert(excluded_filetypes, ft)
 end
 
--- Buftypes to exclude
 local excluded_buftypes = {
   "terminal",
   "nofile",
@@ -88,7 +113,6 @@ local excluded_buftypes = {
   "acwrite",
 }
 
--- Add custom excluded buftypes
 for _, bt in ipairs(custom_excluded_buftypes) do
   table.insert(excluded_buftypes, bt)
 end
@@ -96,13 +120,13 @@ end
 -- Cache for exclusion checks
 local exclusion_cache = {}
 
--- Debounce timer
+-- Debounce timers
 local timers = {}
 
 -- Namespace for extmarks
 local ns = vim.api.nvim_create_namespace "indent_lines"
 
--- Context cache for performance
+-- Context cache
 local context_cache = {
   buf = -1,
   line = -1,
@@ -119,20 +143,12 @@ local function validate_config()
   if config.max_lines < 100 then
     config.max_lines = 100
   end
-  -- FIX 1: Use the defined FALLBACK_THEME constant instead of the undefined
-  -- `preferred_theme` variable that caused a runtime error.
-  if not colors[theme_current] then
-    theme_current = FALLBACK_THEME
-  end
   if type(config.char) ~= "string" or config.char == "" then
     config.char = "▎"
   end
 end
 
 -- Check if buffer should be excluded.
--- FIX 6: The cache now stores results per (buf, filetype) pair so that a
--- filetype change on an existing buffer always yields a fresh check instead
--- of returning a stale cached value.
 local function should_exclude(buf)
   if not vim.api.nvim_buf_is_valid(buf) then
     return true
@@ -141,21 +157,17 @@ local function should_exclude(buf)
   local ft = vim.bo[buf].filetype
   local bt = vim.bo[buf].buftype
 
-  -- Build a cache key that incorporates the current filetype so stale entries
-  -- are never returned after a FileType change.
   local cache_key = buf .. "\0" .. ft .. "\0" .. bt
   if exclusion_cache[cache_key] ~= nil then
     return exclusion_cache[cache_key]
   end
 
-  -- Check if buffer is too large (performance)
   local line_count = vim.api.nvim_buf_line_count(buf)
   if line_count > config.max_lines then
     exclusion_cache[cache_key] = true
     return true
   end
 
-  -- Check filetype
   for _, excluded_ft in ipairs(excluded_filetypes) do
     if ft == excluded_ft then
       exclusion_cache[cache_key] = true
@@ -163,7 +175,6 @@ local function should_exclude(buf)
     end
   end
 
-  -- Check buftype
   for _, excluded_bt in ipairs(excluded_buftypes) do
     if bt == excluded_bt then
       exclusion_cache[cache_key] = true
@@ -186,14 +197,12 @@ local function get_context_range(buf, cursor_line)
     shiftwidth = 2
   end
 
-  -- Get indent of cursor line
   local cursor_indent = 0
   if cursor_line <= #lines then
     local line = lines[cursor_line]
     if not line:match "^%s*$" then
       cursor_indent = line:match("^%s*"):len()
     else
-      -- If cursor is on blank line, find nearest non-blank line above
       for i = cursor_line - 1, 1, -1 do
         if not lines[i]:match "^%s*$" then
           cursor_indent = lines[i]:match("^%s*"):len()
@@ -203,8 +212,6 @@ local function get_context_range(buf, cursor_line)
     end
   end
 
-  -- Find the scope: look at the next non-blank line.
-  -- If it has MORE indent than the cursor line, the cursor is on a definition.
   local scope_indent = cursor_indent
   local start_line = cursor_line
   local is_definition = false
@@ -221,16 +228,13 @@ local function get_context_range(buf, cursor_line)
     end
   end
 
-  -- If cursor is at indent 0 and no inner scope found, nothing to highlight
   if cursor_indent == 0 and scope_indent == 0 then
     return nil, nil, nil
   end
 
-  -- If we're inside a block (not on a definition line), use cursor indent
   if not is_definition then
     if cursor_indent > 0 then
       scope_indent = cursor_indent
-      -- Find parent scope start
       for i = cursor_line - 1, 1, -1 do
         local line = lines[i]
         if not line:match "^%s*$" then
@@ -242,12 +246,10 @@ local function get_context_range(buf, cursor_line)
         end
       end
     else
-      -- At root level but not a definition, no context
       return nil, nil, nil
     end
   end
 
-  -- Find end of scope
   local end_line = #lines
   local target_indent = is_definition and cursor_indent or (cursor_indent - shiftwidth)
 
@@ -265,10 +267,6 @@ local function get_context_range(buf, cursor_line)
   return start_line, end_line, scope_indent
 end
 
--- Get context range with caching.
--- FIX 3: Removed the ±1 line tolerance that caused stale context to be
--- returned when the cursor moved by exactly one line. The cache now only
--- hits when the cursor is on the exact same line as the last computation.
 local function get_context_range_cached(buf, cursor_line)
   if context_cache.buf == buf and context_cache.line == cursor_line then
     return context_cache.start, context_cache.end_line, context_cache.indent
@@ -302,11 +300,8 @@ local function draw_indent_lines(buf)
     shiftwidth = 2
   end
 
-  -- Get current theme colors
-  local theme_colors = colors[theme_current] or colors[FALLBACK_THEME]
-  local palette = theme_colors.normal
+  local palette_size = #INDENT_CYCLE
 
-  -- Get current cursor position and context
   local cursor_line = nil
   local context_start, context_end, context_indent
 
@@ -318,7 +313,6 @@ local function draw_indent_lines(buf)
     end
   end
 
-  -- Track indent level to continue guides through blank lines
   local prev_indent = 0
 
   for lnum, line in ipairs(lines) do
@@ -327,7 +321,6 @@ local function draw_indent_lines(buf)
 
     if is_blank then
       indent = prev_indent
-      -- Look forward to handle runs of blank lines at the start of a block
       if indent == 0 then
         for future_lnum = lnum + 1, math.min(lnum + 5, #lines) do
           local future_line = lines[future_lnum]
@@ -342,12 +335,10 @@ local function draw_indent_lines(buf)
       prev_indent = indent
     end
 
-    -- Draw each indent guide for this line
     for col = 0, indent - 1, shiftwidth do
-      local level = (col / shiftwidth) % #palette + 1
+      local level = (col / shiftwidth) % palette_size + 1
       local hl_group = "IndentLine" .. level
 
-      -- Highlight the guide that marks the scope we're currently inside
       if config.show_current_context and cursor_line and context_start and context_end and context_indent then
         if lnum >= context_start and lnum <= context_end then
           local context_col = context_indent - shiftwidth
@@ -374,21 +365,7 @@ local function draw_indent_lines(buf)
   end
 end
 
--- Apply highlight groups from the current theme
-local function apply_highlights()
-  local theme_colors = colors[theme_current] or colors[FALLBACK_THEME]
-  local palette = theme_colors.normal
-  local context_color = theme_colors.context
-
-  for i, color in ipairs(palette) do
-    vim.api.nvim_set_hl(0, "IndentLine" .. i, { fg = color })
-  end
-
-  vim.api.nvim_set_hl(0, "IndentLineContext", { fg = context_color })
-end
-
--- FIX 5: Only redraw buffers that are actually loaded and currently displayed
--- to avoid wasting time on hidden/unloaded buffers.
+-- Only redraw buffers that are actually loaded and currently displayed.
 local function redraw_all_buffers()
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     if vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_buf_is_loaded(buf) and not should_exclude(buf) then
@@ -400,11 +377,22 @@ end
 -- Apply initial highlights
 apply_highlights()
 
--- Clear exclusion cache entries for a buffer when it is deleted
+-- If theme.lua hasn't run yet, re-apply once the palette becomes available.
+if not _G.__colorscheme_palette then
+  vim.api.nvim_create_autocmd("VimEnter", {
+    once = true,
+    callback = function()
+      vim.schedule(function()
+        apply_highlights()
+        redraw_all_buffers()
+      end)
+    end,
+  })
+end
+
+-- Clear per-buffer caches on buffer delete
 vim.api.nvim_create_autocmd("BufDelete", {
   callback = function(ev)
-    -- FIX 6 (cleanup): Remove all cache entries whose key starts with this
-    -- buffer number, since the key now encodes buf + filetype + buftype.
     local prefix = ev.buf .. "\0"
     for key in pairs(exclusion_cache) do
       if key:sub(1, #prefix) == prefix then
@@ -438,8 +426,6 @@ local group = vim.api.nvim_create_augroup("IndentLines", { clear = true })
 vim.api.nvim_create_autocmd({ "BufWinEnter", "FileType" }, {
   group = group,
   callback = function(ev)
-    -- FIX 6: On FileType change, invalidate all cache entries for this buffer
-    -- so the next should_exclude() call performs a fresh check.
     if ev.event == "FileType" then
       local prefix = ev.buf .. "\0"
       for key in pairs(exclusion_cache) do
@@ -463,10 +449,6 @@ vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
   end,
 })
 
--- FIX 4: For cursor movement we only need to redraw when the context scope
--- actually changes, not on every single movement. Compare the new context
--- range against the cache before scheduling a redraw to avoid hammering the
--- debounce timer during fast navigation.
 if config.show_current_context then
   vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
     group = group,
@@ -479,7 +461,6 @@ if config.show_current_context then
         return
       end
       local cursor_line = vim.api.nvim_win_get_cursor(wins[1])[1]
-      -- Only redraw when the cursor has moved into a different context scope
       local new_start, new_end, new_indent = get_context_range(ev.buf, cursor_line)
       if new_start ~= context_cache.start or new_end ~= context_cache.end_line or new_indent ~= context_cache.indent then
         draw_debounced(ev.buf)
@@ -487,6 +468,19 @@ if config.show_current_context then
     end,
   })
 end
+
+-- Refresh highlights (and redraw) when the colorscheme/palette changes.
+-- Scheduled so theme.lua's own ColorScheme handler (which regenerates
+-- _G.__colorscheme_palette) runs first, regardless of sourcing order.
+vim.api.nvim_create_autocmd("ColorScheme", {
+  group = group,
+  callback = function()
+    vim.schedule(function()
+      apply_highlights()
+      redraw_all_buffers()
+    end)
+  end,
+})
 
 -- Command to toggle indent lines
 vim.api.nvim_create_user_command("IndentLinesToggle", function()
@@ -514,27 +508,7 @@ vim.api.nvim_create_user_command("IndentLinesToggleContext", function()
   vim.notify("Context highlighting " .. status, vim.log.levels.INFO)
 end, {})
 
--- Command to switch themes
-vim.api.nvim_create_user_command("IndentLinesTheme", function(opts)
-  local theme = opts.args
-  if colors[theme] then
-    theme_current = theme
-    validate_config()
-    apply_highlights()
-    redraw_all_buffers()
-    vim.notify("Theme changed to: " .. theme, vim.log.levels.INFO)
-  else
-    local available = table.concat(vim.tbl_keys(colors), ", ")
-    vim.notify("Unknown theme: " .. theme .. ". Available: " .. available, vim.log.levels.ERROR)
-  end
-end, {
-  nargs = 1,
-  complete = function()
-    return vim.tbl_keys(colors)
-  end,
-})
-
--- Command to reload configuration
+-- Command to reload configuration and re-apply palette
 vim.api.nvim_create_user_command("IndentLinesReload", function()
   validate_config()
   apply_highlights()
@@ -542,7 +516,7 @@ vim.api.nvim_create_user_command("IndentLinesReload", function()
   vim.notify("Indent lines reloaded", vim.log.levels.INFO)
 end, {})
 
--- Expose config for runtime access (optional, for advanced users)
+-- Expose config for runtime access
 _G.IndentLinesConfig = config
 
 -- Validate config on startup
