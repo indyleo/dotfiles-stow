@@ -255,7 +255,7 @@ local function filetype()
     ft_hl_cache[ft] = icon
   end
 
-  return string.format(" %%#StatusLineFtIcon#%s%%#StatusLineFiletype# %s ", ft_hl_cache[ft], ft)
+  return string.format(" %%#StatusLineFtIcon#%s %%#StatusLineFiletype# %s ", ft_hl_cache[ft], ft)
 end
 
 -- ========================
