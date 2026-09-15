@@ -32,9 +32,9 @@ local function cargo_cmd(cmd)
       local msg = table.concat(output, "\n")
 
       if code == 0 then
-        vim.notify("✅ cargo " .. cmd .. " succeeded:\n" .. msg, vim.log.levels.INFO, { title = "Cargo" })
+        vim.notify(" cargo " .. cmd .. " succeeded:\n" .. msg, vim.log.levels.INFO, { title = "Cargo" })
       else
-        vim.notify("❌ cargo " .. cmd .. " failed:\n" .. msg, vim.log.levels.ERROR, { title = "Cargo" })
+        vim.notify("󰅖 cargo " .. cmd .. " failed:\n" .. msg, vim.log.levels.ERROR, { title = "Cargo" })
       end
     end,
   })
