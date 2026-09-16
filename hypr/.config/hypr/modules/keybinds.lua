@@ -110,6 +110,9 @@ hl.bind(mainMod .. " + Z", hl.dsp.exec_cmd(scratchpad .. " qalsc qalc"))
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd(scratchpad .. " wiremixsc wiremix"))
 hl.bind(mainMod .. " + M", hl.dsp.exec_cmd(scratchpad .. " musicsc subsonic-tui"))
 
+-- --- Mouse Mode ---
+hl.bind("F9", hl.dsp.exec_cmd("mouse_move"))
+
 -- --- Mouse Binds ---
 hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
