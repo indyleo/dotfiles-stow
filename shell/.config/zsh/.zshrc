@@ -102,9 +102,26 @@ zle -N zle-line-init
 echo -ne '\e[5 q' # Use beam shape cursor on startup.
 preexec() { echo -ne '\e[5 q' ;} # Use beam shape cursor for each new prompt.
 
-# Edit line in vim with ctrl-e:
-autoload -Uz edit-command-line; zle -N edit-command-line
-bindkey '^e' edit-command-line
+# Edit line in vim
+autoload -Uz edit-command-line
+zle -N edit-command-line
+
+_edit_command_line() {
+    local had_alias=0
+
+    if (( ${+aliases[cat]} )); then
+        had_alias=1
+        unalias cat
+    fi
+
+    zle edit-command-line
+
+    (( had_alias )) && alias cat='bat -pn --pager=""'
+}
+
+zle -N _edit_command_line
+bindkey -M vicmd 'vv' _edit_command_line
+bindkey -M vicmd '^e' _edit_command_line
 
 # Load aliases, functions, and hooks if exists.
 [[ -f "$SDOTDIR/alias.zsh" ]] && source "$SDOTDIR/alias.zsh"

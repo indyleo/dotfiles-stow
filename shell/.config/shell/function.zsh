@@ -174,5 +174,14 @@ function edit() {
     nvim "${file_array[@]}"
 }
 
+# Bat Cat
+cat() {
+    if [[ -n "$WIDGET" ]]; then
+        command cat "$@"
+    else
+        command bat -pn --pager="" "$@"
+    fi
+}
+
 # For Vim Users
 # vim:ft=zsh

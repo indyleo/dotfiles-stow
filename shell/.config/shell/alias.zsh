@@ -10,9 +10,6 @@ alias l.='eza -alF --icons --group-directories-first --color=auto | awk '\''$NF 
 # Duf Aliases
 alias df='duf'
 
-# Cat to Bat Alias
-alias cat='bat -pn --pager=""'
-
 # Colorize grep output (good for log files)
 alias grep='grep --color=auto'
 alias egrep='egrep --color=auto'
@@ -25,13 +22,13 @@ alias psmem='ps auxf | sort -nr -k 4'
 alias pscpu='ps auxf | sort -nr -k 3'
 
 # Confirm Before Doing Something Or The Output Being Verbose Or Both
-alias rm='trash-put -iv'
+alias rm='trash-put -v'
 alias trashl='trash-list'
 alias trashr='trash-restore'
 alias trashe='trash-empty'
-alias cp='cp -irv'
-alias mv='mv -iv'
-alias ln='ln -i'
+alias cp='cp -rv'
+alias mv='mv -v'
+alias ln='ln'
 alias mkdir='mkdir -pv'
 
 # Nice Aliases To Have
