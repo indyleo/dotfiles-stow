@@ -40,7 +40,7 @@ map gs :cd ~/Scripts
 map gp :cd ~/Pictures
 map gm :cd ~/Music
 map gv :cd ~/Videos
-map gg :cd ~/Github
+map gG :cd ~/Github
 
 map ee $$f
 
