@@ -85,8 +85,7 @@ c.colors.prompts.border = f"1px solid {palette['teal']}"
 config.load_autoconfig(True)
 
 c.aliases = {"q": "quit", "w": "session-save", "wq": "quit --save"}
-# c.editor.command = ["st", "-e", "zsh", "-c", "nvim", "{file}"]
-c.editor.command = ["footclient", "nvim", "{file}"]
+c.editor.command = ["alacritty", "-e", "nvim", "{file}"]
 
 # --- Dark mode ---
 config.set("colors.webpage.darkmode.enabled", True)

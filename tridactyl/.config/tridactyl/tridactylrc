@@ -40,8 +40,7 @@ set homepages ["http://127.0.0.1:8080"]
 " ---------------------------------------------------------------------------
 " Editor  (c.editor.command)
 " ---------------------------------------------------------------------------
-" set editorcmd st -e zsh -c nvim
-set editorcmd footclient nvim
+set editorcmd alacritty -e nvim
 
 " ---------------------------------------------------------------------------
 " Config reload

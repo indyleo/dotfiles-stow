@@ -1,4 +1,4 @@
-terminal = "footclient"
+terminal = "alacritty"
 fileManager = "thunar"
 menu = "qs ipc call pick apps"
 browser = "librewolf"

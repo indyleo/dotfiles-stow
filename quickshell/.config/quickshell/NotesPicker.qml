@@ -32,7 +32,7 @@ PanelWindow {
 	readonly property string favoritesFile: root.notesDir + "/.favorites.json"
 
 	// Respects $EDITOR if set, falling back to nvim. Known terminal-based
-	// editors get wrapped in footclient -e; anything else (a GUI editor
+	// editors get wrapped in alacritty -e; anything else (a GUI editor
 	// like "code" or "subl") is launched directly.
 	property string editorCmd: "nvim"
 	readonly property var terminalEditorNames: ["nvim", "vim", "vi", "nano", "micro", "hx", "helix", "emacs"]
@@ -137,7 +137,7 @@ PanelWindow {
 	}
 
 	// Open a note using $EDITOR (detected above), falling back to nvim.
-	// Terminal editors (nvim, vim, nano, etc.) get wrapped in footclient
+	// Terminal editors (nvim, vim, nano, etc.) get wrapped in alacritty
 	// -e; anything else is assumed to be a GUI editor and launched
 	// directly.
 	Process { id: openProc }
@@ -145,7 +145,7 @@ PanelWindow {
 	function openNote(filePath) {
 		var parts = root.editorCmd.trim().split(/\s+/);
 		if (root.isTerminalEditor(root.editorCmd)) {
-			openProc.command = ["footclient", "-e"].concat(parts, [filePath]);
+			openProc.command = ["alacritty", "-e"].concat(parts, [filePath]);
 		} else {
 			openProc.command = parts.concat([filePath]);
 		}
