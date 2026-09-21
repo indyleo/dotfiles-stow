@@ -16,7 +16,6 @@ map d
 map c
 map e
 map f
-map t
 map '"'
 map "'"
 
@@ -273,7 +272,7 @@ map <enter> open
 # Iso Burner
 cmd burn ${{
     [ -z "$f" ] && echo "No file selected." && exit
-    echo "🔥 Burning ISO: $f"
+    echo "󰈸 Burning ISO: $f"
     caligula burn "$f"
 }}
 map bi burn
