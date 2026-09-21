@@ -5,7 +5,7 @@
 	<name>Foot Open</name>
 	<submenu></submenu>
 	<unique-id>1761402120701248-1</unique-id>
-	<command>foot sh -c &quot;cd %f; exec zsh&quot;</command>
+	<command>alacritty -e sh -c &quot;cd %f; exec zsh&quot;</command>
 	<description>Open the cwd in foot</description>
 	<range>*</range>
 	<patterns>*</patterns>
@@ -16,7 +16,7 @@
 	<name>Neovim Open</name>
 	<submenu></submenu>
 	<unique-id>1774128345347711-1</unique-id>
-	<command>foot nvim %f</command>
+	<command>alacritty -e nvim %f</command>
 	<description>Open files in neovim</description>
 	<range>*</range>
 	<patterns>*</patterns>
