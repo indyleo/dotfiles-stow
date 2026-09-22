@@ -61,17 +61,11 @@ cmd mk ${{
   printf "Type (dir/file/script/proj): "
   read -r type
   case "$type" in
-    dir) mkdir -pv -- "$name" ;;
-    file) :> "$name" ;;
-    script) mkscript -n "$name" && lf -remote "send $id cd '~/Scripts/'" ;;
-    proj)
+    dir|d) mkdir -pv -- "$name" ;;
+    file|f) :> "$name" ;;
+    script|scr|s) mkscript -n "$name" && lf -remote "send $id cd '~/Scripts/'" ;;
+    project|proj|p)
       projtool mkproj -n "$name" || exit
-      # NOTE: $name is free-typed user input and may contain a single quote
-      # (e.g. "John's App"), which would break out of the single-quoted
-      # argument lf -remote sends below (lf's own doc.md: single-quoted
-      # values have no escape mechanism, only double-quoted ones do).
-      # Escape backslashes/quotes and use double quotes instead so lf's
-      # own parser reconstructs the path correctly.
       esc_name=$(printf '%s' "$name" | sed 's/\\/\\\\/g; s/"/\\"/g')
       lf -remote "send $id cd \"$HOME/Projects/$esc_name\""
       ;;
@@ -82,11 +76,6 @@ cmd mk ${{
 map mm mk
 
 ### DELETE / TRASH ###
-# NOTE: undo records below use \x1f (a control character that can't appear
-# in a real filename) as the field separator instead of a literal "|".
-# A literal "|" is a legal (if rare) character in a Unix filename, and using
-# it as an unescaped delimiter would silently corrupt/truncate the record
-# for any file that happens to contain one.
 cmd trash %{{
     sep=$(printf '\037')
     for f in $fx; do
@@ -115,13 +104,6 @@ map tr trash-restore
 map te trash-empty
 
 ### PASTE (with undo support) ###
-# lf's built-in `paste` doesn't log anything for `cmd undo` to act on, so the
-# "paste" branch in `cmd undo` below was previously dead code - there was no
-# way to trigger it. This wraps paste to actually record what it creates.
-# Trade-off: this loses the built-in paste's live progress ruler for very
-# large copies, in exchange for working undo. If you never use undo for
-# paste, you can delete this block and `map p paste` will use lf's built-in
-# implementation again (numbered-suffix conflict handling either way).
 cmd paste %{{
     sep=$(printf '\037')
     sel_file="${XDG_DATA_HOME:-$HOME/.local/share}/lf/files"
@@ -190,9 +172,6 @@ cmd fzf_jump ${{
         --preview '[ -d {} ] && eza -a --tree --level=2 --group-directories-first --color=always --icons {} 2>/dev/null || batcat --color=always --style=numbers --line-range=:100 {} 2>/dev/null || cat {}' \
         </dev/tty)
   [ -z "$res" ] && exit
-  # NOTE: $res is a real filesystem path and could contain a single quote.
-  # See the same note in `cmd mk` above - use double quotes + backslash
-  # escaping so lf's remote parser handles it correctly either way.
   esc_res=$(printf '%s' "$res" | sed 's/\\/\\\\/g; s/"/\\"/g')
   if [ -d "$res" ]; then
     lf -remote "send $id cd \"$esc_res\""
@@ -209,8 +188,6 @@ map fj fzf_jump
 cmd follow-link ${{
   [ ! -L "$f" ] && echo "Not a symlink." && exit
   target=$(readlink -f "$f")
-  # See the quoting note in `cmd mk` above - $target could contain a
-  # single quote.
   esc_target=$(printf '%s' "$target" | sed 's/\\/\\\\/g; s/"/\\"/g')
   if [ -d "$target" ]; then
     lf -remote "send $id cd \"$esc_target\""
@@ -296,11 +273,6 @@ cmd scp ${{
   read -rp "Host (user@host:/path): " host
   [ -z "$host" ] && exit
   if [ -n "$fx" ]; then
-    # NOTE: xargs' own default word-splitting (blanks, including spaces) is
-    # unaware of lf's `ifs` setting. Piping $fx (newline-separated, possibly
-    # containing filenames with spaces) into plain `xargs -I{}` would split
-    # a single filename like "My File.txt" into two bogus items. `-d '\n'`
-    # (GNU xargs) makes it split on newlines only, matching our `ifs`.
     printf '%s\n' "$fx" | xargs -d '\n' -I{} scp -P "$port" "{}" "$host"
   else
     scp -P "$port" "$f" "$host"
