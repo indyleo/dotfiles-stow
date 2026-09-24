@@ -105,7 +105,7 @@ hl.bind(mainMod .. " + CTRL + D", hs.dsp.workspace.swap_monitors({ monitor1 = "c
 hl.bind(mainMod .. " + CTRL + G", hs.dsp.grab_rogue_windows())
 
 -- --- Scratchpads ---
-hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(scratchpad .. " termsc"))
+hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(scratchpad .. " termsc $SHELL"))
 hl.bind(mainMod .. " + Y", hl.dsp.exec_cmd(scratchpad .. " lfsc lf"))
 hl.bind(mainMod .. " + Z", hl.dsp.exec_cmd(scratchpad .. " qalsc qalc"))
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd(scratchpad .. " wiremixsc wiremix"))
