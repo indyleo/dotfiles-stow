@@ -2,11 +2,11 @@
 <actions>
 <action>
 	<icon>utilities-terminal</icon>
-	<name>Foot Open</name>
+	<name>Alacritty Open</name>
 	<submenu></submenu>
 	<unique-id>1761402120701248-1</unique-id>
 	<command>alacritty -e sh -c &quot;cd %f; exec zsh&quot;</command>
-	<description>Open the cwd in foot</description>
+	<description>Open the cwd in alacritty</description>
 	<range>*</range>
 	<patterns>*</patterns>
 	<directories/>

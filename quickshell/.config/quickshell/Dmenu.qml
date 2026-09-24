@@ -16,6 +16,9 @@ PanelWindow {
     property int selectedIndex: 0
     property string promptText: "run"
     property string outputPath: ""
+    // Password mode: the input is masked. qsdmenu -password marks this by
+    // prefixing the prompt with U+0001 (the IPC call has no spare argument).
+    property bool masked: false
 
     // Colors/font sourced from the central Theme singleton (Theme.qml)
     property string fontFamily: Theme.fontFamily
@@ -40,7 +43,9 @@ PanelWindow {
 
 		function open(inputFile, outFile, prompt) {
 			root.outputPath = outFile
-			root.promptText = prompt !== "" ? prompt : "run"
+			root.masked = prompt.length > 0 && prompt.charCodeAt(0) === 1
+			if (root.masked) prompt = prompt.substring(1)
+			root.promptText = prompt !== "" ? prompt : (root.masked ? "Password" : "run")
 			root.selectedSet = {}
 			inputFileView.path = inputFile
 
@@ -212,6 +217,7 @@ PanelWindow {
                     font.family: root.fontFamily
                     font.pixelSize: root.fontSize
                     verticalAlignment: TextInput.AlignVCenter
+                    echoMode: root.masked ? TextInput.Password : TextInput.Normal
                     focus: true
                     onTextChanged: {
                         root.searchText = text
