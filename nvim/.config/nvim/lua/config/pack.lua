@@ -108,9 +108,6 @@ vim.pack.add {
   -- ── Which-key ─────────────────────────────────────────────────────────
   { src = gh "folke/which-key.nvim", name = "which-key.nvim" },
 
-  -- ── AI ────────────────────────────────────────────────────────────────
-  { src = gh "Exafunction/windsurf.nvim", name = "windsurf.nvim" },
-
   -- ── Personal ──────────────────────────────────────────────────────────
   { src = gh "indyleo/sword-nvim", name = "sword-nvim" },
 }
