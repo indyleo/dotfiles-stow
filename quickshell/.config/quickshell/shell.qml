@@ -95,6 +95,7 @@ ShellRoot {
 	WifiManager { id: wifiManager }
 	AppLauncher { id: appLauncher }
 	Dmenu { id: dmenu }
+	CommandLauncher { id: commandLauncher }
 	WeatherController { id: weather }
 	ScreenshotController { id: screenshot }
 	ScreenRecorder { id: screenRecorder }
@@ -367,6 +368,7 @@ ShellRoot {
 		function dmenu(inputFile: string, outputFile: string, prompt: string): void {
 			dmenu.open(inputFile, outputFile, prompt)
 		}
+		function cmd(): void { commandLauncher.active = !commandLauncher.active }
 	}
 
 	// Screen Recorder IPC

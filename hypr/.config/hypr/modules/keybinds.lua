@@ -17,7 +17,8 @@ hl.bind(mainMod .. " + SHIFT + D", hl.dsp.exec_cmd("vesktop"))
 hl.bind(mainMod .. " + SHIFT + G", hl.dsp.exec_cmd("signal-desktop"))
 
 -- --- Launchers ---
-hl.bind(mainMod .. " + R", hl.dsp.exec_cmd(menu))
+hl.bind(mainMod .. " + D", hl.dsp.exec_cmd(menu))
+hl.bind(mainMod .. " + R", hl.dsp.exec_cmd(command))
 hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("qs ipc call pick notes"))
 hl.bind(mainMod .. " + SHIFT + C", hl.dsp.exec_cmd("qs ipc call clipboard toggle"))
 hl.bind(mainMod .. " + SHIFT + E", hl.dsp.exec_cmd("qs ipc call pick emoji"))

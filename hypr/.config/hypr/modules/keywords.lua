@@ -1,6 +1,7 @@
 terminal = "alacritty"
 fileManager = "thunar"
 menu = "qs ipc call pick apps"
+command = "qs ipc call pick cmd"
 browser = "librewolf"
 scrPath = os.getenv("HOME") .. "/.config/hypr/scripts"
 barLaunch = scrPath .. "/bar-launch.sh"
