@@ -535,21 +535,6 @@ load("which-key.nvim", function()
   require("which-key").setup {}
 end)
 
--- ── windsurf (codeium) ──────────────────────────────────────────────────
-load("windsurf.nvim", function()
-  require("codeium").setup {
-    enable_cmp_source = false,
-    virtual_text = {
-      enabled = true,
-      filetypes = { markdown = false, text = false, gitcommit = false, gitrebase = false, rust = false },
-      default_filetype_enabled = true,
-      virtual_text_priority = 65535,
-      map_keys = true,
-      key_bindings = { accept = "<C-z>", clear = "<C-x>", next = "<C-l>", prev = "<C-h>" },
-    },
-  }
-end)
-
 -- ── sword-nvim ──────────────────────────────────────────────────────────
 load("sword-nvim", function()
   require("sword").setup {
