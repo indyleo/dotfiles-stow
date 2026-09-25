@@ -93,7 +93,7 @@ hl.bind(mainMod .. " + ALT + Print", hl.dsp.exec_cmd("qs ipc call screenshot col
 hl.bind(mainMod .. " + CTRL + R", hl.dsp.exec_cmd("qs ipc call recorder actionPicker"))
 
 -- --- Wallpapers ---
-hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("desktopctl random ~/Pictures/Wallpapers/gruvbox"))
+hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("qs ipc call wallpaper random"))
 
 -- --- Workspaces (hyprsplit) ---
 for i = 1, 5 do

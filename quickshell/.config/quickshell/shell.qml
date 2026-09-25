@@ -104,6 +104,11 @@ ShellRoot {
 	NotesPicker { id: notesPicker }
 	AudioSwitcher { id: audioSwitcher }
 	AudioMixer { id: audioMixer }
+	WallPaper {
+		id: wallPaper
+		wallpapersDir: "~/Pictures/Wallpapers/gruvbox"
+		intervalSeconds: 900
+	}
 	CalendarPopup { id: calendarPopup }
 	Connections { target: audioSwitcher; function onRequestMixer() { audioMixer.active = true } }
 	Connections { target: audioMixer; function onRequestSwitcher() { audioSwitcher.active = true } }
@@ -380,6 +385,12 @@ ShellRoot {
 		function toggleGif(): void { screenRecorder.toggleGif(false) }
 		function toggleGifArea(): void { screenRecorder.toggleGif(true) }
 		function actionPicker(): void { screenRecorder.showActionPicker() }
+	}
+
+	// Wallpaper
+	IpcHandler {
+		target: "wallpaper"
+		function random(): void { wallPaper.random() }
 	}
 
 	// Bar
