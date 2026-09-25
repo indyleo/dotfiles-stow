@@ -66,5 +66,5 @@ Item {
     function hibernate() { run(["systemctl", "hibernate"], "Hibernate") }
     function reboot()    { run(["systemctl", "reboot"], "Reboot") }
     function shutdown()  { run(["systemctl", "poweroff"], "Shutdown") }
-    function logout()    { run(["hyprctl", "dispatch", "exit"], "Logout") }
+    function logout()    { run(["hyprctl", "eval", "hl.dsp.exit()"], "Logout") }
 }
