@@ -40,7 +40,7 @@ hl.bind(mainMod .. " + J", hl.dsp.focus({ direction = "d" }))
 hl.bind(mainMod .. " + SHIFT + equal", hl.dsp.layout("addmaster"))
 hl.bind(mainMod .. " + SHIFT + minus", hl.dsp.layout("removemaster"))
 hl.bind(mainMod .. " + SHIFT + S", hl.dsp.layout("swapwithmaster"))
-hl.bind(mainMod .. " + SHIFT + S", hl.dsp.layout("focusmaster"))
+hl.bind(mainMod .. " + ALT + S", hl.dsp.layout("focusmaster"))
 
 -- --- System & Hardware ---
 hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("qs ipc call osd briUp"), { repeating = true })
