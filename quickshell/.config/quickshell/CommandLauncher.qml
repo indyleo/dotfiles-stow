@@ -70,6 +70,11 @@ PanelWindow {
         "rm -f \"$SEEN\""
     ].join("\n")
 
+    // Set whenever a refresh is requested while a scan is already running,
+    // so we re-run once the in-flight scan finishes instead of restarting
+    // (killing) it mid-scan, which used to leave `executables` stale/short.
+    property bool listRefreshPending: false
+
     Process {
         id: listProc
         command: ["sh", "-c", root.listScript]
@@ -77,14 +82,25 @@ PanelWindow {
         onExited: (code, status) => {
             if (code !== 0) {
                 console.warn("[CommandLauncher] Failed to list $PATH executables:", code)
-                return
+            } else {
+                root.executables = listProc.stdout.text.split("\u0000").filter(n => n !== "")
             }
-            root.executables = listProc.stdout.text.split("\u0000").filter(n => n !== "")
+            if (root.listRefreshPending) {
+                root.listRefreshPending = false
+                listProc.running = true
+            }
         }
     }
 
     function refreshExecutables() {
-        listProc.running = false
+        if (listProc.running) {
+            // A scan is already in flight - don't restart it (that kills
+            // the process partway through and can leave `executables`
+            // truncated). Just flag that we want another pass once it
+            // finishes.
+            root.listRefreshPending = true
+            return
+        }
         listProc.running = true
     }
 
@@ -98,16 +114,36 @@ PanelWindow {
         path: root.stateFile
     }
 
+    // The cache dir only needs to be created once. Doing it eagerly at
+    // startup (rather than per-save with a shared, reused Process +
+    // callback) removes the race where two saveState() calls in quick
+    // succession used to overwrite each other's callback and silently
+    // drop the earlier write.
+    property bool cacheDirReady: false
+    property string pendingSaveData: ""
+
     Process {
         id: mkdirProc
-        property var callback
+        command: ["mkdir", "-p", root.cacheDir]
         onExited: (code, status) => {
-            if (mkdirProc.callback) {
-                var cb = mkdirProc.callback
-                mkdirProc.callback = null
-                cb(code)
+            if (code === 0) {
+                root.cacheDirReady = true
+            } else {
+                console.warn("[CommandLauncher] Failed to create cache dir:", code)
+            }
+            // Flush whatever the most recent save asked for, if any. Only
+            // the *latest* pending state matters, so no queue is needed
+            // beyond a single slot.
+            if (root.pendingSaveData !== "") {
+                var data = root.pendingSaveData
+                root.pendingSaveData = ""
+                if (root.cacheDirReady) stateFileObj.setText(data)
             }
         }
+    }
+
+    Component.onCompleted: {
+        mkdirProc.running = true
     }
 
     function loadState() {
@@ -123,16 +159,19 @@ PanelWindow {
 
     function saveState() {
         var data = JSON.stringify({ usage: root.usage, history: root.history })
-        mkdirProc.callback = function(code) {
-            if (code === 0) {
-                stateFileObj.setText(data)
-            } else {
-                console.warn("[CommandLauncher] Failed to create cache dir:", code)
-            }
+        if (root.cacheDirReady) {
+            // Common case: dir already exists, just write directly. No
+            // process spawn, no race.
+            stateFileObj.setText(data)
+        } else {
+            // Still within the narrow startup window before mkdirProc has
+            // exited. Queue the latest data - mkdirProc's onExited will
+            // flush it once the dir is ready. If saveState() is called
+            // again before that happens, it just overwrites this slot,
+            // which is correct since only the newest state matters.
+            root.pendingSaveData = data
+            if (!mkdirProc.running) mkdirProc.running = true
         }
-        mkdirProc.command = ["mkdir", "-p", root.cacheDir]
-        mkdirProc.running = false
-        mkdirProc.running = true
     }
 
     // ------------------------------------------------------------
