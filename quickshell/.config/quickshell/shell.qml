@@ -106,7 +106,8 @@ ShellRoot {
 	AudioMixer { id: audioMixer }
 	WallPaper {
 		id: wallPaper
-		wallpapersDir: "~/Pictures/Wallpapers/gruvbox"
+		wallpaperMode: "pictures"   // "pictures" | "videos" | "wallpaper-engine"
+		baseDir: "~/Pictures/Wallpapers/gruvbox"
 		intervalSeconds: 900
 	}
 	CalendarPopup { id: calendarPopup }
