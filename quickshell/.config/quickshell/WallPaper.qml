@@ -15,6 +15,12 @@ Item {
     property string wallpaperMode: "pictures"
 
     property string baseDir: Quickshell.env("HOME") + "/Pictures/Wallpapers"
+
+    // Optional postfix under baseDir, e.g. "gruvbox", "nord", or a
+    // nested path like "other/video". Leave blank to scan baseDir
+    // itself. Leading/trailing slashes are stripped automatically.
+    property string subDir: ""
+
     property int intervalSeconds: 900
     property int transitionDurationMs: 1300
 
@@ -45,6 +51,15 @@ Item {
         return p.replace(/^~(?=$|\/)/, home)
     }
 
+    // Resolves baseDir (+ optional subDir) into the actual directory
+    // to scan / look for wallpaper-engine.txt in. Blank subDir just
+    // returns baseDir unchanged.
+    function _contentDir() {
+        const base = root._expandHome(root.baseDir)
+        const sub = root.subDir.replace(/^\/+|\/+$/g, "")
+        return sub === "" ? base : base + "/" + sub
+    }
+
     function log(level, msg) {
         const line = `[wallpaper] [${level}] ${msg}`
         if (level === "ERROR" || level === "WARN")
@@ -58,9 +73,13 @@ Item {
             root.log("ERROR", `Invalid wallpaperMode '${root.wallpaperMode}' - expected 'pictures', 'videos' or 'wallpaper-engine'`)
         }
 
+        const subDirNote = root.subDir === ""
+            ? "no subDir set, scanning baseDir directly"
+            : `subDir: '${root.subDir}'`
+
         root.log(
             "INFO",
-            `Wallpaper cycling starting in '${root.wallpaperMode}' mode on '${root.baseDir}'`
+            `Wallpaper cycling starting in '${root.wallpaperMode}' mode on '${root._contentDir()}' (${subDirNote})`
         )
 
         engineCheckProc.running = true
@@ -109,7 +128,7 @@ Item {
     // ------------------------------------------------------------
 
     function _pickMedia(findExpr) {
-        const dir = root._expandHome(root.baseDir)
+        const dir = root._contentDir()
         root._lastScanDir = dir
 
         pickProc.command = [
@@ -169,7 +188,7 @@ Item {
     // ------------------------------------------------------------
 
     function _pickEngine() {
-        const file = root._expandHome(root.baseDir) + "/wallpaper-engine.txt"
+        const file = root._contentDir() + "/wallpaper-engine.txt"
         root._lastScanDir = file
 
         engineProc.command = [

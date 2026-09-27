@@ -107,7 +107,8 @@ ShellRoot {
 	WallPaper {
 		id: wallPaper
 		wallpaperMode: "pictures"   // "pictures" | "videos" | "wallpaper-engine"
-		baseDir: "~/Pictures/Wallpapers/gruvbox"
+		baseDir: "~/Pictures/Wallpapers"
+		subDir: "gruvbox"          // blank scans baseDir directly
 		intervalSeconds: 900
 	}
 	CalendarPopup { id: calendarPopup }
