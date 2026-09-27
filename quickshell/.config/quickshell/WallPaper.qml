@@ -299,7 +299,8 @@ Item {
                     "--screen-root", screenName,
                     "--bg", engineId,
                     "--scaling", "fill",
-                    "--disable-mouse"
+										"--disable-mouse",
+										"--silent"
                 ]
 
                 // Force a restart even if it's already running the
