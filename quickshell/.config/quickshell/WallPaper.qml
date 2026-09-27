@@ -298,6 +298,7 @@ Item {
                     "linux-wallpaperengine",
                     "--screen-root", screenName,
                     "--bg", engineId,
+										"--fps 60",
                     "--scaling", "fill",
 										"--disable-mouse",
 										"--silent"
