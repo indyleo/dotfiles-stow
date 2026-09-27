@@ -110,6 +110,7 @@ ShellRoot {
 		baseDir: "~/Pictures/Wallpapers"
 		subDir: "gruvbox"          // blank scans baseDir directly
 		intervalSeconds: 900
+		fpsWall: "60" // refresh rate on linuxwallpaper-engine
 	}
 	CalendarPopup { id: calendarPopup }
 	Connections { target: audioSwitcher; function onRequestMixer() { audioMixer.active = true } }

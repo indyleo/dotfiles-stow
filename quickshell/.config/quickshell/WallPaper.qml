@@ -21,8 +21,12 @@ Item {
     // itself. Leading/trailing slashes are stripped automatically.
     property string subDir: ""
 
+		// default transition/interval
     property int intervalSeconds: 900
     property int transitionDurationMs: 1300
+
+		// set default for wallpaper engine
+    property string fpsWall: "60"
 
     // monitor name -> file:// URI (pictures & videos modes)
     property var wallpaperPaths: ({})
@@ -298,7 +302,7 @@ Item {
                     "linux-wallpaperengine",
                     "--screen-root", screenName,
                     "--bg", engineId,
-										"--fps 60",
+										"--fps", fpsWall,
                     "--scaling", "fill",
 										"--disable-mouse",
 										"--silent"
