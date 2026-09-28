@@ -7,12 +7,14 @@ set ignorecase true
 set scrolloff 10
 set shellopts '-eu'
 set ifs "\n"
-set rulerfile ruler
+set sixel true
+set rulerfile ~/.config/lf/ruler
 
 ### HOOKS ###
 cmd on-select &{{
     lf -remote "send $id set user_statfmt \"$(eza -ld --color=always "$f" | sed 's/\\/\\\\/g;s/"/\\"/g')\""
 }}
+cmd on-cd &{{ zoxide add "$PWD" }}
 
 ### REMOVE UNUSED DEFAULT BINDS ###
 map m
@@ -90,7 +92,7 @@ cmd trash %{{
     done
 }}
 cmd trash-list ${{
-    trash-list | moar
+    trash-list | ${PAGER:-less}
 }}
 cmd trash-restore ${{
     trash-restore
@@ -175,7 +177,7 @@ map er archive
 cmd fzf_jump ${{
   res=$(fd --hidden --exclude .git . 2>/dev/null | \
     fzf --reverse \
-        --preview '[ -d {} ] && eza -a --tree --level=2 --group-directories-first --color=always --icons {} 2>/dev/null || batcat --color=always --style=numbers --line-range=:100 {} 2>/dev/null || cat {}' \
+        --preview '[ -d {} ] && eza -a --tree --level=2 --group-directories-first --color=always --icons {} 2>/dev/null || bat --color=always --style=numbers --line-range=:100 {} 2>/dev/null || cat {}' \
         </dev/tty)
   [ -z "$res" ] && exit
   esc_res=$(printf '%s' "$res" | sed 's/\\/\\\\/g; s/"/\\"/g')
@@ -298,6 +300,7 @@ cmd scp ${{
 }}
 map cs scp
 
+### Undo ###
 cmd undo ${{
   sep=$(printf '\037')
   [ ! -f /tmp/lf_undo_$USER ] && echo "Nothing to undo." && exit
@@ -342,6 +345,18 @@ cmd undo ${{
   esac
 }}
 map u undo
+
+### Zoxide ###
+cmd z %{{
+    result="$(zoxide query --exclude "$PWD" -- "$@" | sed 's/\\/\\\\/g;s/"/\\"/g')"
+    lf -remote "send $id cd \"$result\""
+}}
+cmd zi ${{
+    result="$(zoxide query -i | sed 's/\\/\\\\/g;s/"/\\"/g')"
+    lf -remote "send $id cd \"$result\""
+}}
+map gz push :z<space>
+map gZ zi
 
 # For Vim Users
 # vim:ft=conf
