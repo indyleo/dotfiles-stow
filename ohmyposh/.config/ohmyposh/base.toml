@@ -47,6 +47,13 @@ type = 'rprompt'
 overflow = 'hidden'
 
 [[blocks.segments]]
+template = '{{ if .Env.LF_LEVEL }}lf{{ .Env.LF_LEVEL }} {{ end }}'
+foreground = 'cyan'
+background = 'transparent'
+type = 'text'
+style = 'plain'
+
+[[blocks.segments]]
 template = '{{ .FormattedMs }}'
 foreground = 'yellow'
 background = 'transparent'

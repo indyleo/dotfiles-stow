@@ -1,0 +1,1 @@
+{{with $.UserOptions.statfmt}} {{printf "%s" .}}{{end -}}
