@@ -137,6 +137,10 @@ bindkey -s '^v' 'chtsh\n'
 if [[ -z "$WEZTERM_PANE" ]]; then
     bindkey -s '^g' 'fzftmux\n'
 fi
+function zvm_after_init() {
+    bindkey -M viins '^o' lp
+    bindkey -M vicmd '^o' lp
+}
 
 # Zoxide
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh --cmd cd)"

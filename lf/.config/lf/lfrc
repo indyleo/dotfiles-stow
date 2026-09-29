@@ -9,12 +9,44 @@ set shellopts '-eu'
 set ifs "\n"
 set sixel true
 set rulerfile ~/.config/lf/ruler
+set info custom
+
 
 ### HOOKS ###
 cmd on-select &{{
     lf -remote "send $id set user_statfmt \"$(eza -ld --color=always "$f" | sed 's/\\/\\\\/g;s/"/\\"/g')\""
 }}
-cmd on-cd &{{ zoxide add "$PWD" }}
+cmd on-cd &{{
+    zoxide add "$PWD"
+
+    branch_info=""
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        branch=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)
+        if [ -n "$branch" ]; then
+            mark=""
+            [ -n "$(git status --porcelain 2>/dev/null)" ] && mark=" ·"
+            counts=$(git rev-list --left-right --count '@{u}...HEAD' 2>/dev/null)
+            behind=$(printf '%s' "$counts" | cut -f1)
+            ahead=$(printf '%s' "$counts" | cut -f2)
+            [ -n "$behind" ] && [ "$behind" != "0" ] && mark="$mark ↓$behind"
+            [ -n "$ahead" ] && [ "$ahead" != "0" ] && mark="$mark ↑$ahead"
+            branch_info=" $branch$mark"
+        fi
+    fi
+    esc_branch=$(printf '%s' "$branch_info" | sed 's/\\/\\\\/g;s/"/\\"/g')
+    lf -remote "send $id set user_gitbranch \"$esc_branch\""
+}}
+cmd on-load &{{
+    cd "$(dirname "$1")" || exit 1
+    [ "$(git rev-parse --is-inside-git-dir 2>/dev/null)" = false ] || exit 0
+    cmds=""
+    for file in "$@"; do
+        case "$file" in */.git|*/.git/*) continue;; esac
+        status=$(git status --porcelain --ignored -- "$file" | cut -c1-2 | head -n1)
+        cmds="${cmds}addcustominfo ${file} \"$status\"; "
+    done
+    lf -remote "send $id :$cmds"
+}}
 
 ### REMOVE UNUSED DEFAULT BINDS ###
 map m
@@ -357,6 +389,16 @@ cmd zi ${{
 }}
 map gz push :z<space>
 map gZ zi
+
+### GIT ###
+cmd git_branch ${{
+    branch=$(git branch | fzf | xargs)
+    [ -z "$branch" ] && exit
+    git checkout "$branch"
+    pwd_shell="$(pwd | sed 's/\\/\\\\/g;s/"/\\"/g')"
+    lf -remote "send $id updir; cd \"$pwd_shell\""
+}}
+map gb git_branch
 
 # For Vim Users
 # vim:ft=conf

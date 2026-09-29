@@ -142,6 +142,19 @@ function lc() {
     fi
 }
 
+# Lf Pick
+function lp() {
+    local tmp
+    tmp="$(mktemp "${TMPDIR:-/tmp}/lf-pick.XXXXXX")" || return
+    command lf -selection-path "$tmp" </dev/tty
+    local -a picked
+    [[ -s $tmp ]] && picked=("${(@f)$(<"$tmp")}")
+    command rm -f -- "$tmp"
+    (( ${#picked} )) && LBUFFER+="${LBUFFER:+ }${(j: :)${(@q)picked}}"
+    zle reset-prompt
+}
+zle -N lp
+
 # Screenkey
 function scrky() {
     # Get screen width and calculate X position for top-right
