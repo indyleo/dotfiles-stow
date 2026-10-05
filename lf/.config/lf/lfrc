@@ -1,4 +1,5 @@
 set previewer ~/.config/lf/preview
+set rulerfile ~/.config/lf/ruler
 set preview true
 set hidden true
 set drawbox true
@@ -8,9 +9,7 @@ set scrolloff 10
 set shellopts '-eu'
 set ifs "\n"
 set sixel true
-set rulerfile ~/.config/lf/ruler
 set info custom
-
 
 ### HOOKS ###
 cmd on-select &{{
