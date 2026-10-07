@@ -246,6 +246,94 @@ os.unlink(path)
         alarmSoundProc.running = true
     }
 
+    // ---- Tabs ----------------------------------------------------------
+    property string tab: "calendar" // "calendar" | "alarm" | "pomo"
+    readonly property var tabs: [
+        { k: "calendar", l: "Calendar" },
+        { k: "alarm",    l: "Alarm" },
+        { k: "pomo",     l: "Pomodoro" }
+    ]
+    function tabIndex() {
+        for (var i = 0; i < root.tabs.length; i++)
+            if (root.tabs[i].k === root.tab) return i
+        return 0
+    }
+    function stepTab(d) {
+        var n = root.tabs.length
+        root.tab = root.tabs[(root.tabIndex() + d + n) % n].k
+    }
+
+    // ---- Pomodoro ------------------------------------------------------
+    // Minutes; long break after every `pomoEvery` focus sessions.
+    property int pomoWorkMin: 25
+    property int pomoShortMin: 5
+    property int pomoLongMin: 15
+    property int pomoEvery: 4
+
+    property string pomoPhase: "work" // "work" | "short" | "long"
+    property bool pomoRunning: false
+    property double pomoTargetEpoch: 0
+    property double pomoRemainingMs: pomoWorkMin * 60000
+    property int pomoDone: 0
+
+    function pomoDuration(phase) {
+        return (phase === "work" ? root.pomoWorkMin
+              : phase === "short" ? root.pomoShortMin : root.pomoLongMin) * 60000
+    }
+    function pomoLabel(phase) {
+        return phase === "work" ? "Focus" : (phase === "short" ? "Break" : "Long break")
+    }
+    function pomoRemaining() {
+        return root.pomoRunning ? Math.max(0, root.pomoTargetEpoch - Date.now()) : root.pomoRemainingMs
+    }
+    // Handy for a bar widget: "" when idle, "24:13" running, "⏸ 24:13" paused.
+    readonly property string pomoText: {
+        var _ = root.tick
+        if (!root.pomoRunning && root.pomoRemainingMs >= root.pomoDuration(root.pomoPhase)) return ""
+        return (root.pomoRunning ? "" : "\u23f8 ")
+            + root.formatDuration(root.pomoRemaining()).replace(/^00:/, "")
+    }
+
+    function pomoStart() {
+        if (root.pomoRunning) return
+        root.pomoTargetEpoch = Date.now() + root.pomoRemainingMs
+        root.pomoRunning = true
+    }
+    function pomoPause() {
+        if (!root.pomoRunning) return
+        root.pomoRemainingMs = root.pomoRemaining()
+        root.pomoRunning = false
+    }
+    function pomoToggle() { root.pomoRunning ? root.pomoPause() : root.pomoStart() }
+    function pomoSetPhase(phase) {
+        root.pomoPhase = phase
+        root.pomoRemainingMs = root.pomoDuration(phase)
+        root.pomoRunning = false
+    }
+    function pomoNextPhase() {
+        if (root.pomoPhase !== "work") return "work"
+        return (root.pomoDone + 1) % root.pomoEvery === 0 ? "long" : "short"
+    }
+    function pomoSkip() { root.pomoSetPhase(root.pomoNextPhase()) }
+    function pomoReset() { root.pomoDone = 0; root.pomoSetPhase("work") }
+
+    // Phase finished: advance (paused, so a break never starts by itself),
+    // then notify and beep with the same helpers the alarm uses.
+    function pomoComplete() {
+        var finished = root.pomoPhase
+        var next = root.pomoNextPhase()
+        if (finished === "work") root.pomoDone++
+        root.pomoSetPhase(next)
+
+        var msg = finished === "work"
+            ? "Focus done. Time for a " + root.pomoLabel(next).toLowerCase() + "."
+            : "Break over. Ready to focus?"
+        alarmNotifyProc.command = ["notify-send", "-u", "critical", "-a", "Pomodoro", "Pomodoro", msg]
+        alarmNotifyProc.running = false
+        alarmNotifyProc.running = true
+        root.playAlarmSound()
+    }
+
     Process { id: alarmNotifyProc }
     Process {
         id: alarmSoundProc
@@ -258,12 +346,16 @@ os.unlink(path)
         }
     }
 
-    // Ticks once a second while an alarm is armed
+    // Ticks once a second while an alarm is armed or the pomodoro is running
     Timer {
         interval: 1000
         repeat: true
-        running: root.alarmSet
-        onTriggered: root.tick++
+        running: root.alarmSet || root.pomoRunning
+        onTriggered: {
+            root.tick++
+            if (root.pomoRunning && Date.now() >= root.pomoTargetEpoch)
+                root.pomoComplete()
+        }
     }
 
     // Small 2-digit time field component
@@ -302,6 +394,32 @@ os.unlink(path)
         }
     }
 
+    // Small rounded text button (used by the pomodoro tab)
+    component SmallButton: Rectangle {
+        id: btnRoot
+        property string label
+        property color labelColor: Theme.text
+        signal clicked()
+        Layout.preferredWidth: 72
+        Layout.preferredHeight: 28
+        radius: 8
+        color: btnHover.containsMouse ? Theme.buttonHoverBg : Theme.buttonBg
+        Text {
+            anchors.centerIn: parent
+            text: btnRoot.label
+            color: btnRoot.labelColor
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fontSize - 2
+        }
+        MouseArea {
+            id: btnHover
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: btnRoot.clicked()
+        }
+    }
+
     Timer {
         id: alarmTimer
         repeat: false
@@ -336,7 +454,8 @@ os.unlink(path)
         Rectangle {
             id: card
             width: 280
-            height: 430
+            // Sizes to whichever tab is showing (hidden items don't count)
+            height: mainCol.implicitHeight + 28
             anchors.centerIn: parent
             radius: 16
             color: Theme.background
@@ -347,132 +466,179 @@ os.unlink(path)
             MouseArea { anchors.fill: parent; onClicked: {} }
 
             Keys.onEscapePressed: root.active = false
+            Keys.onPressed: (event) => {
+                if (event.modifiers !== Qt.NoModifier) return
+                if (event.key === Qt.Key_Left) { root.stepTab(-1); event.accepted = true }
+                else if (event.key === Qt.Key_Right) { root.stepTab(1); event.accepted = true }
+                else if (event.key === Qt.Key_P) { root.tab = "pomo"; event.accepted = true }
+                else if (event.key === Qt.Key_Space && root.tab === "pomo") { root.pomoToggle(); event.accepted = true }
+            }
 
             ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 16
-                spacing: 10
+                id: mainCol
+                anchors { left: parent.left; right: parent.right; top: parent.top; margins: 14 }
+                spacing: 8
 
-                // Header: month/year + prev/next navigation
-                RowLayout {
+                // Tab bar
+                Rectangle {
                     Layout.fillWidth: true
+                    Layout.preferredHeight: 26
+                    radius: 13
+                    color: Theme.buttonBg
 
                     Rectangle {
-                        Layout.preferredWidth: 26; Layout.preferredHeight: 26; radius: 13
-                        color: prevHover.hovered ? Theme.buttonHoverBg : Theme.buttonBg
-                        Text { anchors.centerIn: parent; text: "\uf104"; color: Theme.text; font.family: root.fontFamily; font.pixelSize: root.fontSize }
-                        MouseArea {
-                            id: prevHover
-                            property bool hovered: false
-                            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onEntered: hovered = true; onExited: hovered = false
-                            onClicked: root.goPrevMonth()
-                        }
+                        width: parent.width / root.tabs.length
+                        height: parent.height
+                        radius: 13
+                        x: root.tabIndex() * width
+                        color: Theme.blue
+                        Behavior on x { NumberAnimation { duration: 120 } }
                     }
 
-                    Text {
-                        Layout.fillWidth: true
-                        horizontalAlignment: Text.AlignHCenter
-                        text: Qt.formatDate(new Date(root.viewYear, root.viewMonth, 1), "MMMM yyyy")
-                        color: Theme.text
-                        font.family: root.fontFamily
-                        font.pixelSize: root.fontSize + 2
-                        font.bold: true
-                    }
-
-                    Rectangle {
-                        Layout.preferredWidth: 26; Layout.preferredHeight: 26; radius: 13
-                        color: nextHover.hovered ? Theme.buttonHoverBg : Theme.buttonBg
-                        Text { anchors.centerIn: parent; text: "\uf105"; color: Theme.text; font.family: root.fontFamily; font.pixelSize: root.fontSize }
-                        MouseArea {
-                            id: nextHover
-                            property bool hovered: false
-                            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onEntered: hovered = true; onExited: hovered = false
-                            onClicked: root.goNextMonth()
-                        }
-                    }
-                }
-
-                // Weekday header row
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 0
-                    Repeater {
-                        model: root.weekdayLabels
-                        Text {
-                            Layout.fillWidth: true
-                            horizontalAlignment: Text.AlignHCenter
-                            text: modelData
-                            color: Theme.textMuted
-                            font.family: root.fontFamily
-                            font.pixelSize: root.fontSize - 2
-                            font.bold: true
-                        }
-                    }
-                }
-
-                // Day grid - 7 columns x 6 rows
-                GridLayout {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    columns: 7
-                    rowSpacing: 2
-                    columnSpacing: 2
-
-                    Repeater {
-                        model: root.cells
-                        delegate: Rectangle {
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            radius: 8
-                            color: modelData.isToday ? Theme.accent : "transparent"
+                    RowLayout {
+                        anchors.fill: parent
+                        spacing: 0
+                        Repeater {
+                            model: root.tabs
                             Text {
-                                anchors.centerIn: parent
-                                text: modelData.day
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                text: modelData.l
                                 font.family: root.fontFamily
-                                font.pixelSize: root.fontSize - 1
-                                font.bold: modelData.isToday
-                                color: modelData.isToday ? Theme.background
-                                    : (modelData.inMonth ? Theme.text : Theme.textMuted)
-                                opacity: modelData.inMonth ? 1 : 0.5
+                                font.pixelSize: root.fontSize - 2
+                                color: root.tab === modelData.k ? Theme.background : Theme.text
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.tab = modelData.k
+                                }
                             }
                         }
                     }
                 }
 
-                // Footer: jump back to the real current month
-                Rectangle {
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.preferredWidth: 80
-                    Layout.preferredHeight: 26
-                    radius: 13
-                    color: todayHover.hovered ? Theme.buttonHoverBg : Theme.buttonBg
-                    Text {
-                        anchors.centerIn: parent
-                        text: "Today"
-                        color: Theme.text
-                        font.family: root.fontFamily
-                        font.pixelSize: root.fontSize - 1
-                    }
-                    MouseArea {
-                        id: todayHover
-                        property bool hovered: false
-                        anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                        onEntered: hovered = true; onExited: hovered = false
-                        onClicked: root.goToday()
-                    }
-                }
-
-                // Divider
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 1
-                    color: Theme.border
-                }
-
-                // Alarm section
+                // ---- Calendar tab ----
                 ColumnLayout {
+                    visible: root.tab === "calendar"
+                    Layout.fillWidth: true
+                    spacing: 6
+
+                    // Header: month/year + prev/next navigation
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        Rectangle {
+                            Layout.preferredWidth: 24; Layout.preferredHeight: 24; radius: 12
+                            color: prevHover.hovered ? Theme.buttonHoverBg : Theme.buttonBg
+                            Text { anchors.centerIn: parent; text: "\uf104"; color: Theme.text; font.family: root.fontFamily; font.pixelSize: root.fontSize }
+                            MouseArea {
+                                id: prevHover
+                                property bool hovered: false
+                                anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onEntered: hovered = true; onExited: hovered = false
+                                onClicked: root.goPrevMonth()
+                            }
+                        }
+
+                        Text {
+                            Layout.fillWidth: true
+                            horizontalAlignment: Text.AlignHCenter
+                            text: Qt.formatDate(new Date(root.viewYear, root.viewMonth, 1), "MMMM yyyy")
+                            color: Theme.text
+                            font.family: root.fontFamily
+                            font.pixelSize: root.fontSize + 1
+                            font.bold: true
+                        }
+
+                        Rectangle {
+                            Layout.preferredWidth: 24; Layout.preferredHeight: 24; radius: 12
+                            color: nextHover.hovered ? Theme.buttonHoverBg : Theme.buttonBg
+                            Text { anchors.centerIn: parent; text: "\uf105"; color: Theme.text; font.family: root.fontFamily; font.pixelSize: root.fontSize }
+                            MouseArea {
+                                id: nextHover
+                                property bool hovered: false
+                                anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onEntered: hovered = true; onExited: hovered = false
+                                onClicked: root.goNextMonth()
+                            }
+                        }
+                    }
+
+                    // Weekday header row
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 0
+                        Repeater {
+                            model: root.weekdayLabels
+                            Text {
+                                Layout.fillWidth: true
+                                horizontalAlignment: Text.AlignHCenter
+                                text: modelData
+                                color: Theme.textMuted
+                                font.family: root.fontFamily
+                                font.pixelSize: root.fontSize - 3
+                                font.bold: true
+                            }
+                        }
+                    }
+
+                    // Day grid - 7 columns x 6 rows, fixed compact rows
+                    GridLayout {
+                        Layout.fillWidth: true
+                        columns: 7
+                        rowSpacing: 1
+                        columnSpacing: 2
+
+                        Repeater {
+                            model: root.cells
+                            delegate: Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 24
+                                radius: 7
+                                color: modelData.isToday ? Theme.accent : "transparent"
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: modelData.day
+                                    font.family: root.fontFamily
+                                    font.pixelSize: root.fontSize - 2
+                                    font.bold: modelData.isToday
+                                    color: modelData.isToday ? Theme.background
+                                        : (modelData.inMonth ? Theme.text : Theme.textMuted)
+                                    opacity: modelData.inMonth ? 1 : 0.5
+                                }
+                            }
+                        }
+                    }
+
+                    // Footer: jump back to the real current month
+                    Rectangle {
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.preferredWidth: 72
+                        Layout.preferredHeight: 22
+                        radius: 11
+                        color: todayHover.hovered ? Theme.buttonHoverBg : Theme.buttonBg
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Today"
+                            color: Theme.text
+                            font.family: root.fontFamily
+                            font.pixelSize: root.fontSize - 2
+                        }
+                        MouseArea {
+                            id: todayHover
+                            property bool hovered: false
+                            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onEntered: hovered = true; onExited: hovered = false
+                            onClicked: root.goToday()
+                        }
+                    }
+                }
+
+                // Alarm tab (unchanged controls)
+                ColumnLayout {
+                    visible: root.tab === "alarm"
                     Layout.fillWidth: true
                     spacing: 6
 
@@ -706,6 +872,58 @@ os.unlink(path)
                                 + Qt.formatDate(new Date(root.alarmTargetEpoch), "MMM d") + ")")
                         }
                         color: root.alarmSet ? Theme.accent : Theme.textMuted
+                        font.family: root.fontFamily
+                        font.pixelSize: root.fontSize - 3
+                    }
+                }
+
+                // ---- Pomodoro tab ----
+                ColumnLayout {
+                    visible: root.tab === "pomo"
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    Text {
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                        text: root.pomoLabel(root.pomoPhase) + " \u00b7 " + root.pomoDone + " done"
+                        color: Theme.textMuted
+                        font.family: root.fontFamily
+                        font.pixelSize: root.fontSize - 2
+                    }
+
+                    Text {
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                        text: {
+                            var _ = root.tick
+                            return root.formatDuration(root.pomoRemaining()).replace(/^00:/, "")
+                        }
+                        color: root.pomoPhase === "work" ? Theme.danger : Theme.success
+                        font.family: root.fontFamily
+                        font.pixelSize: root.fontSize + 19
+                        font.bold: true
+                    }
+
+                    RowLayout {
+                        Layout.alignment: Qt.AlignHCenter
+                        spacing: 8
+
+                        SmallButton {
+                            label: root.pomoRunning ? "Pause"
+                                : (root.pomoRemainingMs < root.pomoDuration(root.pomoPhase) ? "Resume" : "Start")
+                            onClicked: root.pomoToggle()
+                        }
+                        SmallButton { label: "Skip"; onClicked: root.pomoSkip() }
+                        SmallButton { label: "Reset"; labelColor: Theme.danger; onClicked: root.pomoReset() }
+                    }
+
+                    Text {
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                        text: root.pomoWorkMin + "/" + root.pomoShortMin + " min \u00b7 long break ("
+                            + root.pomoLongMin + ") every " + root.pomoEvery
+                        color: Theme.textMuted
                         font.family: root.fontFamily
                         font.pixelSize: root.fontSize - 3
                     }
