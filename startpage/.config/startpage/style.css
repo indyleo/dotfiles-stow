@@ -30,8 +30,96 @@
 
   --glass-bg: rgba(29, 32, 33, 0.85);
   --glass-border: rgba(254, 128, 25, 0.25);
+  color-scheme: dark;
   --glass-blur: blur(5px);
   --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.9);
+}
+
+:root[data-theme="nord"] {
+  color-scheme: dark;
+  --bg0-h: #242933;
+  --bg: #2e3440;
+  --bg1: #3b4252;
+  --bg2: #434c5e;
+  --bg3: #4c566a;
+  --bg4: #616e88;
+  --fg: #d8dee9;
+  --fg1: #e5e9f0;
+  --fg2: #c0c8d8;
+  --fg3: #8f9bb3;
+  --red: #bf616a;
+  --green: #a3be8c;
+  --yellow: #ebcb8b;
+  --blue: #81a1c1;
+  --purple: #b48ead;
+  --aqua: #8fbcbb;
+  --orange: #d08770;
+  --gray: #616e88;
+  --accent: #ebcb8b;
+  --alert: #bf616a;
+  --border: #88c0d0;
+  --highlight: #b48ead;
+  --ok: #a3be8c;
+  --glass-bg: rgba(36,41,51,0.85);
+  --glass-border: rgba(208,135,112,0.25);
+}
+
+:root[data-theme="catppuccin"] {
+  color-scheme: dark;
+  --bg0-h: #181825;
+  --bg: #1e1e2e;
+  --bg1: #313244;
+  --bg2: #45475a;
+  --bg3: #585b70;
+  --bg4: #6c7086;
+  --fg: #cdd6f4;
+  --fg1: #bac2de;
+  --fg2: #a6adc8;
+  --fg3: #9399b2;
+  --red: #f38ba8;
+  --green: #a6e3a1;
+  --yellow: #f9e2af;
+  --blue: #89b4fa;
+  --purple: #cba6f7;
+  --aqua: #94e2d5;
+  --orange: #fab387;
+  --gray: #7f849c;
+  --accent: #f9e2af;
+  --alert: #f38ba8;
+  --border: #89b4fa;
+  --highlight: #f5c2e7;
+  --ok: #a6e3a1;
+  --glass-bg: rgba(24,24,37,0.85);
+  --glass-border: rgba(250,179,135,0.25);
+}
+
+:root[data-theme="tokyonight"] {
+  color-scheme: dark;
+  --bg0-h: #16161e;
+  --bg: #1a1b26;
+  --bg1: #24283b;
+  --bg2: #2f334d;
+  --bg3: #3b4261;
+  --bg4: #565f89;
+  --fg: #c0caf5;
+  --fg1: #a9b1d6;
+  --fg2: #9aa5ce;
+  --fg3: #737aa2;
+  --red: #f7768e;
+  --green: #9ece6a;
+  --yellow: #e0af68;
+  --blue: #7aa2f7;
+  --purple: #bb9af7;
+  --aqua: #73daca;
+  --orange: #ff9e64;
+  --gray: #565f89;
+  --accent: #e0af68;
+  --alert: #f7768e;
+  --border: #7aa2f7;
+  --highlight: #bb9af7;
+  --ok: #9ece6a;
+  --glass-bg: rgba(22,22,30,0.85);
+  --glass-border: rgba(255,158,100,0.25);
 }
 
 * {
@@ -685,4 +773,197 @@ form:focus-within {
   .search-bar input {
     width: 250px;
   }
+}
+
+/* GitHub popover links */
+.kv-row a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.kv-row a:hover {
+  text-decoration: underline;
+}
+
+/* ---- SEARCH EXTRAS ---- */
+.search-container {
+  position: relative;
+}
+#bang-suggest,
+#calc-result {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  font-size: 0.85rem;
+  z-index: 12;
+}
+#bang-suggest[hidden],
+#calc-result[hidden] {
+  display: none;
+}
+#bang-suggest li {
+  display: flex;
+  gap: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--fg1);
+}
+#bang-suggest li.sel,
+#bang-suggest li:hover {
+  background: var(--bg2);
+}
+#bang-suggest .kb-key {
+  min-width: 48px;
+}
+#calc-result {
+  text-align: center;
+  padding: 10px;
+  color: var(--green);
+}
+#calc-result.err {
+  color: var(--fg3);
+}
+
+/* ---- NOTES / TODO / HN POPOVERS ---- */
+.sys-info {
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 96vw;
+}
+.scratch-area,
+.todo-input {
+  width: 280px;
+  max-width: 100%;
+  background: var(--bg0-h);
+  color: var(--fg);
+  border: 1px solid var(--bg3);
+  border-radius: 6px;
+  padding: 8px;
+  font-family: inherit;
+  font-size: 0.78rem;
+}
+.scratch-area {
+  height: 160px;
+  resize: vertical;
+  display: block;
+}
+.scratch-area:focus,
+.todo-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.todo-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.todo-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+}
+.todo-list li.done span {
+  text-decoration: line-through;
+  color: var(--fg3);
+}
+.todo-list li span {
+  flex: 1;
+  word-break: break-word;
+}
+.todo-del {
+  background: none;
+  border: none;
+  color: var(--fg3);
+  cursor: pointer;
+  font-family: inherit;
+}
+.todo-del:hover {
+  color: var(--red);
+}
+.hn-row {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--bg2);
+}
+.hn-row a {
+  color: var(--fg);
+  text-decoration: none;
+}
+.hn-row a:hover {
+  color: var(--accent);
+}
+.hn-meta {
+  display: block;
+  color: var(--fg3);
+  font-size: 0.68rem;
+}
+.hn-meta a {
+  color: var(--fg3);
+}
+
+/* ---- POMODORO (inside the clock popover) ---- */
+.pomo-work {
+  color: var(--red);
+}
+.pomo-short,
+.pomo-long {
+  color: var(--green);
+}
+.pomo-phase {
+  text-align: center;
+  color: var(--fg3);
+  font-size: 0.72rem;
+}
+.pomo-big {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 4px 0 10px;
+}
+.pomo-btns {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+#info-popover {
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+}
+
+/* ---- COMPACT CLOCK POPOVER ---- */
+.clock-tabs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+.calendar-header {
+  margin-bottom: 6px;
+}
+.calendar-cell {
+  aspect-ratio: 7 / 5;
+  font-size: 0.7rem;
+}
+.calendar-grid {
+  margin-bottom: 6px;
+}
+.calendar-today-btn {
+  margin-bottom: 6px;
+}
+#world-clock-rows {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 12px;
+  font-size: 0.68rem;
+  color: var(--fg3);
+}
+.calendar-divider {
+  display: none;
 }

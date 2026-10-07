@@ -399,5 +399,11 @@ cmd git_branch ${{
 }}
 map gb git_branch
 
+### Thunar ###
+cmd thunar ${{
+	thunar .
+}}
+
+
 # For Vim Users
 # vim:ft=conf

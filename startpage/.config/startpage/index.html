@@ -6,9 +6,10 @@
     <link rel="icon" href="starticon.png" type="image/png" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; connect-src 'self' https://wttr.in https://www.google.com https://www.cloudflare.com https://searxng.linuxlab.work; form-action https://searxng.linuxlab.work;"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; connect-src 'self' https://api.github.com https://hn.algolia.com https://wttr.in https://www.google.com https://www.cloudflare.com https://searxng.linuxlab.work; form-action https://searxng.linuxlab.work;"
     />
-    <title>Start Page (Gruvbox)</title>
+    <title>Start Page</title>
+    <script src="theme.js"></script>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body id="main-body">
@@ -37,6 +38,27 @@
         <div class="kb-row">
           <span class="kb-key">n</span
           ><span class="kb-desc">Reroll greeting quote</span>
+        </div>
+        <div class="kb-row">
+          <span class="kb-key">s</span><span class="kb-desc">Scratchpad</span>
+        </div>
+        <div class="kb-row">
+          <span class="kb-key">p</span><span class="kb-desc">Clock &amp; pomodoro</span>
+        </div>
+        <div class="kb-row">
+          <span class="kb-key">d</span><span class="kb-desc">Todo list</span>
+        </div>
+        <div class="kb-row">
+          <span class="kb-key">h</span><span class="kb-desc">Hacker News</span>
+        </div>
+        <div class="kb-row">
+          <span class="kb-key">= 2*3</span><span class="kb-desc">Calculator; "= 5 km to mi" converts units (Enter copies)</span>
+        </div>
+        <div class="kb-row">
+          <span class="kb-key">&uarr; / &darr;</span><span class="kb-desc">Search history (in search box)</span>
+        </div>
+        <div class="kb-row">
+          <span class="kb-key">t</span><span class="kb-desc">Cycle color theme</span>
         </div>
         <div class="kb-row">
           <span class="kb-key">?</span
@@ -85,6 +107,8 @@
           />
         </div>
       </form>
+      <ul id="bang-suggest" class="glass-panel" hidden></ul>
+      <div id="calc-result" class="glass-panel" hidden></div>
     </div>
 
     <div class="quicklines-box glass-panel">
@@ -271,6 +295,23 @@
       >
         <span class="sys-label">WEATHER:</span>
         <span id="weather-val">...</span>
+      </div>
+      <div class="sys-item info-clickable" id="todo-container" title="Todo list (d)">
+        <span class="sys-label">TODO:</span> <span id="todo-val">0</span>
+      </div>
+      <div class="sys-item info-clickable" id="notes-container" title="Scratchpad (s)">
+        <span class="sys-label">NOTES</span>
+      </div>
+      <div
+        class="sys-item info-clickable"
+        id="github-container"
+        title="Click for recent repos"
+      >
+        <span class="sys-label">GITHUB:</span>
+        <span id="github-val">...</span>
+      </div>
+      <div class="sys-item info-clickable" id="hn-container" title="Hacker News front page (h)">
+        <span class="sys-label">HN</span>
       </div>
       <div
         class="sys-item info-clickable"

@@ -1,10 +1,26 @@
+const REDUCED_MOTION = window.matchMedia(
+  "(prefers-reduced-motion: reduce)",
+).matches;
+
 /* ---- MATRIX RAIN ---- */
 let matrixRainVisibility;
 (function () {
   const canvas = document.getElementById("matrix-canvas");
   const ctx = canvas.getContext("2d");
 
-  const colors = ["#b8bb26", "#8ec07c", "#fe8019", "#fabd2f", "#83a598"];
+  let colors = [];
+  let fade = "rgba(29, 32, 33, 0.055)";
+
+  // Pull rain colors from the active theme's CSS variables.
+  function readTheme() {
+    const cs = getComputedStyle(document.documentElement);
+    const v = (n) => cs.getPropertyValue(n).trim();
+    colors = [v("--green"), v("--aqua"), v("--orange"), v("--yellow"), v("--blue")];
+    const n = parseInt(v("--bg0-h").replace("#", ""), 16);
+    if (!isNaN(n)) fade = `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, 0.055)`;
+  }
+  readTheme();
+  window.addEventListener("themechange", readTheme);
   const fontSize = 14;
   const INTERVAL_MS = 45;
   const STORAGE_KEY = "matrix_state";
@@ -61,7 +77,7 @@ let matrixRainVisibility;
   }
 
   function draw() {
-    ctx.fillStyle = "rgba(29, 32, 33, 0.055)";
+    ctx.fillStyle = fade;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.font = fontSize + "px 'JetBrains Mono', monospace";
 
@@ -100,13 +116,15 @@ let matrixRainVisibility;
   window.addEventListener("pagehide", saveState);
   window.addEventListener("beforeunload", saveState);
 
-  let drawTimer = setInterval(draw, INTERVAL_MS);
+  // Reduced motion: keep the pre-warmed static frame, don't animate.
+  let drawTimer = REDUCED_MOTION ? null : setInterval(draw, INTERVAL_MS);
   matrixRainVisibility = {
     pause() {
       clearInterval(drawTimer);
       saveState();
     },
     resume() {
+      if (REDUCED_MOTION) return;
       drawTimer = setInterval(draw, INTERVAL_MS);
     },
   };
@@ -214,6 +232,11 @@ let loadedPhrases = [];
 
 let typeAnimationGen = 0;
 function typeText(el, text, speed, onDone) {
+  if (REDUCED_MOTION) {
+    el.textContent = text;
+    if (onDone) onDone();
+    return;
+  }
   const myGen = ++typeAnimationGen;
   el.textContent = "";
   const cursor = document.createElement("span");
@@ -340,7 +363,12 @@ function updateClock() {
     const formatted = formatDuration(remaining);
     timerHtml = ` <span id="timer-status" style="color: var(--accent); margin-left: 8px;">⏳ ${formatted}</span>`;
   }
-  document.getElementById("datetime").innerHTML = timeStr + timerHtml;
+  let pomoHtml = "";
+  if (pomo.running || pomoRemaining() < pomoDuration(pomo.phase)) {
+    const t = formatDuration(pomoRemaining()).replace(/^00:/, "");
+    pomoHtml = ` <span class="pomo-${pomo.phase}" style="margin-left: 8px;">${pomo.phase === "work" ? "\u{1F345}" : "\u2615"} ${pomo.running ? "" : "\u23f8 "}${t}</span>`;
+  }
+  document.getElementById("datetime").innerHTML = timeStr + timerHtml + pomoHtml;
 
   const greet =
     h < 12 ? "Good Morning" : h < 17 ? "Good Afternoon" : "Good Evening";
@@ -954,6 +982,7 @@ function positionPopover(triggerEl) {
   const gap = 10;
   const margin = 8;
 
+  popover.style.maxHeight = "";
   popover.style.top = "0px";
   popover.style.bottom = "";
   popover.style.left = "0px";
@@ -962,6 +991,8 @@ function positionPopover(triggerEl) {
   const spaceBelow = window.innerHeight - rect.bottom;
   const placeBelow =
     rect.top < window.innerHeight / 2 || spaceBelow > popRect.height + gap;
+  const avail = (placeBelow ? spaceBelow : rect.top) - gap - margin;
+  popover.style.maxHeight = `${Math.max(120, avail)}px`;
 
   if (placeBelow) {
     popover.style.top = `${rect.bottom + gap}px`;
@@ -1003,6 +1034,18 @@ async function renderPopoverContent(key, popover) {
   switch (key) {
     case "weather":
       await renderWeatherPopover(popover);
+      break;
+    case "notes":
+      renderNotesPopover(popover);
+      break;
+    case "todo":
+      renderTodoPopover(popover);
+      break;
+    case "hn":
+      await renderHnPopover(popover);
+      break;
+    case "github":
+      await renderGithubPopover(popover);
       break;
     case "ping":
       renderPingPopover(popover);
@@ -1136,6 +1179,402 @@ async function renderWeatherPopover(popover) {
       body.textContent = "Forecast unavailable";
     }
   }
+}
+
+/* ---- GITHUB REPOS (ported from portfolio github.js) ---- */
+const GH_USER = "indyleo";
+const GH_CACHE_KEY = "gh_repos_cache";
+const GH_TTL_MS = 30 * 60 * 1000;
+
+function ghAgo(iso) {
+  const days = Math.floor((Date.now() - new Date(iso)) / 864e5);
+  if (days < 1) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 30) return days + "d ago";
+  const months = Math.floor(days / 30);
+  if (months < 12) return months + "mo ago";
+  return Math.floor(months / 12) + "y ago";
+}
+
+function getCachedRepos() {
+  try {
+    const c = JSON.parse(localStorage.getItem(GH_CACHE_KEY));
+    if (c && Array.isArray(c.value) && c.ts) return c;
+  } catch (_) {}
+  return null;
+}
+
+async function fetchRepos() {
+  const cached = getCachedRepos();
+  if (cached && Date.now() - cached.ts < GH_TTL_MS) return cached.value;
+  try {
+    const res = await fetch(
+      `https://api.github.com/users/${GH_USER}/repos?sort=pushed&per_page=100`,
+    );
+    if (!res.ok) throw new Error();
+    const repos = (await res.json())
+      .filter((r) => !r.fork)
+      .map((r) => ({
+        name: r.name,
+        url: r.html_url,
+        lang: r.language || "",
+        stars: r.stargazers_count,
+        pushed: r.pushed_at,
+      }));
+    try {
+      localStorage.setItem(
+        GH_CACHE_KEY,
+        JSON.stringify({ value: repos, ts: Date.now() }),
+      );
+    } catch (_) {}
+    return repos;
+  } catch (_) {
+    return cached ? cached.value : null; // stale beats nothing
+  }
+}
+
+async function initGithub() {
+  const repos = await fetchRepos();
+  const container = document.getElementById("github-container");
+  if (!repos) return container.classList.add("hidden");
+  document.getElementById("github-val").textContent = `${repos.length} repos`;
+}
+
+async function renderGithubPopover(popover) {
+  addPopoverTitle(popover, `Recent repos \u2014 ${GH_USER}`);
+  const body = document.createElement("div");
+  body.className = "popover-kv";
+  popover.appendChild(body);
+  body.textContent = "Loading\u2026";
+  const repos = await fetchRepos();
+  if (activePopover !== "github") return;
+  body.textContent = "";
+  if (!repos || !repos.length) {
+    body.className = "popover-empty";
+    body.textContent = "Repos unavailable (offline or rate limited)";
+    return;
+  }
+  repos.slice(0, 8).forEach((r) => {
+    const row = document.createElement("div");
+    row.className = "kv-row";
+    const a = document.createElement("a");
+    a.href = r.url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = r.name;
+    const meta = document.createElement("span");
+    meta.className = "kv-label";
+    meta.textContent = [r.lang, r.stars ? "\u2605 " + r.stars : "", ghAgo(r.pushed)]
+      .filter(Boolean)
+      .join(" \u00b7 ");
+    row.append(a, meta);
+    body.appendChild(row);
+  });
+}
+
+/* ---- POMODORO (reuses the alarm's beep, ring style, notification and formatDuration) ---- */
+const POMO_KEY = "pomodoro";
+const POMO_CFG = { work: 25, short: 5, long: 15, every: 4 }; // minutes; long break every N sessions
+const POMO_LABELS = { work: "Focus", short: "Break", long: "Long break" };
+const pomoDuration = (phase) => POMO_CFG[phase] * 60000;
+
+function loadPomo() {
+  try {
+    const s = JSON.parse(localStorage.getItem(POMO_KEY));
+    if (s && POMO_LABELS[s.phase]) {
+      return {
+        phase: s.phase,
+        running: !!s.running,
+        targetEpoch: s.targetEpoch || null,
+        remainingMs: s.remainingMs || pomoDuration(s.phase),
+        done: s.done | 0,
+      };
+    }
+  } catch (_) {}
+  return { phase: "work", running: false, targetEpoch: null, remainingMs: pomoDuration("work"), done: 0 };
+}
+let pomo = loadPomo();
+
+function savePomo() {
+  try {
+    localStorage.setItem(POMO_KEY, JSON.stringify(pomo));
+  } catch (_) {}
+}
+function pomoRemaining() {
+  return pomo.running ? Math.max(0, pomo.targetEpoch - Date.now()) : pomo.remainingMs;
+}
+
+function pomoRender(fromTick) {
+  const rem = pomoRemaining();
+  const t = formatDuration(rem).replace(/^00:/, "");
+  const idle = !pomo.running && rem >= pomoDuration(pomo.phase);
+  document.title = pomo.running ? `${t} ${POMO_LABELS[pomo.phase]} \u00b7 Start Page` : "Start Page";
+  if (!fromTick) updateClock();
+  const big = document.getElementById("pomo-big");
+  if (activePopover === "clock" && big) {
+    document.getElementById("pomo-phase").textContent = `${POMO_LABELS[pomo.phase]} \u00b7 ${pomo.done} done`;
+    big.textContent = t;
+    big.className = "pomo-big pomo-" + pomo.phase;
+    document.getElementById("pomo-toggle").textContent = pomo.running ? "Pause" : idle ? "Start" : "Resume";
+  }
+}
+
+function pomoStart() {
+  if (pomo.running) return;
+  pomo.targetEpoch = Date.now() + pomo.remainingMs;
+  pomo.running = true;
+  savePomo();
+  if (typeof Notification !== "undefined" && Notification.permission === "default") {
+    Notification.requestPermission().catch(() => {});
+  }
+  pomoRender();
+}
+function pomoPause() {
+  if (!pomo.running) return;
+  pomo.remainingMs = pomoRemaining();
+  pomo.running = false;
+  pomo.targetEpoch = null;
+  savePomo();
+  pomoRender();
+}
+function pomoSetPhase(phase) {
+  pomo.phase = phase;
+  pomo.remainingMs = pomoDuration(phase);
+  pomo.running = false;
+  pomo.targetEpoch = null;
+  savePomo();
+  pomoRender();
+}
+function pomoNextPhase() {
+  if (pomo.phase !== "work") return "work";
+  return (pomo.done + 1) % POMO_CFG.every === 0 ? "long" : "short";
+}
+function pomoSkip() {
+  pomoSetPhase(pomoNextPhase());
+}
+function pomoReset() {
+  pomo.done = 0;
+  pomoSetPhase("work");
+}
+
+// silent = finished while the page was closed: advance without beeping.
+function pomoComplete(silent) {
+  const finished = pomo.phase;
+  const next = pomoNextPhase();
+  if (finished === "work") pomo.done++;
+  pomoSetPhase(next);
+  if (silent) return;
+  beepAlarm();
+  document.getElementById("datetime")?.classList.add("alarm-ringing");
+  setTimeout(stopAlarmRinging, 10000);
+  if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+    new Notification("Pomodoro", {
+      body: finished === "work" ? `Focus done. Time for a ${POMO_LABELS[next].toLowerCase()}.` : "Break over. Ready to focus?",
+    });
+  }
+}
+
+function pomoTick() {
+  if (pomo.running && Date.now() >= pomo.targetEpoch) pomoComplete(false);
+  else if (pomo.running || activePopover === "clock") pomoRender(true);
+}
+
+function renderPomoSection(popover) {
+  const phase = document.createElement("div");
+  phase.className = "pomo-phase";
+  phase.id = "pomo-phase";
+  const big = document.createElement("div");
+  big.id = "pomo-big";
+  const btns = document.createElement("div");
+  btns.className = "pomo-btns";
+  const mk = (id, text, fn) => {
+    const b = document.createElement("button");
+    b.className = "alarm-action-btn";
+    if (id) b.id = id;
+    b.textContent = text;
+    b.addEventListener("click", fn);
+    return b;
+  };
+  btns.append(
+    mk("pomo-toggle", "Start", () => (pomo.running ? pomoPause() : pomoStart())),
+    mk("", "Skip", pomoSkip),
+    mk("", "Reset", pomoReset),
+  );
+  const note = document.createElement("div");
+  note.className = "pomo-phase";
+  note.style.marginTop = "8px";
+  note.textContent = `${POMO_CFG.work}/${POMO_CFG.short} min, long break (${POMO_CFG.long}) every ${POMO_CFG.every}`;
+  popover.append(phase, big, btns, note);
+  pomoRender(true);
+}
+
+/* ---- SCRATCHPAD ---- */
+const NOTES_KEY = "scratchpad";
+
+function renderNotesPopover(popover) {
+  addPopoverTitle(popover, "Scratchpad");
+  const area = document.createElement("textarea");
+  area.className = "scratch-area";
+  area.spellcheck = false;
+  area.placeholder = "Anything. Saved automatically.";
+  try {
+    area.value = localStorage.getItem(NOTES_KEY) || "";
+  } catch (_) {}
+  area.addEventListener("input", () => {
+    try {
+      localStorage.setItem(NOTES_KEY, area.value);
+    } catch (_) {}
+  });
+  popover.appendChild(area);
+  setTimeout(() => area.focus(), 0);
+}
+
+/* ---- TODO ---- */
+const TODO_KEY = "todos";
+
+function loadTodos() {
+  try {
+    const t = JSON.parse(localStorage.getItem(TODO_KEY));
+    if (Array.isArray(t)) return t;
+  } catch (_) {}
+  return [];
+}
+function saveTodos(todos) {
+  try {
+    localStorage.setItem(TODO_KEY, JSON.stringify(todos));
+  } catch (_) {}
+  updateTodoCount(todos);
+}
+function updateTodoCount(todos = loadTodos()) {
+  document.getElementById("todo-val").textContent = todos.filter(
+    (t) => !t.done,
+  ).length;
+}
+
+function renderTodoPopover(popover) {
+  addPopoverTitle(popover, "Todo");
+  const input = document.createElement("input");
+  input.className = "todo-input";
+  input.placeholder = "Add a task, press Enter";
+  input.autocomplete = "off";
+  const list = document.createElement("ul");
+  list.className = "todo-list";
+  popover.append(input, list);
+
+  function draw() {
+    const todos = loadTodos();
+    list.textContent = "";
+    todos.forEach((t, i) => {
+      const li = document.createElement("li");
+      if (t.done) li.classList.add("done");
+      const box = document.createElement("input");
+      box.type = "checkbox";
+      box.checked = t.done;
+      box.addEventListener("change", () => {
+        todos[i].done = box.checked;
+        saveTodos(todos);
+        draw();
+      });
+      const label = document.createElement("span");
+      label.textContent = t.text;
+      const del = document.createElement("button");
+      del.className = "todo-del";
+      del.textContent = "\u00d7";
+      del.title = "Delete";
+      del.addEventListener("click", () => {
+        todos.splice(i, 1);
+        saveTodos(todos);
+        draw();
+      });
+      li.append(box, label, del);
+      list.appendChild(li);
+    });
+    if (!todos.length) {
+      const empty = document.createElement("li");
+      empty.className = "popover-empty";
+      empty.textContent = "Nothing to do";
+      list.appendChild(empty);
+    }
+    if (activePopoverTrigger) positionPopover(activePopoverTrigger);
+  }
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" || !input.value.trim()) return;
+    const todos = loadTodos();
+    todos.push({ text: input.value.trim(), done: false });
+    saveTodos(todos);
+    input.value = "";
+    draw();
+  });
+  draw();
+  setTimeout(() => input.focus(), 0);
+}
+
+/* ---- HACKER NEWS ---- */
+const HN_CACHE_KEY = "hn_cache";
+const HN_TTL_MS = 10 * 60 * 1000;
+
+async function fetchHn() {
+  let cached = null;
+  try {
+    cached = JSON.parse(localStorage.getItem(HN_CACHE_KEY));
+  } catch (_) {}
+  if (cached && Date.now() - cached.ts < HN_TTL_MS) return cached.value;
+  try {
+    const res = await fetch(
+      "https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=10",
+    );
+    if (!res.ok) throw new Error();
+    const hits = (await res.json()).hits.map((h) => ({
+      id: h.objectID,
+      title: h.title,
+      url: h.url,
+      points: h.points,
+      comments: h.num_comments,
+    }));
+    try {
+      localStorage.setItem(
+        HN_CACHE_KEY,
+        JSON.stringify({ value: hits, ts: Date.now() }),
+      );
+    } catch (_) {}
+    return hits;
+  } catch (_) {
+    return cached ? cached.value : null;
+  }
+}
+
+async function renderHnPopover(popover) {
+  addPopoverTitle(popover, "Hacker News");
+  const body = document.createElement("div");
+  body.textContent = "Loading\u2026";
+  popover.appendChild(body);
+  const items = await fetchHn();
+  if (activePopover !== "hn") return;
+  body.textContent = "";
+  if (!items || !items.length) {
+    body.className = "popover-empty";
+    body.textContent = "Front page unavailable";
+    return;
+  }
+  const hnLink = (href, text) => {
+    const a = document.createElement("a");
+    a.href = href;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = text;
+    return a;
+  };
+  items.forEach((it) => {
+    const discuss = `https://news.ycombinator.com/item?id=${it.id}`;
+    const row = document.createElement("div");
+    row.className = "hn-row";
+    const meta = document.createElement("span");
+    meta.className = "hn-meta";
+    meta.append(`${it.points ?? 0} pts \u00b7 `, hnLink(discuss, `${it.comments ?? 0} comments`));
+    row.append(hnLink(it.url || discuss, it.title), meta);
+    body.appendChild(row);
+  });
 }
 
 /* ---- PING ---- */
@@ -1424,21 +1863,47 @@ function renderBatteryPopover(popover) {
 }
 
 /* ---- CLOCK POPOVER (Calendar & Alarm) ---- */
+let clockTab = "calendar";
+
 function renderClockPopover(popover) {
-  addPopoverTitle(popover, "Calendar & Clock");
-  const kv = document.createElement("div");
-  kv.className = "popover-kv";
-  kv.id = "world-clock-rows";
-  popover.appendChild(kv);
-  updateWorldClockRows();
+  const tabs = document.createElement("div");
+  tabs.className = "toggle-group clock-tabs";
+  [
+    ["calendar", "Calendar"],
+    ["alarm", "Alarm"],
+    ["pomo", "Pomodoro"],
+  ].forEach(([key, label]) => {
+    const opt = document.createElement("span");
+    opt.className = "toggle-option";
+    opt.textContent = label;
+    if (clockTab === key) opt.classList.add("active");
+    opt.addEventListener("click", () => {
+      clockTab = key;
+      renderPopoverContent("clock", popover);
+      if (activePopoverTrigger) positionPopover(activePopoverTrigger);
+    });
+    tabs.appendChild(opt);
+  });
+  popover.appendChild(tabs);
 
-  const calendarContainer = document.createElement("div");
-  popover.appendChild(calendarContainer);
-  renderCalendar(calendarContainer);
+  const body = document.createElement("div");
+  popover.appendChild(body);
 
-  const alarmContainer = document.createElement("div");
-  popover.appendChild(alarmContainer);
-  renderUnifiedAlarm(alarmContainer);
+  if (clockTab === "calendar") {
+    const calendarContainer = document.createElement("div");
+    body.appendChild(calendarContainer);
+    renderCalendar(calendarContainer);
+    const kv = document.createElement("div");
+    kv.id = "world-clock-rows";
+    body.appendChild(kv);
+    updateWorldClockRows();
+  } else if (clockTab === "alarm") {
+    const alarmContainer = document.createElement("div");
+    body.appendChild(alarmContainer);
+    renderUnifiedAlarm(alarmContainer);
+  } else {
+    renderPomoSection(body);
+  }
 }
 
 function updateWorldClockRows() {
@@ -1457,7 +1922,10 @@ function updateWorldClockRows() {
     } catch (_) {
       time = "\u2014";
     }
-    addKvRow(kv, label, time);
+    const chip = document.createElement("span");
+    chip.className = "wc-chip";
+    chip.textContent = `${label} ${time}`;
+    kv.appendChild(chip);
   });
 }
 
@@ -1655,6 +2123,16 @@ function handleSearchSubmit(e) {
   const raw = searchInput.value.trim();
   if (!raw) return;
 
+  if (raw.startsWith("=")) {
+    e.preventDefault();
+    try {
+      copyToClipboard(calcRun(raw));
+      calcEl.textContent = "= " + calcRun(raw) + "   copied";
+    } catch (_) {}
+    return;
+  }
+  pushHistory(raw);
+
   const match = raw.match(/^!(\S+)(?:\s+(.*))?$/);
   if (!match) return;
 
@@ -1686,6 +2164,247 @@ searchInput.addEventListener("input", () => {
   }
 });
 
+/* ---- CALCULATOR & UNIT CONVERTER (type "= expr") ---- */
+const CALC_CONSTS = { pi: Math.PI, e: Math.E };
+const CALC_FUNCS = {
+  sqrt: Math.sqrt, abs: Math.abs, sin: Math.sin, cos: Math.cos,
+  tan: Math.tan, ln: Math.log, log: Math.log10, floor: Math.floor,
+  ceil: Math.ceil, round: Math.round,
+};
+const UNITS = {
+  m: ["len", 1], km: ["len", 1000], cm: ["len", 0.01], mm: ["len", 0.001],
+  mi: ["len", 1609.344], ft: ["len", 0.3048], in: ["len", 0.0254], yd: ["len", 0.9144],
+  g: ["mass", 1], kg: ["mass", 1000], lb: ["mass", 453.59237], oz: ["mass", 28.349523],
+  ml: ["vol", 1], l: ["vol", 1000], gal: ["vol", 3785.411784], cup: ["vol", 236.588],
+  s: ["time", 1], min: ["time", 60], h: ["time", 3600], d: ["time", 86400],
+  c: ["temp"], f: ["temp"], k: ["temp"],
+};
+const UNIT_ALIASES = {
+  mile: "mi", miles: "mi", feet: "ft", foot: "ft", inch: "in", inches: "in",
+  pound: "lb", pounds: "lb", lbs: "lb", ounce: "oz", ounces: "oz",
+  kilo: "kg", kilos: "kg", gallon: "gal", gallons: "gal", liter: "l",
+  liters: "l", litre: "l", litres: "l", hour: "h", hours: "h", hr: "h",
+  minute: "min", minutes: "min", mins: "min", day: "d", days: "d",
+  sec: "s", second: "s", seconds: "s", celsius: "c", fahrenheit: "f", kelvin: "k",
+  meter: "m", meters: "m", metre: "m", metres: "m",
+};
+
+function calcMath(str) {
+  const s = str.toLowerCase().replace(/\s+/g, "").replace(/\u00d7/g, "*").replace(/\u00f7/g, "/");
+  let i = 0;
+  const fail = () => { throw new Error("bad expression"); };
+  const expect = (ch) => { if (s[i++] !== ch) fail(); };
+  function primary() {
+    if (s[i] === "(") { i++; const v = expr(); expect(")"); return v; }
+    const word = /^[a-z]+/.exec(s.slice(i));
+    if (word) {
+      i += word[0].length;
+      if (word[0] in CALC_CONSTS) return CALC_CONSTS[word[0]];
+      if (word[0] in CALC_FUNCS && s[i] === "(") {
+        i++; const v = expr(); expect(")"); return CALC_FUNCS[word[0]](v);
+      }
+      fail();
+    }
+    const n = /^(\d+\.?\d*|\.\d+)(e[+-]?\d+)?/.exec(s.slice(i));
+    if (!n) fail();
+    i += n[0].length;
+    return parseFloat(n[0]);
+  }
+  function power() {
+    const b = primary();
+    if (s[i] === "^") { i++; return Math.pow(b, unary()); }
+    return b;
+  }
+  function unary() {
+    if (s[i] === "-") { i++; return -unary(); }
+    if (s[i] === "+") { i++; return unary(); }
+    return power();
+  }
+  function term() {
+    let v = unary();
+    while (s[i] === "*" || s[i] === "/" || s[i] === "%") {
+      const op = s[i++];
+      const r = unary();
+      v = op === "*" ? v * r : op === "/" ? v / r : v % r;
+    }
+    return v;
+  }
+  function expr() {
+    let v = term();
+    while (s[i] === "+" || s[i] === "-") v = s[i++] === "+" ? v + term() : v - term();
+    return v;
+  }
+  const v = expr();
+  if (i !== s.length || !isFinite(v)) fail();
+  return v;
+}
+
+function calcConvert(m) {
+  const val = parseFloat(m[1]);
+  const norm = (u) => UNIT_ALIASES[u] || u;
+  const from = norm(m[2]);
+  const to = norm(m[3]);
+  const a = UNITS[from];
+  const b = UNITS[to];
+  if (!a || !b || a[0] !== b[0]) throw new Error("can't convert");
+  if (a[0] === "temp") {
+    const c = from === "c" ? val : from === "f" ? ((val - 32) * 5) / 9 : val - 273.15;
+    return to === "c" ? c : to === "f" ? (c * 9) / 5 + 32 : c + 273.15;
+  }
+  return (val * a[1]) / b[1];
+}
+
+function calcFormat(v) {
+  return String(parseFloat(v.toPrecision(10)));
+}
+
+// Returns the formatted result string, or throws.
+function calcRun(raw) {
+  const src = raw.replace(/^=\s*/, "").trim();
+  if (!src) throw new Error("");
+  const conv = /^(-?\d*\.?\d+(?:e[+-]?\d+)?)\s*([a-z]+)\s+(?:to|in|as)\s+([a-z]+)$/i.exec(src);
+  return calcFormat(conv ? calcConvert(conv) : calcMath(src));
+}
+
+const calcEl = document.getElementById("calc-result");
+function updateCalcPreview() {
+  const v = searchInput.value;
+  if (!v.startsWith("=")) {
+    calcEl.hidden = true;
+    return;
+  }
+  calcEl.hidden = false;
+  try {
+    calcEl.textContent = "= " + calcRun(v) + "   (Enter to copy)";
+    calcEl.classList.remove("err");
+  } catch (_) {
+    calcEl.textContent = v.slice(1).trim() ? "\u2026" : "Type an expression, e.g. = 2*3 or = 5 km to mi";
+    calcEl.classList.add("err");
+  }
+}
+
+function copyToClipboard(text) {
+  const fallback = () => {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.cssText = "position:fixed;opacity:0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+  };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).catch(fallback);
+  } else {
+    fallback();
+  }
+}
+
+/* ---- BANG AUTOCOMPLETE ---- */
+const bangEl = document.getElementById("bang-suggest");
+let bangSel = 0;
+let bangMatches = [];
+
+function hideBangSuggest() {
+  bangEl.hidden = true;
+  bangMatches = [];
+}
+
+function completeBang(key) {
+  searchInput.value = "!" + key + " ";
+  hideBangSuggest();
+  searchInput.focus();
+  searchInput.setCustomValidity("");
+}
+
+function updateBangSuggest() {
+  const m = /^!(\S*)$/.exec(searchInput.value);
+  if (!m) return hideBangSuggest();
+  const q = m[1].toLowerCase();
+  bangMatches = Object.keys(BANG_MAP).filter((k) => k.startsWith(q));
+  if (!bangMatches.length || (bangMatches.length === 1 && bangMatches[0] === q)) {
+    return hideBangSuggest();
+  }
+  bangSel = Math.min(bangSel, bangMatches.length - 1);
+  bangEl.textContent = "";
+  bangMatches.forEach((k, i) => {
+    const li = document.createElement("li");
+    if (i === bangSel) li.classList.add("sel");
+    const key = document.createElement("span");
+    key.className = "kb-key";
+    key.textContent = "!" + k;
+    const label = document.createElement("span");
+    label.textContent = BANG_MAP[k].label;
+    li.append(key, label);
+    li.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      completeBang(k);
+    });
+    bangEl.appendChild(li);
+  });
+  bangEl.hidden = false;
+}
+
+/* ---- SEARCH HISTORY ---- */
+const HISTORY_KEY = "search_history";
+const HISTORY_MAX = 50;
+let historyIdx = -1;
+let historyDraft = "";
+
+function loadHistory() {
+  try {
+    const h = JSON.parse(localStorage.getItem(HISTORY_KEY));
+    if (Array.isArray(h)) return h;
+  } catch (_) {}
+  return [];
+}
+function pushHistory(raw) {
+  const h = loadHistory().filter((x) => x !== raw);
+  h.unshift(raw);
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0, HISTORY_MAX)));
+  } catch (_) {}
+}
+
+searchInput.addEventListener("input", () => {
+  historyIdx = -1;
+  updateCalcPreview();
+  bangSel = 0;
+  updateBangSuggest();
+});
+searchInput.addEventListener("blur", hideBangSuggest);
+
+searchInput.addEventListener("keydown", (e) => {
+  const suggesting = !bangEl.hidden && bangMatches.length;
+  if (suggesting && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+    e.preventDefault();
+    const n = bangMatches.length;
+    bangSel = (bangSel + (e.key === "ArrowDown" ? 1 : n - 1)) % n;
+    updateBangSuggest();
+    return;
+  }
+  if (suggesting && (e.key === "Tab" || (e.key === "Enter" && searchInput.value !== "!" + bangMatches[bangSel]))) {
+    e.preventDefault();
+    completeBang(bangMatches[bangSel]);
+    return;
+  }
+  if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+    const h = loadHistory();
+    if (!h.length) return;
+    e.preventDefault();
+    if (e.key === "ArrowUp") {
+      if (historyIdx === -1) historyDraft = searchInput.value;
+      historyIdx = Math.min(historyIdx + 1, h.length - 1);
+    } else {
+      historyIdx = Math.max(historyIdx - 1, -1);
+    }
+    searchInput.value = historyIdx === -1 ? historyDraft : h[historyIdx];
+    searchInput.setCustomValidity("");
+    updateCalcPreview();
+    hideBangSuggest();
+  }
+});
+
 /* ---- KEYBIND OVERLAY ---- */
 const overlay = document.getElementById("keybind-overlay");
 function toggleOverlay() {
@@ -1699,6 +2418,10 @@ overlay.addEventListener("click", (e) => {
 loadTextFiles();
 initSysInfo();
 initWeather();
+initGithub();
+updateTodoCount();
+if (pomo.running && Date.now() >= pomo.targetEpoch) pomoComplete(true);
+pomoRender(true);
 initBattery();
 measurePing();
 updateUptime();
@@ -1727,6 +2450,7 @@ document.addEventListener("visibilitychange", () => {
 setInterval(() => {
   updateClock();
   updateUptime();
+  pomoTick();
   if (
     alarmState.active &&
     alarmState.targetEpoch &&
@@ -1750,6 +2474,10 @@ window.onload = () => searchInput.focus();
 const popoverTriggers = [
   { key: "browser", el: document.getElementById("browser-container") },
   { key: "weather", el: document.getElementById("weather-container") },
+  { key: "notes", el: document.getElementById("notes-container") },
+  { key: "todo", el: document.getElementById("todo-container") },
+  { key: "hn", el: document.getElementById("hn-container") },
+  { key: "github", el: document.getElementById("github-container") },
   { key: "ping", el: document.getElementById("ping-container") },
   { key: "uptime", el: document.getElementById("uptime-container") },
   { key: "battery", el: document.getElementById("battery-container") },
@@ -1762,7 +2490,8 @@ popoverTriggers.forEach(({ key, el }) => {
 document.addEventListener("click", (e) => {
   if (!activePopover) return;
   const popover = document.getElementById("info-popover");
-  if (popover.contains(e.target)) return;
+  // composedPath survives the target being removed mid-click (todo delete)
+  if (popover.contains(e.target) || e.composedPath().includes(popover)) return;
   if (popoverTriggers.some(({ el }) => el.contains(e.target))) return;
   closePopover();
 });
@@ -1770,6 +2499,9 @@ document.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => {
   const active = document.activeElement;
   const inSearch = active === searchInput;
+  const typing =
+    inSearch ||
+    (active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA"));
 
   if (hintModeActive) {
     handleHintKeydown(e);
@@ -1784,27 +2516,58 @@ document.addEventListener("keydown", (e) => {
     closePopover();
     if (inSearch) {
       searchInput.value = "";
+      calcEl.hidden = true;
+      hideBangSuggest();
       searchInput.blur();
+    } else if (typing) {
+      active.blur();
     }
     return;
   }
-  if (e.key === "?" && !inSearch) {
+  if (e.key === "?" && !typing) {
     e.preventDefault();
     toggleOverlay();
     return;
   }
-  if (e.key === "/" && !inSearch) {
+  if (e.key === "/" && !typing) {
     e.preventDefault();
     searchInput.focus();
     return;
   }
-  if (e.key === "f" && !inSearch && !overlay.classList.contains("visible")) {
+  if (e.key === "f" && !typing && !overlay.classList.contains("visible")) {
     e.preventDefault();
     activateHintMode();
     return;
   }
-  if (e.key === "n" && !inSearch && !overlay.classList.contains("visible")) {
+  if (e.key === "n" && !typing && !overlay.classList.contains("visible")) {
     e.preventDefault();
     rerollGreeting();
+    return;
+  }
+  if (e.key === "t" && !typing && !overlay.classList.contains("visible")) {
+    e.preventDefault();
+    window.cycleTheme();
+    return;
+  }
+  const popKeys = {
+    s: ["notes", "notes-container"],
+    d: ["todo", "todo-container"],
+    h: ["hn", "hn-container"],
+  };
+  if (e.key === "p" && !typing && !e.ctrlKey && !e.metaKey && !e.altKey && !overlay.classList.contains("visible")) {
+    e.preventDefault();
+    const wasOnPomo = clockTab === "pomo";
+    clockTab = "pomo";
+    if (activePopover === "clock" && !wasOnPomo) {
+      renderPopoverContent("clock", document.getElementById("info-popover"));
+      positionPopover(activePopoverTrigger);
+    } else {
+      openPopover("clock", document.getElementById("datetime"));
+    }
+    return;
+  }
+  if (popKeys[e.key] && !typing && !e.ctrlKey && !e.metaKey && !e.altKey && !overlay.classList.contains("visible")) {
+    e.preventDefault();
+    openPopover(popKeys[e.key][0], document.getElementById(popKeys[e.key][1]));
   }
 });

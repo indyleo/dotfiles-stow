@@ -27,6 +27,24 @@ matrix-rain flavor. Plain HTML/CSS/JS, no build step, no dependencies.
   fail to load.
 - **Matrix rain background**, paused automatically while the tab is hidden,
   and its animation state is persisted across reloads.
+- **Themes** — Gruvbox (default), Nord, Catppuccin and Tokyo Night. Press `t`
+  to cycle; the choice is saved in `localStorage` and the matrix rain follows
+  the active palette.
+- **GitHub popover** — click `GITHUB:` in the info bar for your most recently
+  pushed repos (cached 30 min; fails silently when offline or rate limited).
+- **Reduced motion** — with `prefers-reduced-motion`, the greeting appears
+  instantly and the matrix rain is a static frame.
+- **Search extras** — type `!` for bang autocomplete (↑/↓ to pick, Tab or Enter
+  to complete), ↑/↓ in the search box recalls history (last 50), and `= 2*3`
+  or `= 5 km to mi` evaluates math/unit conversions inline (Enter copies the
+  result).
+- **Clock popover** has three tabs (Calendar with a compact world clock, Alarm,
+  Pomodoro). The **Pomodoro** tab opens with `p`:
+  25/5 with a long break every 4, reusing the alarm's beep, ring effect and
+  notification. A live countdown shows next to the clock while it runs.
+- **Todo list** (`d`), **scratchpad** (`s`) and **Hacker News** front page
+  (`h`) are popovers from the info bar, saved in `localStorage` (HN cached
+  10 min).
 - **Keybind cheatsheet overlay** (`?`) listing shortcuts and the active bang
   list.
 
@@ -37,6 +55,8 @@ matrix-rain flavor. Plain HTML/CSS/JS, no build step, no dependencies.
 | `/`   | Focus the search bar                                     |
 | `f`   | Jump to a link (hold `Shift` + key to open in a new tab) |
 | `n`   | Reroll the greeting quote/phrase                         |
+| `t`   | Cycle color theme                                        |
+| `p` / `d` / `s` / `h` | Clock+pomodoro / todo / scratchpad / Hacker News popover |
 | `?`   | Toggle the keybind cheatsheet                            |
 | `Esc` | Close overlay / forecast / clear search / exit hint mode |
 
@@ -86,6 +106,7 @@ Markup lives in `index.html`, styling in `style.css`, and behavior in
 | `index.html`             | Markup, plus the CSP meta tag                |
 | `style.css`              | All styling, including the theme variables   |
 | `scripts.js`             | All behavior — clock, search, hints, widgets |
+| `theme.js`               | Theme switcher (loaded in `<head>`)          |
 | `quotes.txt`             | Pool of quotes shown under the greeting      |
 | `randomphrases.txt`      | Pool of short phrases used in the greeting   |
 | `starticon.png`          | Favicon                                      |
