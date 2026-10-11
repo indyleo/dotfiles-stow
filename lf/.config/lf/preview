@@ -35,13 +35,27 @@ cache_key() {
 PRUNE_MARKER="$CACHE_DIR/.last_prune"
 if [[ ! -f "$PRUNE_MARKER" ]] || [[ -n $(find "$PRUNE_MARKER" -mmin +1440 2>/dev/null) ]]; then
     ( find "$CACHE_DIR" -type f -name 'thumbnail.*' -mtime +30 -delete 2>/dev/null
-      touch "$PRUNE_MARKER" ) &
+    touch "$PRUNE_MARKER" ) &
     disown 2>/dev/null
 fi
 
 # Limit long output for performance
 function headlimit() {
     awk -v max="$max_lines" 'NR<=max'
+}
+
+# Run a command and succeed ONLY if it exists, exits 0, and prints something.
+# This is what makes `try a || try b || txtuse` chains actually fall through.
+#
+# Why not `a | headlimit || b`? In a pipeline the exit status is that of the
+# LAST command (awk), which is always 0 -- so a missing/failing `a` produced
+# empty output and the fallbacks never ran.
+function try() {
+    command -v "$1" >/dev/null 2>&1 || return 1
+    local out
+    out="$("$@" 2>/dev/null)" || return 1
+    [[ -n "$out" ]] || return 1
+    printf '%s\n' "$out" | headlimit
 }
 
 # Color-aware text display
@@ -125,7 +139,8 @@ case "${preview,,}" in
         if [ -f "${cache}.jpg" ]; then
             imguse "${cache}.jpg"
         else
-            pdftotext "$preview" - 2>/dev/null | headlimit
+            try pdftotext "$preview" - ||
+            try exiftool "$preview"
         fi
         ;;
 
@@ -176,29 +191,29 @@ case "${preview,,}" in
         ;;
 
     *.torrent)
-        transmission-show "$preview" 2>/dev/null | headlimit ||
-        exiftool "$preview"
+        try transmission-show "$preview" ||
+        try exiftool "$preview"
         ;;
 
     *.iso)
-        iso-info --no-header -l "$preview" 2>/dev/null | headlimit ||
-        isoinfo -d -i "$preview" 2>/dev/null | headlimit ||
-        exiftool "$preview"
+        try iso-info --no-header -l "$preview" ||
+        try isoinfo -d -i "$preview" ||
+        try exiftool "$preview"
         ;;
 
     *.odt|*.ods|*.odp|*.sxw)
-        odt2txt "$preview" 2>/dev/null | headlimit ||
-        exiftool "$preview"
+        try odt2txt "$preview" ||
+        try exiftool "$preview"
         ;;
 
     *.doc)
-        catdoc "$preview" 2>/dev/null | headlimit ||
-        exiftool "$preview"
+        try catdoc "$preview" ||
+        try exiftool "$preview"
         ;;
 
     *.docx)
-        docx2txt "$preview" - 2>/dev/null | headlimit ||
-        unzip -p "$preview" | strings | headlimit
+        try docx2txt "$preview" - ||
+        { unzip -p "$preview" | strings | headlimit; }
         ;;
 
     *.xls|*.xlsx)
@@ -210,18 +225,18 @@ case "${preview,,}" in
         ;;
 
     *.xml|*.html|*.htm)
-        w3m -dump "$preview" 2>/dev/null | headlimit ||
-        lynx -dump "$preview" 2>/dev/null | headlimit ||
-        elinks -dump "$preview" 2>/dev/null | headlimit ||
+        try w3m -dump "$preview" ||
+        try lynx -dump "$preview" ||
+        try elinks -dump "$preview" ||
         txtuse
         ;;
 
     *.json)
-        jq . "$preview" 2>/dev/null | headlimit || txtuse
+        try jq . "$preview" || txtuse
         ;;
 
     *.yaml|*.yml)
-        yq . "$preview" 2>/dev/null | headlimit || txtuse
+        try yq . "$preview" || txtuse
         ;;
 
     *.toml|*.ini|*.conf|*.cfg|*.config|*.lock)
@@ -229,13 +244,13 @@ case "${preview,,}" in
         ;;
 
     *.o|*.obj)
-        nm "$preview" 2>/dev/null | headlimit ||
-        xxd "$preview" | headlimit
+        try nm "$preview" ||
+        { xxd "$preview" | headlimit; }
         ;;
 
     *.bin)
-        xxd "$preview" | headlimit ||
-        hexdump -C "$preview" | headlimit
+        try xxd "$preview" ||
+        try hexdump -C "$preview"
         ;;
 
     *.ino)
@@ -248,13 +263,14 @@ case "${preview,,}" in
         fi
         ;;
 
-    # Default fallback (also covers scripts/code: bash, git*, sh, zsh, py,
-    # c, cpp, h, js, ts, go, rs, css, jsonnet, lua, etc. - txtuse is exactly
-    # what the catch-all below already does, so a separate case for them
-    # was redundant)
+        # Default fallback (also covers scripts/code: bash, git*, sh, zsh, py,
+        # c, cpp, h, js, ts, go, rs, css, jsonnet, lua, etc. - txtuse is exactly
+        # what the catch-all below already does, so a separate case for them
+        # was redundant)
     *)
         txtuse
         ;;
 esac
 
 exit 0
+
