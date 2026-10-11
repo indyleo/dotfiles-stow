@@ -48,22 +48,22 @@ unset _zcompdump
 _comp_options+=(globdots)		# Include hidden files.
 
 # Cached completions for tools that generate them dynamically.
-# Avoids spawning gh/rustup/rbw on every shell startup - only regenerates
-# the cache once a day (or if missing).
+_gen_comp_dir="${XDG_CACHE_HOME:-$HOME/.cache}/zsh-gen-completions"
+fpath=("$_gen_comp_dir" $fpath)
+mkdir -p "$_gen_comp_dir"
+
 _load_gen_completion() {
     local cmd="$1" gen_args="$2"
     command -v "$cmd" >/dev/null 2>&1 || return
-    local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/zsh-completions"
-    local cache="$cache_dir/_$cmd"
-    mkdir -p "$cache_dir"
+    local cache="$_gen_comp_dir/_$cmd"
     if [[ ! -s "$cache" || -n ${cache}(#qN.mh+24) ]]; then
         ${=cmd} ${=gen_args} >| "$cache" 2>/dev/null
     fi
-    [[ -s "$cache" ]] && source "$cache"
 }
 _load_gen_completion gh "completion -s zsh"
 _load_gen_completion rustup "completions zsh"
 _load_gen_completion rbw "gen-completions zsh"
+_load_gen_completion tldr "--print-completion zsh"
 unfunction _load_gen_completion
 
 # vi mode
