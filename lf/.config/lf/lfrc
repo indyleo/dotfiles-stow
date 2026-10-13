@@ -1,3 +1,5 @@
+# SETTINGS #
+
 set previewer ~/.config/lf/preview
 set rulerfile ~/.config/lf/ruler
 set preview true
@@ -11,10 +13,14 @@ set ifs "\n"
 set sixel true
 set info custom
 
-### HOOKS ###
+# HOOKS #
+
+# Show eza details for the selected file in the statusline
 cmd on-select &{{
     lf -remote "send $id set user_statfmt \"$(eza -ld --color=always "$f" | sed 's/\\/\\\\/g;s/"/\\"/g')\""
 }}
+
+# Track the directory in zoxide and show git branch info
 cmd on-cd &{{
     zoxide add "$PWD"
 
@@ -35,6 +41,8 @@ cmd on-cd &{{
     esc_branch=$(printf '%s' "$branch_info" | sed 's/\\/\\\\/g;s/"/\\"/g')
     lf -remote "send $id set user_gitbranch \"$esc_branch\""
 }}
+
+# Attach git status to loaded files as custom info
 cmd on-load &{{
     cd "$(dirname "$1")" || exit 1
     [ "$(git rev-parse --is-inside-git-dir 2>/dev/null)" = false ] || exit 0
@@ -47,7 +55,8 @@ cmd on-load &{{
     lf -remote "send $id :$cmds"
 }}
 
-### REMOVE UNUSED DEFAULT BINDS ###
+# REMOVE UNUSED DEFAULT BINDS #
+
 map m
 map n
 map o
@@ -57,8 +66,10 @@ map e
 map f
 map '"'
 map "'"
+map R
 
-### CORE NAVIGATION ###
+# CORE NAVIGATION #
+
 map <enter> open
 map x cut
 map y copy
@@ -69,29 +80,33 @@ map H top
 map L bottom
 map . set hidden!
 
-### COMMON JUMP SHORTCUTS ###
-map gh :cd ~
-map gc :cd ~/.config
-map gd :cd ~/Downloads
-map gD :cd ~/Documents
-map gP :cd ~/Projects
-map gs :cd ~/Scripts
-map gp :cd ~/Pictures
-map gm :cd ~/Music
-map gv :cd ~/Videos
-map gG :cd ~/Github
+# COMMON JUMP SHORTCUTS #
+
+# Pick a bookmarked directory with fzf and jump to it
+cmd fzf_bookmark ${{
+    sel=$(echo -e \
+        "$HOME\n$HOME/.config\n$HOME/Downloads\n$HOME/Documents\n$HOME/Projects\n$HOME/Scripts\n$HOME/Pictures\n$HOME/Music\n$HOME/Videos\n$HOME/Github\n$HOME/.local/scripts\n$HOME/Applications" |
+        while IFS= read -r d; do
+            [ -d "$d" ] && echo "$d"
+        done |
+        fzf --reverse --prompt='Jump > ' )
+    [ -n "$sel" ] && lf -remote "send $id cd \"$sel\""
+}}
+map gb fzf_bookmark
 
 map ee $$f
 
-### Custom Commands ###
+# CUSTOM COMMANDS #
 
-# Go to media dir
+# Go to the removable media directory
 cmd media ${{
   lf -remote "send $id cd '/run/media/$USER/'"
 }}
 map gM media
 
-### FILE CREATION ###
+# FILE CREATION #
+
+# Create a directory, file, script or project by prompt
 cmd mk ${{
   printf "Name: "
   read -r name
@@ -114,7 +129,9 @@ cmd mk ${{
 }}
 map mm mk
 
-### DELETE / TRASH ###
+# DELETE / TRASH #
+
+# Move the selection to the trash and log it for undo
 cmd trash %{{
     sep=$(printf '\037')
     for f in $fx; do
@@ -122,15 +139,23 @@ cmd trash %{{
         trash-put -vr "$f"
     done
 }}
+
+# List trashed files in the pager
 cmd trash-list ${{
     trash-list | ${PAGER:-less}
 }}
+
+# Restore files from the trash
 cmd trash-restore ${{
     trash-restore
 }}
+
+# Empty the trash
 cmd trash-empty %{{
     trash-empty
 }}
+
+# Permanently delete the selection
 cmd remove %{{
     for f in $fx; do
         rm -rfv "$f"
@@ -142,7 +167,9 @@ map tt trash-list
 map tr trash-restore
 map te trash-empty
 
-### PASTE (with undo support) ###
+# PASTE (WITH UNDO SUPPORT) #
+
+# Paste copied or cut files without overwriting and log for undo
 cmd paste %{{
     sep=$(printf '\037')
     sel_file="${XDG_DATA_HOME:-$HOME/.local/share}/lf/files"
@@ -173,7 +200,9 @@ cmd paste %{{
 }}
 map p paste
 
-### TOGGLE EXECUTABLE / PERMISSIONS ###
+# TOGGLE EXECUTABLE / PERMISSIONS #
+
+# Change file permissions by prompt and log for undo
 cmd chmod %{{
   sep=$(printf '\037')
   oldperms=$(stat -c "%a" "$f")
@@ -186,7 +215,9 @@ cmd chmod %{{
 }}
 map et chmod
 
-### ARCHIVE / EXTRACT ###
+# ARCHIVE / EXTRACT #
+
+# Extract the selected archives
 cmd extract %{{
   for f in $fx; do
     archives extract "$f"
@@ -195,6 +226,7 @@ cmd extract %{{
 }}
 map ex extract
 
+# Archive the selection into a named archive
 cmd archive %{{
   printf " Archive name (.tar.gz/.zip/.rar): "
   read -r out
@@ -204,7 +236,9 @@ cmd archive %{{
 }}
 map er archive
 
-### FZF JUMP ###
+# FZF JUMP #
+
+# Fuzzy find any file or directory and jump to it
 cmd fzf_jump ${{
   res=$(fd --hidden --exclude .git . 2>/dev/null | \
     fzf --reverse \
@@ -223,7 +257,9 @@ cmd fzf_jump ${{
 }}
 map fj fzf_jump
 
-### FZF SEARCH ###
+# FZF SEARCH #
+
+# Search file contents with ripgrep and select the match
 cmd fzf_search ${{
     cmd="rg --column --line-number --no-heading --color=always --smart-case"
     fzf --ansi --disabled --layout=reverse --header="Search in files" --delimiter=: \
@@ -235,7 +271,9 @@ cmd fzf_search ${{
 }}
 map fg fzf_search
 
-### FOLLOW SYMLINK ###
+# FOLLOW SYMLINK #
+
+# Jump to a symlink's target, or edit it if it is a file
 cmd follow-link ${{
   [ ! -L "$f" ] && echo "Not a symlink." && exit
   target=$(readlink -f "$f")
@@ -250,7 +288,9 @@ cmd follow-link ${{
 }}
 map gf follow-link
 
-### RENAME ###
+# RENAME #
+
+# Rename the current file by prompt and log for undo
 cmd rename ${{
   sep=$(printf '\037')
   old="$f"
@@ -265,7 +305,9 @@ cmd rename ${{
 }}
 map r rename
 
-### OPEN FILE ###
+# OPEN FILE #
+
+# Open a file with a handler based on mime type or extension
 cmd open ${{
   mime=$(file --mime-type -Lb "$f")
   ext="${f##*.}"
@@ -280,7 +322,7 @@ cmd open ${{
     application/pdf)
       zathura "$f" 2>/dev/null || pdftotext "$f" - | less ;;
     *)
-      # fallback based on extension
+      # Fall back to the file extension
       case "$ext" in
         sh|py|c|cpp|lua|rs|go|js|ts|md|json|yml|yaml)
           ${EDITOR:-nvim} "$f" ;;
@@ -297,7 +339,9 @@ cmd open ${{
 }}
 map <enter> open
 
-# Iso Burner
+# ISO BURNER #
+
+# Burn the selected ISO with caligula
 cmd burn ${{
     [ -z "$f" ] && echo "No file selected." && exit
     echo "󰈸 Burning ISO: $f"
@@ -305,19 +349,25 @@ cmd burn ${{
 }}
 map bi burn
 
-### WALLPAPER ###
+# WALLPAPER #
+
+# Set the selected image as the wallpaper
 cmd setbg ${{
   xwallpaper --stretch "$f" 2>/dev/null || echo "Failed to set wallpaper"
 }}
 map bg setbg
 
-### DRAG (DRAGON) ###
+# DRAG (DRAGON) #
+
+# Drag the selection out with dragon-drop
 cmd drag ${{
   dragon-drop -a -x -T $fx
 }}
 map dr drag
 
-### Secure Copy ###
+# SECURE COPY #
+
+# Copy the selection to a remote host over scp
 cmd scp ${{
   read -rp "Port (default 22): " port
   port="${port:-22}"
@@ -331,7 +381,9 @@ cmd scp ${{
 }}
 map cs scp
 
-### Undo ###
+# UNDO #
+
+# Undo the last paste, rename, chmod or trash action
 cmd undo ${{
   sep=$(printf '\037')
   [ ! -f /tmp/lf_undo_$USER ] && echo "Nothing to undo." && exit
@@ -377,11 +429,15 @@ cmd undo ${{
 }}
 map u undo
 
-### Zoxide ###
+# ZOXIDE #
+
+# Jump to a zoxide match for the given query
 cmd z %{{
     result="$(zoxide query --exclude "$PWD" -- "$@" | sed 's/\\/\\\\/g;s/"/\\"/g')"
     lf -remote "send $id cd \"$result\""
 }}
+
+# Pick a zoxide directory interactively
 cmd zi ${{
     result="$(zoxide query -i | sed 's/\\/\\\\/g;s/"/\\"/g')"
     lf -remote "send $id cd \"$result\""
@@ -389,7 +445,9 @@ cmd zi ${{
 map gz push :z<space>
 map gZ zi
 
-### GIT ###
+# GIT #
+
+# Switch git branches with fzf
 cmd git_branch ${{
     branch=$(git branch | fzf | xargs)
     [ -z "$branch" ] && exit
@@ -397,13 +455,135 @@ cmd git_branch ${{
     pwd_shell="$(pwd | sed 's/\\/\\\\/g;s/"/\\"/g')"
     lf -remote "send $id updir; cd \"$pwd_shell\""
 }}
-map gb git_branch
+map gB git_branch
 
-### Thunar ###
-cmd thunar ${{
-	thunar .
+# YANK #
+
+# Copy the absolute path of the current file to the clipboard
+cmd yank_path %{{
+    # Works on both Wayland and X11
+    if command -v wl-copy >/dev/null 2>&1; then
+        printf '%s' "$f" | wl-copy
+    elif command -v xclip >/dev/null 2>&1; then
+        printf '%s' "$f" | xclip -selection clipboard
+    fi
+    echo "Copied path: $f"
 }}
+map yp yank_path
 
+# BULK RENAME #
 
-# For Vim Users
+# Rename many files at once by editing their names in $EDITOR
+cmd bulk_rename ${{
+    set -eu
+
+    olds=$(mktemp)
+    names=$(mktemp)
+    edited=$(mktemp)
+    tg=$(mktemp)
+    chg=$(mktemp)
+    stage=$(mktemp -d "$PWD/.bulk_rename.XXXXXX")
+
+    cleanup() {
+        rm -f "$olds" "$names" "$edited" "$tg" "$chg"
+        rmdir "$stage" 2>/dev/null || true
+    }
+    trap cleanup EXIT
+    trap 'exit 1' HUP INT TERM
+
+    # Full paths of the files to rename
+    if [ -n "${fs:-}" ]; then
+        printf '%s\n' "$fs"
+    else
+        find "$PWD" -mindepth 1 -maxdepth 1 ! -name '.*' | sort
+    fi > "$olds"
+
+    [ -s "$olds" ] || { echo "Nothing to rename." >&2; exit 1; }
+
+    # The editor shows basenames only
+    sed 's|.*/||' "$olds" > "$names"
+    cp "$names" "$edited"
+    "${EDITOR:-nvim}" "$edited"
+
+    # Abort if the number of lines changed
+    [ "$(wc -l < "$names")" -eq "$(wc -l < "$edited")" ] || {
+        echo "Rename aborted: line count changed." >&2
+        exit 1
+    }
+
+    # Validate names and build full target paths
+    while IFS= read -r old <&3 && IFS= read -r new <&4; do
+        case "$new" in
+            ""|.|..|*/*)
+                echo "Invalid filename: $new" >&2
+                exit 1
+                ;;
+        esac
+        printf '%s/%s\n' "${old%/*}" "$new"
+    done 3< "$olds" 4< "$edited" > "$tg"
+
+    # Check for duplicate targets
+    dup=$(sort "$tg" | uniq -d | head -n 1)
+    [ -z "$dup" ] || {
+        echo "Duplicate target: ${dup##*/}" >&2
+        exit 1
+    }
+
+    # Find which files are actually changing
+    while IFS= read -r old <&3 && IFS= read -r new <&4; do
+        [ "${old##*/}" = "$new" ] || printf '%s\n' "$old"
+    done 3< "$olds" 4< "$edited" > "$chg"
+
+    [ -s "$chg" ] || { echo "No changes."; exit 0; }
+
+    # Reject targets that exist and aren't being moved out of the way
+    while IFS= read -r old <&3 && IFS= read -r new <&4; do
+        [ "${old##*/}" = "$new" ] && continue
+        t="${old%/*}/$new"
+        if [ -e "$t" ] || [ -L "$t" ]; then
+            grep -qxF -- "$t" "$chg" || {
+                echo "Target exists: $t" >&2
+                exit 1
+            }
+        fi
+    done 3< "$olds" 4< "$edited"
+
+    # Phase 1: stage changed originals (allows swaps and cycles)
+    i=0
+    while IFS= read -r old <&3 && IFS= read -r new <&4; do
+        i=$((i + 1))
+        [ "${old##*/}" = "$new" ] || mv -- "$old" "$stage/$i"
+    done 3< "$olds" 4< "$edited"
+
+    # Phase 2: move into final names
+    i=0
+    while IFS= read -r old <&3 && IFS= read -r new <&4; do
+        i=$((i + 1))
+        [ "${old##*/}" = "$new" ] && continue
+        mv -- "$stage/$i" "${old%/*}/$new" || {
+            echo "Move failed; remaining files are in $stage" >&2
+            exit 1
+        }
+    done 3< "$olds" 4< "$edited"
+
+    lf -remote "send $id unselect"
+    lf -remote "send $id reload"
+}}
+map R bulk_rename
+
+# DISK USAGE #
+
+# Show directory sizes sorted largest first
+cmd du_sort ${{
+    clear
+    echo "Calculating disk usage for: $PWD"
+    echo "----------------------------------------"
+    du -h --max-depth=1 2>/dev/null | sort -hr
+    echo "----------------------------------------"
+    printf "Press Enter to return..."
+    read -r
+}}
+map DU du_sort
+
 # vim:ft=conf
+
