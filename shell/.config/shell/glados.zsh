@@ -113,14 +113,9 @@ _glados_rare_chance() {
     (( RANDOM % 20 == 0 ))
 }
 
-# Only these subcommands suppress automatic hook commentary.
+# Suppress automatic commentary for every GLaDOS command.
 _glados_is_quote_command() {
-    [[ "$1" == glados\ quote ||
-       "$1" == glados\ quote\ * ||
-       "$1" == glados\ insult ||
-       "$1" == glados\ insult\ * ||
-       "$1" == glados\ cake ||
-       "$1" == glados\ cake\ * ]]
+    [[ "$1" == glados || "$1" == glados\ * ]]
 }
 
 # ------------------------------------------------------------
@@ -236,7 +231,7 @@ glados() {
 
     case "$subcommand" in
         help)
-            cat <<'EOF'
+            command cat <<'EOF'
 GLaDOS Terminal Companion
 
 Usage: glados <command>
