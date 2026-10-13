@@ -3,8 +3,8 @@
 # Aperture Science Terminal Companion
 # ============================================================
 
-# Load timing support
 zmodload zsh/datetime
+autoload -Uz add-zsh-hook
 
 # ------------------------------------------------------------
 # Dialogue
@@ -42,7 +42,6 @@ glados_fail_phrases=(
     "I'd fix that for you, but I enjoy watching you struggle."
 )
 
-# Command-specific commentary
 glados_sudo_phrases=(
     "Ah. Attempting to assert dominance. How quaint."
     "Elevated privileges. Elevated expectations. Neither is deserved."
@@ -73,7 +72,6 @@ glados_package_phrases=(
     "Please enjoy waiting for your computer to do your job."
 )
 
-# Rare dialogue
 glados_rare_phrases=(
     "Oh. It's you. It's been a long time."
     "You know, I sometimes wonder how you survived this long."
@@ -85,7 +83,7 @@ glados_rare_phrases=(
 )
 
 # ------------------------------------------------------------
-# State
+# Session state
 # ------------------------------------------------------------
 
 _glados_command_ran=0
@@ -101,25 +99,28 @@ _glados_total_failures=0
 # ------------------------------------------------------------
 
 _glados_random_line() {
-    local -a lines
-    lines=("$@")
+    (( $# > 0 )) || return 1
 
-    (( ${#lines} )) || return 1
-
-    local index=$(( RANDOM % ${#lines[@]} + 1 ))
-    printf '%s' "${lines[$index]}"
+    local index=$(( RANDOM % $# + 1 ))
+    printf '%s' "${argv[$index]}"
 }
 
 _glados_say() {
-    local color="$1"
-    local message="$2"
-
-    printf '\033[%smGLaDOS: %s\033[0m\n' "$color" "$message"
+    printf '\033[%smGLaDOS: %s\033[0m\n' "$1" "$2"
 }
 
 _glados_rare_chance() {
-    # Approximately 1 chance in 20.
     (( RANDOM % 20 == 0 ))
+}
+
+# Only these subcommands suppress automatic hook commentary.
+_glados_is_quote_command() {
+    [[ "$1" == glados\ quote ||
+       "$1" == glados\ quote\ * ||
+       "$1" == glados\ insult ||
+       "$1" == glados\ insult\ * ||
+       "$1" == glados\ cake ||
+       "$1" == glados\ cake\ * ]]
 }
 
 # ------------------------------------------------------------
@@ -128,10 +129,14 @@ _glados_rare_chance() {
 
 _glados_preexec() {
     local command_line="$1"
-    local first_word
     local message
 
-    # Ignore empty commands.
+    # Quote, insult, and cake already print their own dialogue.
+    if _glados_is_quote_command "$command_line"; then
+        _glados_command_ran=0
+        return
+    fi
+
     [[ -z "${command_line//[[:space:]]/}" ]] && return
 
     _glados_command_ran=1
@@ -139,23 +144,26 @@ _glados_preexec() {
     _glados_last_command="$command_line"
     (( _glados_total_commands++ ))
 
-    # Keep commands that clear the terminal visually clean.
-    if [[ "$command_line" == "clear" || "$command_line" == "clear "* ]]; then
+    # Keep clear visually clean.
+    if [[ "$command_line" == "clear" ||
+          "$command_line" == "clear "* ]]; then
         return
     fi
 
-    # Detect command types. Use the command line for detection
-    # so that prefixes such as sudo are also recognized.
     if [[ "$command_line" == sudo\ * ]]; then
         message=$(_glados_random_line "${glados_sudo_phrases[@]}")
 
-    elif [[ "$command_line" == *git\ * || "$command_line" == git ]]; then
+    elif [[ "$command_line" == git ||
+            "$command_line" == git\ * ||
+            "$command_line" == *" git "* ]]; then
         message=$(_glados_random_line "${glados_git_phrases[@]}")
 
-    elif [[ "$command_line" == rm\ * || "$command_line" == *" rm "* ]]; then
+    elif [[ "$command_line" == rm\ * ||
+            "$command_line" == *" rm "* ]]; then
         message=$(_glados_random_line "${glados_rm_phrases[@]}")
 
-    elif [[ "$command_line" == cd || "$command_line" == cd\ * ]]; then
+    elif [[ "$command_line" == cd ||
+            "$command_line" == cd\ * ]]; then
         message=$(_glados_random_line "${glados_cd_phrases[@]}")
 
     elif [[ "$command_line" == *npm\ * ||
@@ -178,7 +186,6 @@ _glados_preexec() {
 # ------------------------------------------------------------
 
 _glados_precmd() {
-    # Capture the previous command's exit status immediately.
     local last_status=$?
 
     (( _glados_command_ran )) || return
@@ -191,7 +198,7 @@ _glados_precmd() {
         (( _glados_total_failures++ ))
     fi
 
-    # Do not print an after-message for clear.
+    # No automatic after-message for clear.
     if [[ "$_glados_last_command" == "clear" ||
           "$_glados_last_command" == "clear "* ]]; then
         return
@@ -200,14 +207,10 @@ _glados_precmd() {
     local message
     local duration
 
-    # Rare dialogue has priority over the normal response.
     if _glados_rare_chance; then
         message=$(_glados_random_line "${glados_rare_phrases[@]}")
         _glados_say "1;35" "$message"
-        return
-    fi
-
-    if (( last_status == 0 )); then
+    elif (( last_status == 0 )); then
         message=$(_glados_random_line "${glados_success_phrases[@]}")
         _glados_say "1;32" "$message"
     else
@@ -216,10 +219,8 @@ _glados_precmd() {
             "$last_status" "$message"
     fi
 
-    # Report commands taking at least 10 seconds.
     if (( _glados_last_duration >= 10 )); then
         printf -v duration "%.1f" "$_glados_last_duration"
-
         _glados_say "1;36" \
             "That took ${duration} seconds. I hope it was worth it."
     fi
@@ -253,11 +254,8 @@ EOF
             printf '\033[1;35mGLaDOS: Session report\033[0m\n'
             printf 'Commands executed: %d\n' "$_glados_total_commands"
             printf 'Failed commands:   %d\n' "$_glados_total_failures"
-
-            if (( _glados_total_commands > 0 )); then
-                printf 'Successful:        %d\n' \
-                    "$((_glados_total_commands - _glados_total_failures))"
-            fi
+            printf 'Successful:        %d\n' \
+                "$((_glados_total_commands - _glados_total_failures))"
             ;;
 
         insult)
@@ -272,11 +270,13 @@ EOF
 
         last)
             if [[ -z "$_glados_last_command" ]]; then
-                _glados_say "1;33" "You haven't run a command yet. Fascinating."
+                _glados_say "1;33" \
+                    "You haven't run a command yet. Fascinating."
             else
                 printf 'Last command: %s\n' "$_glados_last_command"
                 printf 'Exit status:  %d\n' "$_glados_last_status"
-                printf 'Duration:     %.2f seconds\n' "$_glados_last_duration"
+                printf 'Duration:     %.2f seconds\n' \
+                    "$_glados_last_duration"
             fi
             ;;
 
@@ -294,14 +294,11 @@ EOF
 }
 
 # ------------------------------------------------------------
-# Register hooks without duplicating them
+# Register hooks without duplicates
 # ------------------------------------------------------------
-
-autoload -Uz add-zsh-hook
 
 add-zsh-hook -d preexec _glados_preexec 2>/dev/null
 add-zsh-hook -d precmd _glados_precmd 2>/dev/null
-add-zsh-hook -d preexec _glados_say 2>/dev/null
 
 add-zsh-hook preexec _glados_preexec
 add-zsh-hook precmd _glados_precmd
