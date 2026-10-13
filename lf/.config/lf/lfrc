@@ -85,7 +85,7 @@ map . set hidden!
 # Pick a bookmarked directory with fzf and jump to it
 cmd fzf_bookmark ${{
     sel=$(echo -e \
-        "$HOME\n$HOME/.config\n$HOME/Downloads\n$HOME/Documents\n$HOME/Projects\n$HOME/Scripts\n$HOME/Pictures\n$HOME/Music\n$HOME/Videos\n$HOME/Github\n$HOME/.local/scripts\n$HOME/Applications" |
+        "$HOME\n$HOME/.config\n$HOME/Downloads\n$HOME/Documents\n$HOME/Projects\n$HOME/Scripts\n$HOME/Pictures\n$HOME/Music\n$HOME/Videos\n$HOME/Github\n$HOME/.local/scripts\n$HOME/Applications\n$HOME/Archives\n$HOME/Code\n$HOME/Bin\n$HOME/Diffs\n$HOME/Img\n$HOME/Macros\n$HOME/Virt\n$HOME/Other" |
         while IFS= read -r d; do
             [ -d "$d" ] && echo "$d"
         done |
@@ -583,7 +583,11 @@ cmd du_sort ${{
     printf "Press Enter to return..."
     read -r
 }}
-map DU du_sort
+map si du_sort
+
+# REPOMIX #
+
+# Add files to a repomix
+map mi $repomix "$fx"
 
 # vim:ft=conf
-
