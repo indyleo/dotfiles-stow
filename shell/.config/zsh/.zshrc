@@ -127,6 +127,7 @@ bindkey -M vicmd '^e' _edit_command_line
 [[ -f "$SDOTDIR/alias.zsh" ]] && source "$SDOTDIR/alias.zsh"
 [[ -f "$SDOTDIR/function.zsh" ]] && source "$SDOTDIR/function.zsh"
 [[ -f "$SDOTDIR/hooks.zsh" ]] && source "$SDOTDIR/hooks.zsh"
+[[ -f "$SDOTDIR/glados.zsh" ]] && source "$SDOTDIR/glados.zsh"
 
 # Oh my posh
 command -v oh-my-posh >/dev/null 2>&1 && eval "$(oh-my-posh --init --shell zsh --config ~/.config/ohmyposh/base.toml)"
