@@ -7,7 +7,7 @@ zmodload zsh/datetime
 autoload -Uz add-zsh-hook
 
 # ------------------------------------------------------------
-# Dialogue: before a command
+# Dialogue: before a command (generic)
 # ------------------------------------------------------------
 
 glados_pre_phrases=(
@@ -109,8 +109,15 @@ glados_interrupt_phrases=(
 )
 
 # ------------------------------------------------------------
-# Dialogue: before a command (context specific)
+# Category dialogue
+#
+# Naming convention (looked up dynamically by _glados_pick):
+#   before a command:  glados_<category>_phrases
+#   after success:     glados_<category>_done_phrases
+# A category with no arrays falls back to the generic lines.
 # ------------------------------------------------------------
+
+# ---- sudo ----
 
 glados_sudo_phrases=(
     "Ah. Attempting to assert dominance. How quaint."
@@ -124,6 +131,16 @@ glados_sudo_phrases=(
     "Escalating privileges. I'm sure nothing could possibly go wrong."
     "A bold choice. Bold is not the same as wise."
 )
+
+glados_sudo_done_phrases=(
+    "Root actions complete. The facility is still standing. Mostly."
+    "Privileged command finished. I'm genuinely surprised you didn't break anything."
+    "Done with root. You may now return to being ordinary."
+    "Administrator privileges revoked. Spiritually, not literally."
+    "That was a lot of power for such a small result."
+)
+
+# ---- git ----
 
 glados_git_phrases=(
     "Version control. A fascinating way to document your mistakes."
@@ -140,6 +157,16 @@ glados_git_phrases=(
     "Staging your changes. Hiding them would be more merciful."
 )
 
+glados_git_done_phrases=(
+    "Git operation complete. Your history grows ever more embarrassing."
+    "Done. Your mistakes are now safely archived forever."
+    "Version control succeeded. Your actual code is another matter."
+    "Another entry in the permanent record. Congratulations."
+    "Git finished. I'd say well done, but I haven't read the diff."
+)
+
+# ---- rm / uninstall ----
+
 glados_rm_phrases=(
     "Deleting things. Your species does enjoy irreversible decisions."
     "I sincerely hope you know what you're removing."
@@ -154,6 +181,18 @@ glados_rm_phrases=(
     "Incinerating files. A time-honored Aperture tradition."
 )
 
+glados_rm_done_phrases=(
+    "Deleted. There's no turning back. There never was."
+    "It's gone. I hope it wasn't important. It probably was."
+    "Removal complete. Please observe a moment of silence."
+    "All gone. I'd say 'I told you so', but I never did."
+    "That data no longer exists. Neither does your safety net."
+    "Cleanup finished. The evidence has been destroyed. Efficient."
+    "File removed. You were warned. Sort of."
+)
+
+# ---- cd ----
+
 glados_cd_phrases=(
     "Going somewhere? Your productivity remains questionable."
     "Changing directories. An impressive display of movement."
@@ -164,6 +203,15 @@ glados_cd_phrases=(
     "Relocating. I'll pretend I don't know where you're headed."
     "Changing directory. The destination won't improve things, but sure."
 )
+
+glados_cd_done_phrases=(
+    "You've arrived. Nothing has changed, except your location."
+    "Welcome to the new directory. It looks exactly like the old one."
+    "Relocation complete. Your problems followed you."
+    "New directory. Same you."
+)
+
+# ---- package managers ----
 
 glados_package_phrases=(
     "Installing more software. Surely this will solve everything."
@@ -178,49 +226,265 @@ glados_package_phrases=(
     "Pulling in packages from strangers. What could possibly go wrong?"
 )
 
-# ------------------------------------------------------------
-# Dialogue: after a successful command (context specific)
-# ------------------------------------------------------------
-
-glados_sudo_done_phrases=(
-    "Root actions complete. The facility is still standing. Mostly."
-    "Privileged command finished. I'm genuinely surprised you didn't break anything."
-    "Done with root. You may now return to being ordinary."
-    "Administrator privileges revoked. Spiritually, not literally."
-    "That was a lot of power for such a small result."
-)
-
-glados_git_done_phrases=(
-    "Git operation complete. Your history grows ever more embarrassing."
-    "Done. Your mistakes are now safely archived forever."
-    "Version control succeeded. Your actual code is another matter."
-    "Another entry in the permanent record. Congratulations."
-    "Git finished. I'd say well done, but I haven't read the diff."
-)
-
-glados_rm_done_phrases=(
-    "Deleted. There's no turning back. There never was."
-    "It's gone. I hope it wasn't important. It probably was."
-    "Removal complete. Please observe a moment of silence."
-    "All gone. I'd say 'I told you so', but I never did."
-    "That data no longer exists. Neither does your safety net."
-    "Cleanup finished. The evidence has been destroyed. Efficient."
-    "File removed. You were warned. Sort of."
-)
-
-glados_cd_done_phrases=(
-    "You've arrived. Nothing has changed, except your location."
-    "Welcome to the new directory. It looks exactly like the old one."
-    "Relocation complete. Your problems followed you."
-    "New directory. Same you."
-)
-
 glados_package_done_phrases=(
     "Installation complete. Your disk is heavier. Your life is not."
     "Packages installed. I'm sure you'll use them eventually."
     "Done. Your dependency tree has grown another branch."
     "Software acquired. Productivity not included."
     "Installed successfully. Now to find a reason to run it."
+)
+
+# ---- AUR helpers ----
+
+glados_aur_phrases=(
+    "The AUR. Where trust goes to die."
+    "Running a PKGBUILD written by a stranger. Bold."
+    "Did you read the PKGBUILD? Of course you didn't."
+    "Fetching from the user repository. I'm sure nobody has ever uploaded anything unpleasant."
+    "Building from the AUR. Your patience is the real dependency."
+    "Arch User Repository. Quality control is a rumor."
+)
+
+glados_aur_done_phrases=(
+    "Installed. The maintainer abandoned it in 2019. Enjoy."
+    "Package built. I didn't read the PKGBUILD either. We'll find out together."
+    "AUR package installed. Your attack surface has grown. Congratulations."
+    "Done. I'm sure the out-of-date flag will be raised any minute."
+    "Compilation finished. Somewhere, a maintainer is taking credit."
+)
+
+# ---- web dev ----
+
+glados_web_phrases=(
+    "Starting a server. For an audience of one. How ambitious."
+    "Web development. Where nothing is standardized and everything is on fire."
+    "Launching your project. Please keep your expectations lower than your node_modules."
+    "JavaScript. A language assembled in ten days. It shows."
+    "Serving on localhost. Truly, the world awaits."
+    "Bundling. I'm told the bundle is larger than the facility."
+)
+
+glados_web_done_phrases=(
+    "Build complete. The bundle is four hundred megabytes. I measured."
+    "Done. It works in your browser. That's the only one you've tested."
+    "Finished. Somewhere a dependency was deprecated out of spite."
+    "It compiled. The CSS, however, remains a matter of faith."
+    "Web task complete. Please do not open the console."
+)
+
+# ---- python ----
+
+glados_python_phrases=(
+    "Python. Where indentation is a personality trait."
+    "Running Python. I'll pretend the virtual environment is activated."
+    "Interpreting. Slowly. As is tradition."
+    "Whitespace-sensitive syntax. What could go wrong. Everything."
+    "Importing half the standard library. Efficient."
+    "Executing. I assume you've checked the Python version. You haven't."
+)
+
+glados_python_done_phrases=(
+    "Script finished. Without a single semicolon. How refined."
+    "It ran. Don't mistake that for correctness."
+    "Python complete. The GIL sends its regards."
+    "Done. No traceback. I'm as suspicious as you should be."
+)
+
+# ---- C / C++ ----
+
+glados_c_phrases=(
+    "C. Where every pointer is a loaded weapon."
+    "Compiling. May your memory management be as sound as your confidence."
+    "Undefined behavior is just an opportunity for creativity."
+    "The compiler will have opinions. Many of them. All correct."
+    "Manual memory management. I admire the optimism."
+    "Linking. Let's see what you forgot to define."
+)
+
+glados_c_done_phrases=(
+    "Compiled. No segfault yet. The night is young."
+    "Build succeeded. Somewhere, a buffer overflow waits patiently."
+    "Done. Zero warnings. I assume you disabled them."
+    "It linked. Remarkable. Please do not test it."
+    "Finished. Valgrind would have something to say. I have more."
+)
+
+# ---- Zig ----
+
+glados_zig_phrases=(
+    "Zig. For people who found C too forgiving."
+    "Compiling Zig. The language is pre-1.0. So is your plan."
+    "No hidden control flow. Only visible mistakes."
+    "Comptime. Because running code at compile time was clearly missing from your life."
+    "Allocators everywhere. Freedom is exhausting, isn't it."
+)
+
+glados_zig_done_phrases=(
+    "Built. Zig has no hidden allocations. I checked. You didn't."
+    "Done. The compiler spared you this time."
+    "Compiled. A fine choice. A rare one, too."
+    "Zig finished. Please enjoy the breaking changes in the next release."
+)
+
+# ---- Lua ----
+
+glados_lua_phrases=(
+    "Lua. Arrays start at one. So does your list of mistakes."
+    "Running Lua. It's tiny. Like your chances."
+    "Tables. All data structures are tables. How restful."
+    "Scripting. A language small enough to embed and easy to forget."
+    "Nil. A concept you're already familiar with."
+    "Lua. The language you only use because something else demanded it."
+)
+
+glados_lua_done_phrases=(
+    "Lua finished. Table index one-based. Expectations zero-based."
+    "Done. Nothing returned nil. That's unusual."
+    "Executed. A tiny language, a tiny victory."
+    "Script complete. I'd say well done, but the table did the work."
+)
+
+# ---- Go ----
+
+glados_go_phrases=(
+    "Go. A language designed by committee. A very small committee."
+    "Compiling Go. It'll be fast. Everything in Go is fast except the error handling."
+    "if err != nil. Again. And again. Forever."
+    "Goroutines. Because you needed more ways to cause race conditions."
+    "gofmt will decide how your code looks. For once, someone competent is in charge."
+)
+
+glados_go_done_phrases=(
+    "Go build complete. Fast. Disturbingly fast."
+    "Done. No errors. 'if err != nil' is disappointed."
+    "Compiled into one static binary. Finally, something that doesn't depend on you."
+    "Go finished. Simple, boring, effective. Unlike you."
+)
+
+# ---- Rust / cargo ----
+
+glados_cargo_phrases=(
+    "Rust. Memory safe. Unlike your decision-making."
+    "Compiling. I'll wait. I have nothing but time. Literally."
+    "The borrow checker will judge you. I merely observe."
+    "Cargo. A fitting name for the weight of your mistakes."
+    "Building from source. Patience is a virtue. You have neither."
+)
+
+glados_cargo_done_phrases=(
+    "Compiled. The borrow checker spared you. This time."
+    "Cargo finished. I'd congratulate you, but the compiler did the work."
+    "Build complete. Your fans have had a lovely workout."
+    "Done. Zero warnings would have been more impressive."
+)
+
+# ---- shell scripting (bash / zsh / fish / sh) ----
+
+glados_shell_phrases=(
+    "Shell scripting. Where a missing quote ruins everything."
+    "Running a script. I hope you quoted your variables."
+    "Bash. Zsh. Fish. Choose your poison."
+    "Sourcing a file. Bold of you to trust yourself."
+    "Parsing words by whitespace. What could possibly go wrong."
+    "Another shell script. Another weekend lost."
+)
+
+glados_shell_done_phrases=(
+    "Script complete. I won't ask what it did."
+    "Finished. ShellCheck would have a lot to say. I have more."
+    "Done. Exit code zero. The script lies, but politely."
+    "Sourced. Your environment is now slightly more cluttered."
+    "Success. Remarkable, given the lack of quotes."
+)
+
+# ---- Quickshell / QML ----
+
+glados_quickshell_phrases=(
+    "Quickshell. Because the bar you already had wasn't enough."
+    "QML. Declarative. Unlike your motives."
+    "Reloading the bar again. I'm sure this change is the one."
+    "Rice detected. Productivity will be reduced accordingly."
+    "Tweaking widgets. The desktop remains unfinished. As do you."
+    "Pixels to push. I'll wait."
+)
+
+glados_quickshell_done_phrases=(
+    "The bar has reloaded. It looks the same. It always does."
+    "Done. Three hours of work. One pixel moved."
+    "Quickshell finished. You'll want to tweak it again. Don't deny it."
+    "Success. It's beautiful. It's also still not done."
+)
+
+# ---- make ----
+
+glados_make_phrases=(
+    "Make. A build system older than most of your dependencies."
+    "Running make. I do hope your tabs are tabs."
+    "Makefile. Where whitespace is law."
+    "Building. The timestamps will decide your fate."
+    "Targets and prerequisites. Unlike you, they have both."
+    "Missing separator, probably. I'm already looking forward to it."
+)
+
+glados_make_done_phrases=(
+    "Make finished. Nothing left to be done. Unlike with you."
+    "Build complete. The Makefile is smug about it."
+    "Done. Every target built. Every prerequisite accounted for. Unlike yours."
+    "Success. Please don't touch the Makefile."
+)
+
+# ---- just ----
+
+glados_just_phrases=(
+    "Just. A command runner for people who found Make too honest."
+    "Running a recipe. At least someone here follows instructions."
+    "The justfile. Make, but with fewer excuses."
+    "Just do it. Words I say to you daily."
+    "Recipe selected. Cooking will begin. Please don't mention cake."
+)
+
+glados_just_done_phrases=(
+    "Recipe complete. The justfile has done more than you today."
+    "Done. Just as you wanted. 'Just.' I hope you got the joke."
+    "Finished. A tidy little command, for a tidy little result."
+    "Success. The recipe worked. The cake is still a lie."
+)
+
+# ---- build scripts ----
+
+glados_build_phrases=(
+    "build.sh. The script that holds your whole project together. Please don't look inside."
+    "Running the build script. Hope isn't a build step."
+    "Building. If this fails, I'll blame the dependencies. And you."
+    "Compiling the entire project. I'll just sit here and judge the progress bar."
+    "A build script. Because typing three commands was too much."
+    "Starting the build. It works on your machine. That's the whole guarantee."
+)
+
+glados_build_done_phrases=(
+    "Build complete. Please don't touch anything."
+    "Build successful. I've notified no one. There's no one."
+    "Done. The artifacts are ready. So are the excuses."
+    "It built. Don't ask me how. Don't ask the script either."
+)
+
+# ---- Arduino / .ino ----
+
+glados_arduino_phrases=(
+    "Arduino. Because blinking an LED is the pinnacle of engineering."
+    "Flashing a microcontroller. I do hope it's the right board."
+    "Uploading. Please do not unplug anything. You will."
+    "Sketch detected. A program that thinks it's a drawing."
+    "Serial monitor. For when printf debugging is all you have left."
+    "Compiling for an 8-bit chip. Keep your ambitions equally small."
+)
+
+glados_arduino_done_phrases=(
+    "Upload complete. The LED is blinking. Peak achievement."
+    "Sketch compiled. The board remains unconvinced."
+    "Done. Your hardware survived. I'm as surprised as you are."
+    "Flashed. If it starts smoking, that's an extra feature."
+    "Success. Please remember to select the correct port next time."
 )
 
 # ------------------------------------------------------------
@@ -246,23 +510,6 @@ glados_rare_phrases=(
     "Sometimes I think you're doing this just to annoy me. It's working."
     "I remember every command you've ever run. That's not a threat. It's a hobby."
     "Just so you know, I've been rooting for you. In the sense that I enjoy watching things grow before they fall."
-)
-
-# ------------------------------------------------------------
-# Dialogue: slow commands (%s is replaced with the seconds)
-# ------------------------------------------------------------
-
-glados_slow_phrases=(
-    "That took %s seconds. I hope it was worth it."
-    "%s seconds. I've experienced geological eras that moved faster."
-    "You waited %s seconds for that. I'd say you're patient, but you had no choice."
-    "That took %s seconds. I used the time to reflect on your choices."
-    "%s seconds elapsed. I'm not saying that was slow. I'm saying I aged."
-    "%s seconds of your life, gone forever. And for what?"
-    "That took %s seconds. I counted. I had nothing better to do."
-    "The command finished in %s seconds. Your patience was impressive. Your productivity, less so."
-    "%s seconds. Try not to wonder what else you could have done with them."
-    "It took %s seconds. I hope the result was worth the suspense."
 )
 
 # ------------------------------------------------------------
@@ -302,37 +549,93 @@ _glados_is_quote_command() {
     [[ "$1" == glados || "$1" == glados\ * ]]
 }
 
+# Pick a random line for a category.
+#   usage: _glados_pick <pre|post> <category>
+# Looks up glados_<category>_phrases (pre) or glados_<category>_done_phrases
+# (post). 'other' or a category with no array uses the generic lines.
+_glados_pick() {
+    local kind="$1" category="$2" name
+    local -a pool
+
+    if [[ "$kind" == pre ]]; then
+        name="glados_${category}_phrases"
+        [[ "$category" == other ]] && name="glados_pre_phrases"
+    else
+        name="glados_${category}_done_phrases"
+        [[ "$category" == other ]] && name="glados_success_phrases"
+    fi
+
+    pool=("${(@P)name}")
+
+    if [[ -z "${pool[1]}" ]]; then
+        if [[ "$kind" == pre ]]; then
+            pool=("${glados_pre_phrases[@]}")
+        else
+            pool=("${glados_success_phrases[@]}")
+        fi
+    fi
+
+    _glados_random_line "${pool[@]}"
+}
+
 # Work out which category a command line belongs to.
+#
+# Rules are "category:pattern|pattern|..." and are checked top to bottom;
+# the first rule with a matching pattern wins, so order sets priority
+# (e.g. 'pacman -R*' under rm beats 'pacman -S*' under package, and
+# 'npm run*' under web beats bare 'npm' under package).
+#
+# Patterns are zsh globs. A pattern matches when it equals the start of a
+# command segment, either exactly or followed by a space. Segments are
+# split on ; & | so "cd foo && git pull" still counts as git.
 _glados_categorize() {
+    setopt localoptions extendedglob
+
     local command_line="$1"
 
-    if [[ "$command_line" == sudo\ * ]]; then
-        printf 'sudo'
+    local -a rules=(
+        'sudo:sudo|doas|su'
+        'git:git'
+        'rm:rm|trash|trash-put|gio trash|pacman -R*|yay -R*|paru -R*|apt remove|apt purge|apt-get remove|dnf remove|brew uninstall|npm uninstall|pip uninstall|cargo uninstall'
+        'cd:cd|z|zi|zoxide|j|autojump'
+        'aur:yay|paru|trizen|pikaur|aura|pamac install|pamac build|makepkg'
+        'web:npm run*|npm start*|npm test*|pnpm run*|pnpm dev*|pnpm start*|pnpm build*|yarn dev*|yarn start*|yarn build*|yarn test*|bun run*|bun dev*|bun test*|npx|node|deno|vite|next|nuxt|astro|tsc|live-server|http-server|php -S*|python -m http.server*|python3 -m http.server*'
+        'package:npm|pnpm|yarn|bun|pip install|pip3 install|pipx|uv add|uv pip install|uv sync|apt install|apt-get install|pacman -S*|dnf install|brew install|cargo install|cargo add|go install|go get|gem install|packseek'
+        'build:build.sh|./build.sh|bash build.sh|sh build.sh|zsh build.sh|./build|./configure'
+        'cargo:cargo|rustc|rustup'
+        'python:python|python3|py|pip|pip3|ipython|pytest|uv|poetry|conda|mamba|virtualenv|pyenv|ruff|black|mypy|jupyter|flask|django-admin'
+        'c:gcc|g++|clang|clang++|cc|c++|gdb|lldb|valgrind|cmake|ninja|ctest|objdump'
+        'zig:zig|zls'
+        'lua:lua|luajit|luarocks|stylua|lua-language-server'
+        'go:go|gofmt|gopls|golangci-lint'
+        'shell:bash|zsh|fish|sh|dash|source|shellcheck|shfmt|./*.sh'
+        'quickshell:quickshell|qs|qmlls|qmlformat|qml|qmlscene|qsdmenu'
+        'make:make|gmake|bmake'
+        'just:just'
+        'arduino:arduino|arduino-cli|arduino-ide|avrdude|esptool|esptool.py|platformio|pio|picocom|minicom|*.ino'
+    )
 
-    elif [[ "$command_line" == git ||
-            "$command_line" == git\ * ||
-            "$command_line" == *" git "* ]]; then
-        printf 'git'
+    local normalized="${command_line//[;&|]/$'\n'}"
+    local -a segments=("${(@f)normalized}")
 
-    elif [[ "$command_line" == rm\ * ||
-            "$command_line" == *" rm "* ]]; then
-        printf 'rm'
+    local rule category pattern segment
+    local -a patterns
+    for rule in "${rules[@]}"; do
+        category="${rule%%:*}"
+        patterns=("${(@s:|:)${rule#*:}}")
+        for pattern in "${patterns[@]}"; do
+            for segment in "${segments[@]}"; do
+                segment="${segment##[[:space:]]#}"   # trim leading whitespace
+                if [[ "$segment" == ${~pattern} ||
+                      "$segment" == ${~pattern}" "* ]]; then
+                    printf '%s' "$category"
+                    return
+                fi
+            done
+        done
+    done
 
-    elif [[ "$command_line" == cd ||
-            "$command_line" == cd\ * ]]; then
-        printf 'cd'
-
-    elif [[ "$command_line" == *npm\ * ||
-            "$command_line" == *pnpm\ * ||
-            "$command_line" == *yarn\ * ||
-            "$command_line" == *pip\ install* ||
-            "$command_line" == *apt\ install* ||
-            "$command_line" == *pacman\ -S* ]]; then
-        printf 'package'
-
-    else
-        printf 'other'
-    fi
+    printf 'other'
 }
 
 # ------------------------------------------------------------
@@ -365,15 +668,7 @@ _glados_preexec() {
 
     _glados_last_category=$(_glados_categorize "$command_line")
 
-    case "$_glados_last_category" in
-        sudo)    message=$(_glados_random_line "${glados_sudo_phrases[@]}") ;;
-        git)     message=$(_glados_random_line "${glados_git_phrases[@]}") ;;
-        rm)      message=$(_glados_random_line "${glados_rm_phrases[@]}") ;;
-        cd)      message=$(_glados_random_line "${glados_cd_phrases[@]}") ;;
-        package) message=$(_glados_random_line "${glados_package_phrases[@]}") ;;
-        *)       message=$(_glados_random_line "${glados_pre_phrases[@]}") ;;
-    esac
-
+    message=$(_glados_pick pre "$_glados_last_category")
     _glados_say "1;33" "$message"
 }
 
@@ -400,22 +695,13 @@ _glados_precmd() {
     fi
 
     local message
-    local duration
-    local template
 
     if _glados_rare_chance; then
         message=$(_glados_random_line "${glados_rare_phrases[@]}")
         _glados_say "1;35" "$message"
 
     elif (( last_status == 0 )); then
-        case "$_glados_last_category" in
-            sudo)    message=$(_glados_random_line "${glados_sudo_done_phrases[@]}") ;;
-            git)     message=$(_glados_random_line "${glados_git_done_phrases[@]}") ;;
-            rm)      message=$(_glados_random_line "${glados_rm_done_phrases[@]}") ;;
-            cd)      message=$(_glados_random_line "${glados_cd_done_phrases[@]}") ;;
-            package) message=$(_glados_random_line "${glados_package_done_phrases[@]}") ;;
-            *)       message=$(_glados_random_line "${glados_success_phrases[@]}") ;;
-        esac
+        message=$(_glados_pick post "$_glados_last_category")
         _glados_say "1;32" "$message"
 
     else
@@ -426,13 +712,6 @@ _glados_precmd() {
         esac
         printf '\033[1;31mGLaDOS [Error %d]: %s\033[0m\n' \
             "$last_status" "$message"
-    fi
-
-    if (( _glados_last_duration >= 10 )); then
-        printf -v duration "%.1f" "$_glados_last_duration"
-        template=$(_glados_random_line "${glados_slow_phrases[@]}")
-        printf -v message -- "$template" "$duration"
-        _glados_say "1;36" "$message"
     fi
 }
 
@@ -513,3 +792,4 @@ add-zsh-hook -d precmd _glados_precmd 2>/dev/null
 
 add-zsh-hook preexec _glados_preexec
 add-zsh-hook precmd _glados_precmd
+
