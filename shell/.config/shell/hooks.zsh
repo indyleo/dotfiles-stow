@@ -7,10 +7,10 @@ function on_directory_change() {
         fi
     fi
 
-    #  Auto-activate Python virtual environment
+    #  Auto-activate Python virtual environment
     if [[ -f "./bin/activate" ]]; then
         if [[ "$VIRTUAL_ENV" != "$PWD" ]]; then
-            echo " Activating virtual environment"
+            echo " Activating virtual environment"
             source ./bin/activate
         fi
     elif [[ -n "$VIRTUAL_ENV" ]] && [[ "$PWD" != "$VIRTUAL_ENV"/* ]]; then

@@ -513,6 +513,19 @@ glados_rare_phrases=(
 )
 
 # ------------------------------------------------------------
+# Dialogue: danger check
+# ------------------------------------------------------------
+
+glados_danger_phrases=(
+    "I detect a potentially destructive command. How very like you."
+    "That command has consequences. I've calculated them. They're bad."
+    "Before you do that, let me remind you that backups exist for a reason. Yours don't."
+    "Please confirm. I'd rather not have to explain this to the facility later."
+    "I'm required to ask. I'm not required to care. But here we are."
+    "This command could end very badly. I say 'could' out of politeness."
+)
+
+# ------------------------------------------------------------
 # Session state
 # ------------------------------------------------------------
 
@@ -524,6 +537,64 @@ _glados_last_duration=0
 _glados_last_status=0
 _glados_total_commands=0
 _glados_total_failures=0
+
+# ------------------------------------------------------------
+# Danger check
+# ------------------------------------------------------------
+#
+# Intercepts commands with irreversible consequences. Requires the user
+# to retype a random string so muscle-memory misfires are impossible.
+# Patterns are glob-ish substring matches; add or remove to taste.
+
+_glados_danger_patterns=(
+    'rm -rf /'          # root deletion
+    'rm -rf /*'         # wildcard root deletion
+    'rm -fr /'
+    'rm -fr /*'
+    'rm -rf ~'          # home directory deletion
+    'rm -rf ~/*'
+    'rm -rf $HOME'
+    'dd if='            # raw disk write
+    'dd of=/dev/'
+    'mkfs'              # filesystem format
+    'wipefs'
+    'fdisk /dev/'
+    'shred '
+    '> /dev/sd'         # clobbering a block device
+    ':(){ :|:& };:'     # fork bomb
+    'chmod -R 000 /'    # bricking root perms
+    'chown -R'          # recursive ownership (context-dependent, keep if paranoid)
+)
+
+# Generate a short lowercase confirmation token.
+_glados_gen_confirm() {
+    printf '%s' "${(L)${(j::)$(openssl rand -base64 6 2>/dev/null | tr -d '/+=')}}"
+}
+
+_glados_danger_check() {
+    local cmd="$1" pattern
+
+    for pattern in "${_glados_danger_patterns[@]}"; do
+        if [[ "$cmd" == *"$pattern"* ]]; then
+            local confirm_str input
+            confirm_str="$(_glados_gen_confirm)"
+
+            printf '\033[1;31mGLaDOS: %s\033[0m\n' \
+                "$(_glados_random_line "${glados_danger_phrases[@]}")"
+            printf '\033[1;33mGLaDOS: Type "%s" to confirm, or Ctrl-C to abort:\033[0m\n' \
+                "$confirm_str"
+
+            read -r input
+            if [[ "$input" != "$confirm_str" ]]; then
+                _glados_say "1;31" "Confirmation failed. Command blocked. You're welcome."
+                return 1
+            fi
+            _glados_say "1;32" "Confirmed. Executing your command. Consequences are yours."
+            return 0
+        fi
+    done
+    return 0
+}
 
 # ------------------------------------------------------------
 # Helpers
@@ -653,6 +724,13 @@ _glados_preexec() {
     fi
 
     [[ -z "${command_line//[[:space:]]/}" ]] && return
+
+    # Danger interception: run before categorization so a blocked command
+    # never triggers a category line or counts as a real command.
+    if ! _glados_danger_check "$command_line"; then
+        _glados_command_ran=0
+        return
+    fi
 
     _glados_command_ran=1
     _glados_started_at=$EPOCHREALTIME
@@ -792,4 +870,3 @@ add-zsh-hook -d precmd _glados_precmd 2>/dev/null
 
 add-zsh-hook preexec _glados_preexec
 add-zsh-hook precmd _glados_precmd
-

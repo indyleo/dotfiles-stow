@@ -129,6 +129,14 @@ bindkey -M vicmd '^e' _edit_command_line
 [[ -f "$SDOTDIR/hooks.zsh" ]] && source "$SDOTDIR/hooks.zsh"
 [[ -f "$SDOTDIR/glados.zsh" ]] && source "$SDOTDIR/glados.zsh"
 
+# ------------------------------------------------------------
+# direnv: per-directory environment loading
+# ------------------------------------------------------------
+# Loads/unloads env vars based on .envrc files in the current directory.
+# Complements the Python-venv logic in hooks.zsh. Must be loaded after the
+# GLaDOS and hooks files above so it doesn't fight over chpwd/precmd.
+command -v direnv >/dev/null 2>&1 && eval "$(direnv hook zsh)"
+
 # Oh my posh
 command -v oh-my-posh >/dev/null 2>&1 && eval "$(oh-my-posh --init --shell zsh --config ~/.config/ohmyposh/base.toml)"
 
