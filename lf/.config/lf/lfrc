@@ -80,7 +80,7 @@ map H top
 map L bottom
 map . set hidden!
 
-# COMMON JUMP SHORTCUTS #
+# JUMP TO POPULAR AREAS #
 
 # Pick a bookmarked directory with fzf and jump to it
 cmd fzf_bookmark ${{
@@ -89,14 +89,15 @@ cmd fzf_bookmark ${{
         while IFS= read -r d; do
             [ -d "$d" ] && echo "$d"
         done |
-        fzf --reverse --prompt='Jump > ' )
+        fzf --reverse --prompt='Jump > ' \
+            --preview 'eza -alF --group-directories-first --color=always --icons=always {}' \
+            --preview-window 'right:50%:wrap' )
     [ -n "$sel" ] && lf -remote "send $id cd \"$sel\""
 }}
 map gb fzf_bookmark
 
-map ee $$f
-
 # CUSTOM COMMANDS #
+map ee $$f
 
 # Go to the removable media directory
 cmd media ${{

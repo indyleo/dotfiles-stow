@@ -1,11 +1,11 @@
 # Making ls Better
-alias ls='eza --group-directories-first --color=auto --icons'            # Basic eza with nice flags
-alias l='eza -alF --group-directories-first --color=auto --icons'        # Full listing (long + all + icons)
-alias ll='eza -lF --group-directories-first --color=auto --icons'        # Long format listing
-alias la='eza -a --group-directories-first --color=auto --icons'         # Show hidden files
-alias lt='eza -a --tree --group-directories-first --color=auto --icons'  # Tree view
-alias lx='eza -alF --git --git-ignore --icons --group-directories-first --color=auto'  # Full + git info
-alias l.='eza -alF --icons --group-directories-first --color=auto | awk '\''$NF ~ /^\./'\''' # Show hidden files
+alias ls='eza --group-directories-first --color=always --icons=always'            # Basic eza with nice flags
+alias l='eza -alF --group-directories-first --color=always --icons=always'        # Full listing (long + all + icons)
+alias ll='eza -lF --group-directories-first --color=always --icons=always'        # Long format listing
+alias la='eza -a --group-directories-first --color=always --icons=always'         # Show hidden files
+alias lt='eza -a --tree --group-directories-first --color=always --icons=always'  # Tree view
+alias lx='eza -alF --git --git-ignore --group-directories-first --color=always --icons=always'  # Full + git info
+alias l.='eza -alF --group-directories-first --color=auto --icons=always | awk '\''$NF ~ /^\./'\''' # Show hidden files
 
 # Duf Aliases
 alias df='duf'
