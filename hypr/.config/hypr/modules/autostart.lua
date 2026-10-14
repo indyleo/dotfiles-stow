@@ -5,6 +5,7 @@ hl.on("hyprland.start", function()
 
 	-- --- Launch Services ---
 	hl.exec_cmd("sunshine")
+	hl.exec_cmd("espanso worker")
 	hl.exec_cmd("systemctl --user start hyprpolkitagent")
 	hl.exec_cmd("organizer.py -d")
 	hl.exec_cmd("udiskie")
