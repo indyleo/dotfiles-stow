@@ -292,11 +292,11 @@ map gf follow-link
 # RENAME #
 
 # Rename the current file by prompt and log for undo
-cmd rename ${{
+cmd rename %{{
   sep=$(printf '\037')
   old="$f"
   oldname=$(basename "$old")
-  printf "New name: "
+  printf " New name: "
   read -r newname
   [ -z "$newname" ] && exit
   newpath="$(dirname "$old")/$newname"
