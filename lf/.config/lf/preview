@@ -71,6 +71,17 @@ function txtuse() {
     fi
 }
 
+# Show `git diff` for modified, tracked files (used for code/text fallback)
+function git_diff_preview() {
+    command -v git >/dev/null 2>&1 || return 1
+    local dir
+    dir="$(dirname -- "$preview")"
+    git -C "$dir" rev-parse --verify -q HEAD >/dev/null 2>&1 || return 1
+    git -C "$dir" ls-files --error-unmatch -- "$preview" >/dev/null 2>&1 || return 1
+    git -C "$dir" diff --quiet HEAD -- "$preview" 2>/dev/null && return 1
+    git -C "$dir" diff --color=always HEAD -- "$preview" 2>/dev/null | headlimit
+}
+
 # Image preview (fallback to metadata)
 function imguse() {
     local img="${1:-$preview}"
@@ -268,7 +279,7 @@ case "${preview,,}" in
         # what the catch-all below already does, so a separate case for them
         # was redundant)
     *)
-        txtuse
+        git_diff_preview || txtuse
         ;;
 esac
 

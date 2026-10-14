@@ -13,6 +13,12 @@ set ifs "\n"
 set sixel true
 set info custom
 
+# Shell command types:
+#   %{{ }}  runs inside lf, no tty, output goes to the statusline
+#   &{{ }}  async, for GUI apps and background jobs
+#   ${{ }}  suspends lf, for TUIs, fzf and prompts
+#   !{{ }}  like $ but waits for a keypress so you can read the output
+
 # HOOKS #
 
 # Show eza details for the selected file in the statusline
@@ -64,6 +70,7 @@ map d
 map c
 map e
 map f
+map t
 map '"'
 map "'"
 map R
@@ -73,7 +80,6 @@ map R
 map <enter> open
 map x cut
 map y copy
-map R reload
 map C clear
 map U unselect
 map H top
@@ -84,51 +90,122 @@ map . set hidden!
 
 # Pick a bookmarked directory with fzf and jump to it
 cmd fzf_bookmark ${{
-    sel=$(echo -e \
-        "$HOME\n$HOME/.config\n$HOME/Downloads\n$HOME/Documents\n$HOME/Projects\n$HOME/Scripts\n$HOME/Pictures\n$HOME/Music\n$HOME/Videos\n$HOME/Github\n$HOME/.local/scripts\n$HOME/Applications\n$HOME/Archives\n$HOME/Code\n$HOME/Bin\n$HOME/Diffs\n$HOME/Img\n$HOME/Macros\n$HOME/Virt\n$HOME/Other" |
-        while IFS= read -r d; do
-            [ -d "$d" ] && echo "$d"
-        done |
-        fzf --reverse --prompt='Jump > ' \
+    sel=$(
+        for d in \
+            "$HOME" "$HOME/.config" "$HOME/Downloads" "$HOME/Documents" \
+            "$HOME/Projects" "$HOME/Scripts" "$HOME/Pictures" "$HOME/Music" \
+            "$HOME/Videos" "$HOME/Github" "$HOME/.local/scripts" \
+            "$HOME/Applications" "$HOME/Archives" "$HOME/Code" "$HOME/Bin" \
+            "$HOME/Diffs" "$HOME/Img" "$HOME/Macros" "$HOME/Virt" "$HOME/Other"
+        do
+            [ -d "$d" ] && printf '%s\n' "$d"
+        done | fzf --reverse --prompt='Jump > ' \
             --preview 'eza -alF --group-directories-first --color=always --icons=always {}' \
-            --preview-window 'right:50%:wrap' )
+            --preview-window 'right:50%:wrap'
+    )
     [ -n "$sel" ] && lf -remote "send $id cd \"$sel\""
 }}
 map gb fzf_bookmark
 
 # CUSTOM COMMANDS #
-map ee $$f
+map ee $f
 
 # Go to the removable media directory
-cmd media ${{
-  lf -remote "send $id cd '/run/media/$USER/'"
+cmd media %{{
+    base="/run/media/$USER"
+    set -- "$base"/*/
+    if [ ! -d "$1" ]; then
+        echo "No media mounted."
+        exit 0
+    fi
+    # One device: go straight into it. Several: show the list.
+    if [ $# -eq 1 ]; then
+        target=${1%/}
+    else
+        target=$base
+    fi
+    esc=$(printf '%s' "$target" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    lf -remote "send $id cd \"$esc\""
 }}
 map gM media
 
 # FILE CREATION #
 
 # Create a directory, file, script or project by prompt
-cmd mk ${{
-  printf "Name: "
-  read -r name
-  [ -z "$name" ] && exit
-
-  printf "Type (dir/file/script/proj): "
-  read -r type
-  case "$type" in
-    dir|d) mkdir -pv -- "$name" ;;
-    file|f) :> "$name" ;;
-    script|scr|s) mkscript -n "$name" && lf -remote "send $id cd '~/Scripts/'" ;;
-    project|proj|p)
-      projtool mkproj -n "$name" || exit
-      esc_name=$(printf '%s' "$name" | sed 's/\\/\\\\/g; s/"/\\"/g')
-      lf -remote "send $id cd \"$HOME/Projects/$esc_name\""
-      ;;
-    *) echo "Unknown type." ;;
-  esac
-  lf -remote 'send reload'
+cmd mkdir %{{
+    printf " Directory name: "
+    read -r name
+    [ -n "$name" ] || exit 0
+    sep=$(printf '\037')
+    [ -e "$name" ] && existed=true || existed=false
+    mkdir -pv -- "$name"
+    $existed || printf 'mkdir%s%s\n' "$sep" "$PWD/$name" >> /tmp/lf_undo_$USER
+    lf -remote "send $id reload"
 }}
-map mm mk
+
+cmd mkfile %{{
+    printf " File name: "
+    read -r name
+    [ -n "$name" ] || exit 0
+    sep=$(printf '\037')
+    [ -e "$name" ] && existed=true || existed=false
+    touch -- "$name"
+    $existed || printf 'mkfile%s%s\n' "$sep" "$PWD/$name" >> /tmp/lf_undo_$USER
+    lf -remote "send $id reload"
+}}
+
+# Prompts for name, language and template, then calls mkscript with flags
+cmd mkscr %{{
+    printf " Script name: "
+    read -r name
+    [ -n "$name" ] || exit 0
+    printf " Language (bash/py) [bash]: "
+    read -r lang
+    printf " Template (basic/adv) [basic]: "
+    read -r tmpl
+
+    case "$lang" in
+        py|python|python3) l=py ;;
+        *)                 l=bash ;;
+    esac
+    case "$tmpl" in
+        a|adv|advanced) t=-a ;;
+        *)              t=-b ;;
+    esac
+
+    sep=$(printf '\037')
+    [ -e "$HOME/Scripts/$name" ] && existed=true || existed=false
+    if out=$(mkscript -n -l "$l" "$t" "$name" 2>&1); then
+        $existed || printf 'mkscr%s%s\n' "$sep" "$HOME/Scripts/$name" >> /tmp/lf_undo_$USER
+        lf -remote "send $id cd '~/Scripts/'"
+    else
+        printf '%s\n' "$out" | tail -n 1
+        exit 1
+    fi
+}}
+
+# Prompts for name, language and build system, then calls projtool with flags
+cmd mkproj %{{
+    printf " Project name: "
+    read -r name
+    [ -n "$name" ] || exit 0
+    printf " Language (sh/py/lua/nvim/c/cpp/rs/go/zig/ino): "
+    read -r lang
+    [ -n "$lang" ] || exit 0
+    printf " Build system (make/just/sh, blank = default): "
+    read -r bs
+
+    if out=$(projtool mkproj -n "$name" -l "$lang" -y ${bs:+-B "$bs"} 2>&1); then
+        lf -remote "send $id cd \"$HOME/Projects/$name\""
+    else
+        printf '%s\n' "$out" | tail -n 1 | sed 's/\x1b\[[0-9;]*m//g'
+        exit 1
+    fi
+}}
+map md mkdir
+map mf mkfile
+map ms mkscr
+map mp mkproj
 
 # DELETE / TRASH #
 
@@ -148,7 +225,9 @@ cmd trash-list ${{
 
 # Restore files from the trash
 cmd trash-restore ${{
+    clear
     trash-restore
+    lf -remote "send $id reload"
 }}
 
 # Empty the trash
@@ -207,7 +286,7 @@ map p paste
 cmd chmod %{{
   sep=$(printf '\037')
   oldperms=$(stat -c "%a" "$f")
-  printf "Chmod bits: "
+  printf " Chmod bits: "
   read -r bits
   [ -z "$bits" ] && exit
   chmod "$bits" "$f"
@@ -220,19 +299,45 @@ map et chmod
 
 # Extract the selected archives
 cmd extract %{{
+  sep=$(printf '\037')
+  before=$(mktemp)
+  ls -A > "$before"
+  failed=
   for f in $fx; do
-    archives extract "$f"
+    if ! out=$(archives extract "$f" 2>&1); then
+      failed=$(printf '%s\n' "$out" | grep '^Error' | tail -n 1 || true)
+      [ -n "$failed" ] || failed="Extract failed: ${f##*/}"
+    fi
   done
+  new=$(ls -A | grep -vxFf "$before" || true)
+  rm -f "$before"
+  if [ -n "$new" ]; then
+    line=$(printf '%s\n' "$new" | awk -v sep="$sep" -v pwd="$PWD" '{printf "%s%s/%s", sep, pwd, $0}')
+    printf 'extract%s\n' "$line" >> /tmp/lf_undo_$USER
+  fi
   lf -remote 'send reload'
+  [ -z "$failed" ] || echo "$failed"
 }}
 map ex extract
 
 # Archive the selection into a named archive
 cmd archive %{{
+  sep=$(printf '\037')
   printf " Archive name (.tar.gz/.zip/.rar): "
   read -r out
-  [ -z "$out" ] && exit
-  archives archive "$out" $fx
+  [ -n "$out" ] || exit 0
+  # Pass bare names (we are in the same directory) so the archive does not
+  # store the full /home/... path of every member
+  set -f
+  names=$(printf '%s\n' "$fx" | sed 's|.*/||')
+  if msg=$(archives archive "$out" $names 2>&1); then
+    case "$out" in /*) path=$out ;; *) path="$PWD/$out" ;; esac
+    printf 'archive%s%s\n' "$sep" "$path" >> /tmp/lf_undo_$USER
+  else
+    err=$(printf '%s\n' "$msg" | grep '^Error' | tail -n 1 || true)
+    echo "${err:-Archive failed}"
+    exit 1
+  fi
   lf -remote 'send reload'
 }}
 map er archive
@@ -243,8 +348,7 @@ map er archive
 cmd fzf_jump ${{
   res=$(fd --hidden --exclude .git . 2>/dev/null | \
     fzf --reverse \
-        --preview '[ -d {} ] && eza -a --tree --level=2 --group-directories-first --color=always --icons {} 2>/dev/null || bat --color=always --style=numbers --line-range=:100 {} 2>/dev/null || cat {}' \
-        </dev/tty)
+        --preview '[ -d {} ] && eza -a --tree --level=2 --group-directories-first --color=always --icons {} 2>/dev/null || bat --color=always --style=numbers --line-range=:100 {} 2>/dev/null || cat {}')
   [ -z "$res" ] && exit
   esc_res=$(printf '%s' "$res" | sed 's/\\/\\\\/g; s/"/\\"/g')
   if [ -d "$res" ]; then
@@ -275,17 +379,23 @@ map fg fzf_search
 # FOLLOW SYMLINK #
 
 # Jump to a symlink's target, or edit it if it is a file
-cmd follow-link ${{
-  [ ! -L "$f" ] && echo "Not a symlink." && exit
-  target=$(readlink -f "$f")
-  esc_target=$(printf '%s' "$target" | sed 's/\\/\\\\/g; s/"/\\"/g')
-  if [ -d "$target" ]; then
-    lf -remote "send $id cd \"$esc_target\""
-  elif [ -f "$target" ]; then
-    esc_dir=$(dirname "$target" | sed 's/\\/\\\\/g; s/"/\\"/g')
+cmd follow-link %{{
+    if [ ! -L "$f" ]; then
+        echo "Not a symlink."
+        exit 0
+    fi
+    target=$(readlink -f "$f")
+    if [ -d "$target" ]; then
+        dir=$target
+    else
+        dir=$(dirname -- "$target")
+    fi
+    esc_dir=$(printf '%s' "$dir" | sed 's/\\/\\\\/g; s/"/\\"/g')
     lf -remote "send $id cd \"$esc_dir\""
-    ${EDITOR:-nvim} "$target"
-  fi
+    if [ ! -d "$target" ]; then
+        esc_target=$(printf '%s' "$target" | sed 's/\\/\\\\/g; s/"/\\"/g')
+        lf -remote "send $id select \"$esc_target\""
+    fi
 }}
 map gf follow-link
 
@@ -338,30 +448,20 @@ cmd open ${{
       ;;
   esac
 }}
-map <enter> open
 
 # ISO BURNER #
 
 # Burn the selected ISO with caligula
-cmd burn ${{
-    [ -z "$f" ] && echo "No file selected." && exit
+cmd burn !{{
     echo "󰈸 Burning ISO: $f"
     caligula burn "$f"
 }}
 map bi burn
 
-# WALLPAPER #
-
-# Set the selected image as the wallpaper
-cmd setbg ${{
-  xwallpaper --stretch "$f" 2>/dev/null || echo "Failed to set wallpaper"
-}}
-map bg setbg
-
 # DRAG (DRAGON) #
 
 # Drag the selection out with dragon-drop
-cmd drag ${{
+cmd drag &{{
   dragon-drop -a -x -T $fx
 }}
 map dr drag
@@ -369,10 +469,11 @@ map dr drag
 # SECURE COPY #
 
 # Copy the selection to a remote host over scp
-cmd scp ${{
-  read -rp "Port (default 22): " port
+cmd scp !{{
+  clear
+  read -rp " Port (default 22): " port
   port="${port:-22}"
-  read -rp "Host (user@host:/path): " host
+  read -rp " Host (user@host:/path): " host
   [ -z "$host" ] && exit
   if [ -n "$fx" ]; then
     printf '%s\n' "$fx" | xargs -d '\n' -I{} scp -P "$port" "{}" "$host"
@@ -385,7 +486,7 @@ map cs scp
 # UNDO #
 
 # Undo the last paste, rename, chmod or trash action
-cmd undo ${{
+cmd undo %{{
   sep=$(printf '\037')
   [ ! -f /tmp/lf_undo_$USER ] && echo "Nothing to undo." && exit
   last=$(tail -1 /tmp/lf_undo_$USER)
@@ -426,6 +527,38 @@ cmd undo ${{
       fi
       lf -remote 'send reload'
       ;;
+    mkdir)
+      rmdir -- "$data" 2>/dev/null || echo "Not removed (missing or not empty): $data"
+      sed -i '$d' /tmp/lf_undo_$USER
+      lf -remote 'send reload'
+      ;;
+    mkfile)
+      if [ -s "$data" ]; then
+        echo "Not removed (file has content): $data"
+      else
+        rm -f -- "$data"
+      fi
+      sed -i '$d' /tmp/lf_undo_$USER
+      lf -remote 'send reload'
+      ;;
+    mkscr|duplicate)
+      rm -rf -- "$data"
+      sed -i '$d' /tmp/lf_undo_$USER
+      lf -remote 'send reload'
+      ;;
+    link|archive)
+      rm -f -- "$data"
+      sed -i '$d' /tmp/lf_undo_$USER
+      lf -remote 'send reload'
+      ;;
+    extract)
+      printf '%s\n' "$data" | tr "$sep" '\n' | while IFS= read -r p; do
+        [ -n "$p" ] || continue
+        rm -rf -- "$p"
+      done
+      sed -i '$d' /tmp/lf_undo_$USER
+      lf -remote 'send reload'
+      ;;
   esac
 }}
 map u undo
@@ -450,27 +583,141 @@ map gZ zi
 
 # Switch git branches with fzf
 cmd git_branch ${{
-    branch=$(git branch | fzf | xargs)
-    [ -z "$branch" ] && exit
-    git checkout "$branch"
+    branch=$(
+        {
+            git for-each-ref --format='%(refname)' refs/heads | sed 's#^refs/heads/##'
+            git for-each-ref --format='%(refname)' refs/remotes | sed 's#^refs/remotes/[^/]*/##'
+        } | grep -vx 'HEAD' | awk '!seen[$0]++' |
+            fzf --reverse --prompt='Branch > ' \
+                --preview 'git log --oneline --color=always -n 15 {} -- 2>/dev/null'
+    )
+    [ -n "$branch" ] || exit 0
+    if ! git switch "$branch"; then
+        printf "Press Enter to continue..."
+        read -r _
+        exit 1
+    fi
     pwd_shell="$(pwd | sed 's/\\/\\\\/g;s/"/\\"/g')"
     lf -remote "send $id updir; cd \"$pwd_shell\""
 }}
 map gB git_branch
 
+# Stage the selection
+cmd git_add %{{
+    git add -- $fx 2>&1 | tail -n 1
+    lf -remote "send $id reload"
+}}
+
+# Unstage the selection
+cmd git_unstage %{{
+    git restore --staged -- $fx 2>&1 | tail -n 1
+    lf -remote "send $id reload"
+}}
+
+# Commit what is staged, with a prompted message
+cmd git_commit %{{
+    printf " Commit message: "
+    read -r msg
+    [ -n "$msg" ] || exit 0
+    git commit -m "$msg" 2>&1 | head -n 1
+    lf -remote "send $id reload"
+}}
+
+# Pull / push the current branch
+cmd git_pull %{{
+    git pull 2>&1 | tail -n 1
+    lf -remote "send $id reload"
+}}
+
+cmd git_push %{{
+    git push 2>&1 | tail -n 1
+}}
+
+# Throw away uncommitted changes to the selection
+cmd git_discard %{{
+    git restore -- $fx 2>&1 | tail -n 1
+    lf -remote "send $id reload"
+}}
+
+# Diff of the current file / history of the repo in the pager
+cmd git_diff ${{
+    git diff --color=always HEAD -- "$f" | less -R
+}}
+
+cmd git_log ${{
+    git log --oneline --graph --decorate --color=always | less -R
+}}
+
+map ga git_add
+map gu git_unstage
+map gc git_commit
+map gp git_pull
+map gP git_push
+map gD git_discard
+map gd git_diff
+map gl git_log
+
+# Short status, stash, stash pop and blame
+cmd git_status ${{
+    git -c color.status=always status -sb | less -R
+}}
+
+cmd git_stash %{{
+    git stash 2>&1 | head -n 1
+    lf -remote "send $id reload"
+}}
+
+cmd git_stash_pop %{{
+    git stash pop 2>&1 | tail -n 1
+    lf -remote "send $id reload"
+}}
+
+cmd git_blame ${{
+    git blame -- "$f" | less
+}}
+
+map gs git_status
+map gS git_stash
+map gU git_stash_pop
+map gA git_blame
+
 # YANK #
 
 # Copy the absolute path of the current file to the clipboard
-cmd yank_path %{{
-    # Works on both Wayland and X11
-    if command -v wl-copy >/dev/null 2>&1; then
-        printf '%s' "$f" | wl-copy
-    elif command -v xclip >/dev/null 2>&1; then
-        printf '%s' "$f" | xclip -selection clipboard
-    fi
-    echo "Copied path: $f"
+cmd yank %{{
+    command -v wl-copy >/dev/null 2>&1 || command -v xclip >/dev/null 2>&1 || {
+        echo "No clipboard tool (wl-copy/xclip) found."
+        exit 1
+    }
+    clip() {
+        if command -v wl-copy >/dev/null 2>&1; then
+            wl-copy >/dev/null 2>&1
+        else
+            xclip -selection clipboard >/dev/null 2>&1
+        fi
+    }
+    what="${1:-path}"
+    case "$what" in
+        path) printf '%s' "$fx" | clip ;;
+        name) printf '%s' "$fx" | sed 's|.*/||' | clip ;;
+        dir)  printf '%s' "$PWD" | clip ;;
+        content)
+            [ -f "$f" ] || { echo "Not a file."; exit 1; }
+            case "$(file --mime-type -Lb -- "$f")" in
+                text/*|application/json|application/xml) ;;
+                *) echo "Not a text file."; exit 1 ;;
+            esac
+            [ "$(stat -c %s -- "$f")" -le 1048576 ] || { echo "File is over 1 MiB."; exit 1; }
+            clip < "$f"
+            ;;
+        *) echo "usage: yank path|name|dir|content"; exit 1 ;;
+    esac
+    echo "Copied $what to clipboard"
 }}
-map yp yank_path
+map yp yank path
+map yn yank name
+map yd yank dir
+map yc yank content
 
 # BULK RENAME #
 
@@ -572,23 +819,219 @@ cmd bulk_rename ${{
 }}
 map R bulk_rename
 
+# SELECT BY PATTERN #
+
+# Select / unselect files matching a glob (v already inverts the selection)
+cmd select_glob %{{
+    printf " Glob to select: "
+    read -r g
+    [ -n "$g" ] || exit 0
+    g=$(printf '%s' "$g" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    lf -remote "send $id glob-select \"$g\""
+}}
+
+cmd unselect_glob %{{
+    printf " Glob to unselect: "
+    read -r g
+    [ -n "$g" ] || exit 0
+    g=$(printf '%s' "$g" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    lf -remote "send $id glob-unselect \"$g\""
+}}
+
+# Select every file with the same extension as the current one
+cmd select_ext %{{
+    name=${f##*/}
+    case "$name" in
+        .*.*|[!.]*.*) ;;
+        *) echo "No extension on $name"; exit 0 ;;
+    esac
+    lf -remote "send $id glob-select \"*.${name##*.}\""
+}}
+map sg select_glob
+map sG unselect_glob
+map sx select_ext
+
+# DUPLICATE / SYMLINK #
+
+# Copy each selected item next to itself as name_copy.ext (logged for undo)
+cmd duplicate %{{
+    sep=$(printf '\037')
+    for src in $fx; do
+        dir=$(dirname -- "$src")
+        base=$(basename -- "$src")
+        stem=$base
+        ext=
+        if [ ! -d "$src" ]; then
+            case "$base" in
+                .*.*|[!.]*.*) stem=${base%.*}; ext=.${base##*.} ;;
+            esac
+        fi
+        target="$dir/${stem}_copy$ext"
+        n=1
+        while [ -e "$target" ]; do
+            target="$dir/${stem}_copy$n$ext"
+            n=$((n + 1))
+        done
+        cp -r -- "$src" "$target"
+        printf 'duplicate%s%s\n' "$sep" "$target" >> /tmp/lf_undo_$USER
+    done
+    lf -remote "send $id reload"
+}}
+map dc duplicate
+
+# Symlink the copied/cut files into this directory (":symlink rel" = relative links)
+cmd symlink %{{
+    sep=$(printf '\037')
+    flags=-s
+    [ "${1:-}" = rel ] && flags=-sr
+    sel_file="${XDG_DATA_HOME:-$HOME/.local/share}/lf/files"
+    [ -f "$sel_file" ] || { echo "Nothing copied or cut."; exit 1; }
+    list=$(sed '1d' "$sel_file")
+    [ -n "$list" ] || { echo "Nothing copied or cut."; exit 1; }
+    printf '%s\n' "$list" | while IFS= read -r src; do
+        [ -n "$src" ] || continue
+        base=$(basename -- "$src")
+        target="$PWD/$base"
+        n=1
+        while [ -e "$target" ] || [ -L "$target" ]; do
+            target="$PWD/${base}_$n"
+            n=$((n + 1))
+        done
+        ln $flags -- "$src" "$target"
+        printf 'link%s%s\n' "$sep" "$target" >> /tmp/lf_undo_$USER
+    done
+    lf -remote "send $id reload"
+}}
+map sl symlink
+map sL symlink rel
+
+# FZF CD / RECENT #
+
+# Fuzzy jump to any directory below here
+cmd fzf_cd ${{
+    res=$(fd --type d --hidden --exclude .git . 2>/dev/null |
+        fzf --reverse --prompt='cd > ' \
+            --preview 'eza -a --tree --level=1 --group-directories-first --color=always --icons {} 2>/dev/null')
+    [ -n "$res" ] || exit 0
+    esc=$(printf '%s' "$res" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    lf -remote "send $id cd \"$esc\""
+}}
+
+# Fuzzy jump to a file changed in the last 7 days and select it
+cmd fzf_recent ${{
+    res=$(fd --type f --hidden --exclude .git --changed-within 7d . 2>/dev/null |
+        fzf --reverse --prompt='Recent > ' \
+            --preview 'bat --color=always --style=numbers --line-range=:100 {} 2>/dev/null || cat {}')
+    [ -n "$res" ] || exit 0
+    abs="$PWD/$res"
+    esc_dir=$(dirname -- "$abs" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    esc_abs=$(printf '%s' "$abs" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    lf -remote "send $id cd \"$esc_dir\""
+    lf -remote "send $id select \"$esc_abs\""
+}}
+map fc fzf_cd
+map fr fzf_recent
+
+# MOUNT / UNMOUNT #
+
+# Pick an unmounted partition, mount it with udisksctl and jump to it
+cmd mount_dev ${{
+    dev=$(lsblk -prnl -o NAME,FSTYPE,MOUNTPOINT,SIZE,LABEL |
+        awk -F'[ ]' '$2 != "" && $3 == "" && $2 !~ /^(swap|LVM2_member|crypto_LUKS)$/ {printf "%s\t%s\t%s\t%s\n", $1, $4, $2, $5}' |
+        fzf --reverse --prompt='Mount > ' | cut -f1)
+    [ -n "$dev" ] || exit 0
+    if ! out=$(udisksctl mount -b "$dev" 2>&1); then
+        printf '%s\n' "$out"
+        printf "Press Enter to continue..."
+        read -r _
+        exit 1
+    fi
+    mnt=${out##* at }
+    mnt=${mnt%.}
+    esc=$(printf '%s' "$mnt" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    lf -remote "send $id cd \"$esc\""
+}}
+
+# Pick a device mounted under /run/media and unmount it
+cmd umount_dev ${{
+    dev=$(lsblk -prnl -o NAME,FSTYPE,MOUNTPOINT,SIZE,LABEL |
+        awk -F'[ ]' '$3 ~ /^\/run\/media\// {printf "%s\t%s\t%s\n", $1, $4, $3}' |
+        fzf --reverse --prompt='Unmount > ' | cut -f1)
+    [ -n "$dev" ] || exit 0
+    mnt=$(findmnt -no TARGET "$dev" | head -n 1)
+    case "$PWD/" in
+        "$mnt"/*) lf -remote "send $id cd ~"; sleep 0.3 ;;
+    esac
+    if out=$(udisksctl unmount -b "$dev" 2>&1); then
+        lf -remote "send $id echo \"Unmounted $dev\""
+    else
+        printf '%s\n' "$out"
+        printf "Press Enter to continue..."
+        read -r _
+        exit 1
+    fi
+}}
+map bm mount_dev
+map bu umount_dev
+
+# TERMINAL / INFO / CHECKSUM #
+
+# Open a terminal in the current directory
+cmd term &{{
+    setsid -f ${TERMINAL:-st} >/dev/null 2>&1
+}}
+map gt term
+
+# File details in the pager
+cmd fileinfo ${{
+    {
+        stat -- "$f"
+        echo
+        file --brief -- "$f"
+        echo
+        if command -v exiftool >/dev/null 2>&1; then
+            exiftool -- "$f" 2>/dev/null
+        elif command -v mediainfo >/dev/null 2>&1; then
+            mediainfo "$f" 2>/dev/null
+        fi
+    } | less -R
+}}
+map sf fileinfo
+
+# sha256 of the selection to the clipboard (just the hash for a single file)
+cmd checksum %{{
+    command -v wl-copy >/dev/null 2>&1 || command -v xclip >/dev/null 2>&1 || {
+        echo "No clipboard tool (wl-copy/xclip) found."
+        exit 1
+    }
+    out=$(sha256sum -- $fx 2>&1) || { printf '%s\n' "$out" | head -n 1; exit 1; }
+    if [ "$(printf '%s\n' "$fx" | wc -l)" -eq 1 ]; then
+        text=${out%% *}
+    else
+        text=$out
+    fi
+    if command -v wl-copy >/dev/null 2>&1; then
+        printf '%s' "$text" | wl-copy >/dev/null 2>&1
+    else
+        printf '%s' "$text" | xclip -selection clipboard >/dev/null 2>&1
+    fi
+    echo "sha256 copied: ${out%% *}"
+}}
+map sh checksum
+
 # DISK USAGE #
 
 # Show directory sizes sorted largest first
 cmd du_sort ${{
     clear
     echo "Calculating disk usage for: $PWD"
-    echo "----------------------------------------"
-    du -h --max-depth=1 2>/dev/null | sort -hr
-    echo "----------------------------------------"
-    printf "Press Enter to return..."
-    read -r
+    du -h --max-depth=1 2>/dev/null | sort -hr | ${PAGER:-less}
 }}
 map si du_sort
 
 # REPOMIX #
 
 # Add files to a repomix
-map mi $repomix "$fx"
+map mi !repomix "$fx"
 
 # vim:ft=conf
