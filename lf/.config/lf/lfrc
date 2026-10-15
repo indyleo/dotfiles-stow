@@ -402,17 +402,50 @@ map gf follow-link
 # RENAME #
 
 # Rename the current file by prompt and log for undo
+
 cmd rename %{{
-  sep=$(printf '\037')
-  old="$f"
-  oldname=$(basename "$old")
-  printf " New name: "
-  read -r newname
-  [ -z "$newname" ] && exit
-  newpath="$(dirname "$old")/$newname"
-  mv -- "$old" "$newpath"
-  printf 'rename%s%s%s%s\n' "$sep" "$old" "$sep" "$newpath" >> /tmp/lf_undo_$USER
-  lf -remote 'send reload'
+    sep=$(printf '\037')
+    old="$f"
+    oldname=$(basename -- "$old")
+    dir=$(dirname -- "$old")
+
+    printf " New name or substitution (s/pattern/replacement/): "
+    IFS= read -r input
+    [ -n "$input" ] || exit 0
+
+    case "$input" in
+        s/*)
+            if ! newname=$(printf '%s\n' "$oldname" | sed -e "$input"); then
+                echo "Invalid substitution."
+                exit 1
+            fi
+            ;;
+        *)
+            newname="$input"
+            ;;
+    esac
+
+    case "$newname" in
+        ""|.|..|*/*)
+            echo "Invalid filename: $newname" >&2
+            exit 1
+            ;;
+    esac
+
+    [ "$newname" != "$oldname" ] || exit 0
+    newpath="$dir/$newname"
+
+    if [ -e "$newpath" ] || [ -L "$newpath" ]; then
+        echo "Target exists: $newpath" >&2
+        exit 1
+    fi
+
+    mv -- "$old" "$newpath" || exit 1
+
+    printf 'rename%s%s%s%s\n' \
+        "$sep" "$old" "$sep" "$newpath" >> "/tmp/lf_undo_$USER"
+
+    lf -remote 'send reload'
 }}
 map r rename
 
@@ -504,6 +537,89 @@ cmd undo %{{
       new=$(printf '%s' "$data" | cut -d"$sep" -f2)
       mv -- "$new" "$old"
       sed -i '$d' /tmp/lf_undo_$USER
+      lf -remote 'send reload'
+      ;;
+
+    bulk_rename)
+      fields=$(mktemp)
+      olds=$(mktemp)
+      news=$(mktemp)
+
+      printf '%s' "$data" | tr "$sep" '\n' > "$fields"
+
+      # Parse the alternating original and new paths.
+      exec 3< "$fields"
+      while IFS= read -r old <&3; do
+        IFS= read -r new <&3 || {
+          echo "Invalid bulk rename log." >&2
+          exec 3<&-
+          rm -f "$fields" "$olds" "$news"
+          exit 1
+        }
+        [ -n "$old" ] && [ -n "$new" ] || continue
+        printf '%s\n' "$old" >> "$olds"
+        printf '%s\n' "$new" >> "$news"
+      done
+      exec 3<&-
+
+      [ -s "$olds" ] || {
+        echo "Empty bulk rename log." >&2
+        rm -f "$fields" "$olds" "$news"
+        exit 1
+      }
+
+      # All renamed paths must still exist.
+      while IFS= read -r new; do
+        if [ ! -e "$new" ] && [ ! -L "$new" ]; then
+          echo "Cannot undo: missing $new" >&2
+          rm -f "$fields" "$olds" "$news"
+          exit 1
+        fi
+      done < "$news"
+
+      # Original destinations must be free or occupied by a
+      # file that this same undo operation will move away.
+      while IFS= read -r old; do
+        if [ -e "$old" ] || [ -L "$old" ]; then
+          if ! grep -qxF -- "$old" "$news"; then
+            echo "Cannot undo: target exists: $old" >&2
+            rm -f "$fields" "$olds" "$news"
+            exit 1
+          fi
+        fi
+      done < "$olds"
+
+      first=$(head -n 1 "$news")
+      parent=$(dirname -- "$first")
+      stage=$(mktemp -d "$parent/.lf_undo.XXXXXX") || {
+        rm -f "$fields" "$olds" "$news"
+        exit 1
+      }
+
+      # Stage all renamed files before restoring original names.
+      i=0
+      while IFS= read -r new; do
+        i=$((i + 1))
+        if ! mv -- "$new" "$stage/$i"; then
+          echo "Undo staging failed; recovery files: $stage" >&2
+          rm -f "$fields" "$olds" "$news"
+          exit 1
+        fi
+      done < "$news"
+
+      i=0
+      while IFS= read -r old; do
+        i=$((i + 1))
+        if ! mv -- "$stage/$i" "$old"; then
+          echo "Undo restore failed; recovery files: $stage" >&2
+          rm -f "$fields" "$olds" "$news"
+          exit 1
+        fi
+      done < "$olds"
+
+      rmdir "$stage"
+      rm -f "$fields" "$olds" "$news"
+      sed -i '$d' "/tmp/lf_undo_$USER"
       lf -remote 'send reload'
       ;;
     chmod)
@@ -730,6 +846,7 @@ cmd bulk_rename ${{
     edited=$(mktemp)
     tg=$(mktemp)
     chg=$(mktemp)
+		sep=$(printf '\037')
     stage=$(mktemp -d "$PWD/.bulk_rename.XXXXXX")
 
     cleanup() {
@@ -813,6 +930,19 @@ cmd bulk_rename ${{
             exit 1
         }
     done 3< "$olds" 4< "$edited"
+
+    # Record all changed paths in a single undo-log entry.
+    # Format: bulk_rename<sep>old1<sep>new1<sep>old2<sep>new2...
+    log="/tmp/lf_undo_$USER"
+    printf 'bulk_rename%s' "$sep" >> "$log"
+
+    while IFS= read -r old <&3 && IFS= read -r new <&4; do
+        [ "${old##*/}" = "$new" ] && continue
+        printf '%s%s%s%s' \
+            "$old" "$sep" "${old%/*}/$new" "$sep" >> "$log"
+    done 3< "$olds" 4< "$edited"
+
+    printf '\n' >> "$log"
 
     lf -remote "send $id unselect"
     lf -remote "send $id reload"
