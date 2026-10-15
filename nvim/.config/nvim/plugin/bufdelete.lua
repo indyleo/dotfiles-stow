@@ -1,6 +1,4 @@
 -- bufdelete.lua
--- Safe buffer deletion without closing windows.
-
 if vim.g.loaded_bufdelete_plugin then
   return
 end

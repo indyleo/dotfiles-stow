@@ -1,6 +1,4 @@
--- Rust filetype plugin --
--- See after/ftplugin/c.lua for why this no longer wraps in a BufEnter
--- autocmd on a shared, clearable augroup.
+-- rust.lua
 local keymap = vim.keymap.set
 local bufnr = vim.api.nvim_get_current_buf()
 local rsopts = function(desc)
@@ -65,9 +63,6 @@ keymap("n", "<leader>rc", function()
   cargo_cmd "check"
 end, rsopts "Cargo check")
 
--- NOTE: this was previously mis-labeled "Cargo check" (copy-paste from the
--- keymap above) even though it runs `cargo test`. The key itself
--- (<leader>rt) was fine and is unchanged -- only the description was wrong.
 keymap("n", "<leader>rt", function()
   cargo_cmd "test"
 end, rsopts "Cargo test")

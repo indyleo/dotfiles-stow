@@ -1,21 +1,4 @@
--- plugin/comment.lua
--- Minimal self-contained comment toggler for Neovim (single-file)
--- Features:
---  - line vs block selection threshold
---  - unwrap block comments when selecting interior (find enclosing markers)
---  - removes padding lines inserted when block was created
---  - preserves cursor pos
---  - visual-block (rect) support
---  - smarter indent detection and block padding
---  - prefers internal comment_map by default (so C/C++ use // for single lines)
---  - respects vim.bo.commentstring if vim.g.comment_prefer_buffer_commentstring = true
---  - trims CRLF and trailing empty lines
---  - operator-pending mode support (gc{motion})
---  - dot-repeat support
---  - extended language support
---  - setup() configuration function
---  - DEV_MODE for debug notifications
-
+-- comment.lua
 local M = {}
 
 -- ============== CONFIG =================
@@ -476,13 +459,6 @@ local function toggle_comment_range(start_line, end_line, mode)
         return
       end
 
-      -- Markers were detected (e.g. a line like "/* note */" or something
-      -- ending in "*/") but couldn't be cleanly removed as whole-line
-      -- markers. Wrapping this selection in a fresh block comment would
-      -- produce an invalid nested comment (most languages, including C/C++,
-      -- don't support nested block comments -- the comment would silently
-      -- end early at the first "*/", leaving code uncommented). Bail out to
-      -- linewise commenting instead, which is always safe.
       debug "internal markers found but not removable; falling back to linewise"
       use_block = false
     end
@@ -639,14 +615,6 @@ local function toggle_comment_operator(motion_type)
 end
 
 -- Operator callback for setting operatorfunc
--- NOTE: when 'operatorfunc' is invoked (via `g@{motion}`), Neovim calls this
--- function with ONE argument: the motion type string ("line", "char", or
--- "block"). The previous version ignored that argument and read
--- `vim.v.operator` instead, which holds the *operator* that was used to
--- enter operator-pending mode (here always the literal string "g@", since
--- that's the mapping `set_operatorfunc` returns) -- never "line"/"char"/
--- "block". As a result `toggle_comment_operator` always fell through to its
--- `else return end` branch and `gc{motion}` silently did nothing.
 M.operator_callback = function(motion_type)
   toggle_comment_operator(motion_type)
 end

@@ -1,30 +1,4 @@
--- plugin/tile.lua
---
--- Master / stack tiling for Neovim.
---
--- Layout:
---
---   +----------------------+----------------------+
---   |                      |       stack 1        |
---   |                      +----------------------+
---   |       MASTER         |       stack 2        |
---   |                      +----------------------+
---   |                      |       stack 3        |
---   +----------------------+----------------------+
---
--- :TileSpawn
---   Create master + stack 1 on first call.
---   Add another stack pane on subsequent calls.
---
--- :TileSwapMaster
---   Swap the current stack buffer with master.
---
--- :TileFocus
---   Master <-> first stack.
---
--- :TileEqualize
---   Equalize stack heights.
-
+-- tile.lua
 if vim.g.loaded_tile_plugin then
   return
 end
@@ -183,13 +157,6 @@ local function equalize_stack(state)
     return
   end
 
-  ----------------------------------------------------------
-  -- All stack windows should have the same total height.
-  --
-  -- Use the actual stack column height rather than summing
-  -- arbitrary windows.
-  ----------------------------------------------------------
-
   local first = stack[1]
 
   local total_height = api.nvim_win_get_height(first)
@@ -220,13 +187,6 @@ local function equalize_stack(state)
   if base < MIN_STACK_HEIGHT then
     return
   end
-
-  ----------------------------------------------------------
-  -- Resize top -> bottom.
-  --
-  -- Do NOT resize the final pane. Neovim will give it the
-  -- remaining space.
-  ----------------------------------------------------------
 
   for i = 1, count - 1 do
     local height = base
@@ -267,21 +227,6 @@ local function create_first_tile()
   ----------------------------------------------------------
 
   local buf = api.nvim_win_get_buf(master)
-
-  ----------------------------------------------------------
-  -- IMPORTANT:
-  --
-  -- Explicitly use `vsplit`.
-  --
-  -- This creates:
-  --
-  --   +-------------+-------------+
-  --   |             |             |
-  --   |   MASTER    |    STACK    |
-  --   |             |             |
-  --   +-------------+-------------+
-  --
-  ----------------------------------------------------------
 
   api.nvim_set_current_win(master)
 
@@ -346,23 +291,7 @@ local function create_stack_tile()
     return
   end
 
-  ----------------------------------------------------------
-  -- Save its buffer.
-  --
-  -- This makes the new pane show the same file instead of
-  -- relying on Neovim's split inheritance.
-  ----------------------------------------------------------
-
   local buf = api.nvim_win_get_buf(anchor)
-
-  ----------------------------------------------------------
-  -- IMPORTANT:
-  --
-  -- `split` = horizontal split.
-  --
-  -- Since anchor is already in the right-hand column,
-  -- this creates another pane BELOW it in that column.
-  ----------------------------------------------------------
 
   api.nvim_set_current_win(anchor)
 

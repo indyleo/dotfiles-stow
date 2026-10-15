@@ -1,6 +1,4 @@
 -- colorizer.lua
--- Lightweight color highlighting for Neovim, including shell ANSI escapes.
-
 local api = vim.api
 local uv = vim.uv or vim.loop
 local unpack = table.unpack or unpack

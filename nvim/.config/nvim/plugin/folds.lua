@@ -1,7 +1,4 @@
 -- folds.lua
--- Minimal Treesitter-aware folding plugin for nvim/plugin (single-file)
--- Refactored for better performance, readability, and robustness
-
 if vim.g.loaded_folds_plugin then
   return
 end

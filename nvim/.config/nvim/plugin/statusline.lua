@@ -1,19 +1,9 @@
--- ========================
--- THEME-AWARE STATUSLINE (Async Git + Diagnostics)
--- ========================
+-- statusline.lua
 local api, fn, uv = vim.api, vim.fn, vim.uv or vim.loop
 
 -- ========================
 -- Theme colors
 -- ========================
--- The active colorscheme (theme.lua) publishes its resolved palette on
--- _G.__colorscheme_palette. We build our statusline highlight groups from
--- that, so the statusline stays in sync when the palette is tweaked or the
--- theme is swapped.
---
--- Source theme.lua *before* this file so the export exists on startup.
--- If it doesn't, the fallback below (identical to the default gruvbox
--- palette) is used, and any later ColorScheme event picks up the real one.
 local fallback_palette = {
   bg0 = "#282828",
   bg1 = "#3c3836",

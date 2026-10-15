@@ -1,3 +1,4 @@
+-- init.lua
 require "options"
 if vim.g.neovide then
   require "guioptions"

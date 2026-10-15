@@ -1,6 +1,4 @@
--- Python filetype plugin --
--- See after/ftplugin/c.lua for why this no longer wraps in a BufEnter
--- autocmd on a shared, clearable augroup.
+-- python.lua
 local bufnr = vim.api.nvim_get_current_buf()
 -- Use spaces for indentation (Python standard)
 vim.bo[bufnr].expandtab = true

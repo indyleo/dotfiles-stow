@@ -1,25 +1,4 @@
 -- jump.lua
--- flash.nvim-style jump plugin — drop into ~/.config/nvim/plugin/
--- Gruvbox-themed highlight groups, no external dependencies.
---
--- How it works (matches flash.nvim's actual algorithm):
---   1. As you type, all visible matches are found and sorted by distance.
---   2. Each match is assigned a label from a pool of "safe" characters —
---      characters that do NOT appear immediately after any match in the
---      buffer. This means typing naturally never accidentally triggers a
---      label; only an actual label char fires the jump.
---   3. After every keystroke, the input is checked against the current
---      label set FIRST. If it matches a label → jump. Otherwise → the
---      char is appended to the search pattern and matches are refreshed.
---
--- Commands:
---   :Jump       — open jump prompt (any pattern)
---   :JumpWord   — jump to word starts only
---
--- Suggested keymaps:
---   vim.keymap.set({ "n", "x", "o" }, "s", "<cmd>Jump<cr>",     { desc = "Flash Jump" })
---   vim.keymap.set({ "n", "x", "o" }, "S", "<cmd>JumpWord<cr>", { desc = "Flash Jump (word starts)" })
-
 -- ── Highlights (gruvbox palette) ────────────────────────────────────────────
 
 vim.api.nvim_set_hl(0, "FlashJumpLabel", {
@@ -74,12 +53,6 @@ local function collect_matches(pattern, word_start)
   local cur_col = cursor[2]
 
   local search_pat = word_start and ("\\<" .. vim.fn.escape(pattern, "\\")) or vim.fn.escape(pattern, "\\")
-  -- NOTE: previously `vim.regex(search_pat)` was called (and the regex
-  -- re-compiled from scratch) on every single match position inside the
-  -- innermost while loop -- i.e. once per match per line, every time a
-  -- keystroke refreshes matches across the whole visible window. Compiling
-  -- once per call is all that's needed since the pattern doesn't change
-  -- while scanning.
   local regex = vim.regex(search_pat)
 
   local matches = {}
@@ -120,12 +93,6 @@ local function collect_matches(pattern, word_start)
 end
 
 -- Assign safe labels to matches.
--- "Safe" means the label char does not appear immediately after any match,
--- so it can never be confused with the user continuing to type their pattern.
---
--- Returns:
---   labeled   — list of { match, label } in match order
---   label_map — { [label_char] = match } for O(1) lookup on keypress
 local function assign_labels(matches)
   -- Build the unsafe set: every char that directly follows any match.
   local unsafe = {}
@@ -286,12 +253,6 @@ local function do_jump(opts)
       redraw_prompt()
     else
       -- ── THE KEY DECISION ────────────────────────────────────────────────
-      --
-      -- Check label_map FIRST. Because safe labels are chosen to exclude
-      -- any character that naturally follows a match in the buffer, this
-      -- will only ever fire when the user deliberately picks a target —
-      -- never as a side-effect of typing a word like "firefox".
-      --
       local target = label_map[char:lower()]
       if target then
         jump_to(target)

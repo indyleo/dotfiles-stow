@@ -14,7 +14,7 @@ map("", "<Space>", "<Nop>", "Disable space")
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
---- Non-Plugin ----
+-- General keymaps ------------------------------------------------------------
 
 -- Disable arrow keys in normal and visual modes
 for _, key in ipairs { "<Up>", "<Down>", "<Left>", "<Right>" } do
@@ -70,13 +70,13 @@ map("n", "q", "<C-x>", "Decrement number")
 
 -- Commenting
 map("n", "<leader>/", ":ToggleComment<CR>", "Toggle comment")
-map("v", "<leader>/", ":ToggleCommentVisual<CR>", "Toggle comment Visual")
+map("v", "<leader>/", ":ToggleCommentVisual<CR>", "Toggle comment (visual)")
 
 -- Folding
 map("n", "<leader>za", ":ToggleAllFolds<CR>", "Toggle all folds")
 map("n", "<leader>zs", ":ToggleFold<CR>", "Toggle fold under cursor")
 map("n", "<leader>zq", ":PeekFold<CR>", "Peek folded lines under cursor")
-map("n", "]z", ":NextFold<CR>", "Goes to next fold")
+map("n", "]z", ":NextFold<CR>", "Go to next fold")
 map("n", "[z", ":PrevFold<CR>", "Goes to previous fold")
 map("n", "<leader>zR", ":FoldsForceRefresh<CR>", "Refresh all folds forcefully")
 map("n", "<leader>zr", ":FoldsRefresh<CR>", "Refresh all folds")
@@ -93,16 +93,19 @@ end, "Toggle undotree")
 -- Marks
 map("n", "<leader>mm", ":MarksAdd<CR>", "Add file to mark")
 map("n", "<leader>mr", ":MarksDelete<CR>", "Remove file from mark")
-map("n", "<leader>mt", ":MarksToggle<CR>", "Toggle Ui marks")
+map("n", "<leader>mt", ":MarksToggle<CR>", "Toggle marks menu")
 
 -- Jump
 map("n", "<leader>jj", ":Jump<CR>", "Jump to search mark")
-map("n", "<leader>jw", ":JumpWord<CR>", "Jump to search mark (word prefix)")
+map("n", "<leader>jw", ":JumpWord<CR>", "Jump to word prefix")
 
--- Insert Mode
+-- Find & Replace
+map("n", "<c-r>", ":FindReplace<CR>", "Find and replace in current file")
+
+-- Insert mode
 map("i", "jk", "<Esc>", "Exit insert mode")
 
--- Visual Mode
+-- Visual mode
 map("v", "<", "<gv", "Indent left")
 map("v", ">", ">gv", "Indent right")
 map("v", "J", ":m '>+1<CR>gv=gv", "Move selection down")
@@ -110,11 +113,7 @@ map("v", "K", ":m '<-2<CR>gv=gv", "Move selection up")
 map("v", "p", "P", "Paste over selection")
 map("v", "P", '"_dP', "Paste over selection without overwriting register")
 
--- Visual Block Mode
-map("x", "p", "P", "Paste over selection")
-map("x", "P", '"_dP', "Paste over selection without overwriting register")
-
--- Terminal Mode
+-- Terminal mode
 map("t", "<Esc><Esc>", "<C-\\><C-n>", "Exit terminal to normal mode")
 
 -- Terminal toggles
@@ -122,12 +121,12 @@ map({ "n", "t" }, "<leader>tr", ":ToggleTerminal<CR>", "Toggle terminal")
 map({ "n", "t" }, "<leader>tg", ":ToggleGit<CR>", "Toggle lazygit")
 map({ "n", "t" }, "<leader>tc", ":ToggleClaude<CR>", "Toggle claude")
 
---- Plugins ----
+-- Plugin keymaps -------------------------------------------------------------
 
 -- Noice
 map("n", "<leader>nh", ":NoiceDismiss<CR>", "Dismiss noice notifications")
 
--- Fzf Lua
+-- FzfLua
 local fzf = {
   ff = "files",
   fr = "oldfiles",
@@ -141,7 +140,7 @@ for k, v in pairs(fzf) do
   map("n", "<leader>" .. k, ":FzfLua " .. v .. "<CR>", "FzfLua " .. v)
 end
 
--- Formatter/Linter
+-- Formatting and linting
 map("n", "<leader>ml", function()
   require("lint").try_lint()
 end, "Lint current file")
@@ -149,7 +148,7 @@ map({ "n", "v" }, "<leader>mf", function()
   require("conform").format { lsp_fallback = true, async = false, timeout_ms = 1000 }
 end, "Format file or selection")
 
--- LSP
+-- LSP keymaps (buffer-local)
 vim.api.nvim_create_autocmd("LspAttach", {
   group = vim.api.nvim_create_augroup("LspKeymaps", { clear = true }),
   callback = function(args)
@@ -186,7 +185,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
   end,
 })
 
---- Neovide / GUI ----
+-- Neovide keymaps ------------------------------------------------------------
 if vim.g.neovide then
   -- Font scaling
   local function resize_font(delta)

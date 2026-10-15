@@ -1,6 +1,4 @@
--- HTML filetype plugin --
--- See after/ftplugin/c.lua for why this no longer wraps in a BufEnter
--- autocmd on a shared, clearable augroup.
+-- html.lua
 local keymap = vim.keymap.set
 local bufnr = vim.api.nvim_get_current_buf()
 local htmlopts = function(desc)

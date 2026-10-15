@@ -1,3 +1,4 @@
+-- options.lua
 local opt = vim.opt
 local cmd = vim.cmd
 

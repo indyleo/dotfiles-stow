@@ -1,6 +1,4 @@
--- Cpp filetype plugin --
--- See after/ftplugin/c.lua for why this no longer wraps in a BufEnter
--- autocmd on a shared, clearable augroup.
+-- cpp.lua
 local bufnr = vim.api.nvim_get_current_buf()
 vim.bo[bufnr].expandtab = false -- Use tabs instead of spaces
 vim.bo[bufnr].tabstop = 2 -- Width of a tab character

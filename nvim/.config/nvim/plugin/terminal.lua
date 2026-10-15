@@ -1,6 +1,4 @@
--- plugin/terminal.lua
--- Terminal utilities as a standalone plugin file
-
+-- terminal.lua
 ------------------------------------------------------------
 -- State
 ------------------------------------------------------------

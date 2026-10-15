@@ -1,5 +1,4 @@
--- ~/.config/nvim/plugins/gruvbox.lua
-
+-- theme.lua
 local Gruvbox = {}
 
 local default_config = {

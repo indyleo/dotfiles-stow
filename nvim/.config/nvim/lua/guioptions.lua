@@ -1,5 +1,4 @@
 -- guioptions.lua
--- Only loaded when running under Neovide (see init.lua's vim.g.neovide guard).
 local gopt = vim.g
 local opt = vim.opt
 

@@ -1,6 +1,4 @@
--- marks.lua (~/.config/nvim/plugin/marks.lua)
--- Lightweight harpoon-style file-list plugin
-
+-- marks.lua
 -- ── path & persistence ────────────────────────────────────────────────────────
 local data_dir = vim.fn.stdpath "data" .. "/marks_plugin"
 

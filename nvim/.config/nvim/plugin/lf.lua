@@ -1,5 +1,4 @@
--- plugin/lf.lua
--- Open lf file manager in a floating terminal.
+-- lf.lua
 if vim.g.loaded_lf_plugin then
   return
 end
@@ -101,12 +100,6 @@ local function open_lf_in_float(opts)
     local file_dir = fn.fnamemodify(file_path, ":p:h")
     set_cwd(file_dir)
 
-    -- NOTE: the old code set `lf_win = nil` *before* the final
-    -- `nvim_win_is_valid(lf_win)` check below, so that check always ran
-    -- against `nil` instead of the actual floating window handle -- the
-    -- leftover lf floating window was never closed after picking a file
-    -- when we'd switched focus to a previous window. Keep a local copy of
-    -- the window we actually need to close.
     local old_lf_win = lf_win
     local prev_win = fn.win_getid(fn.winnr "#")
 

@@ -1,6 +1,4 @@
--- Lua filetype plugin --
--- See after/ftplugin/c.lua for why this no longer wraps in a BufEnter
--- autocmd on a shared, clearable augroup.
+-- lua.lua
 local bufnr = vim.api.nvim_get_current_buf()
 local langopts = function(desc)
   return { desc = "Lua: " .. desc, buffer = bufnr, noremap = true, silent = true }

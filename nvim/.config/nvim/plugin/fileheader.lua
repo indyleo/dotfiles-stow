@@ -1,6 +1,4 @@
--- plugin/fileheader.lua
--- Automatically loaded by Neovim when placed in `plugin/`
-
+-- fileheader.lua
 ------------------------------------------------------------
 -- Function: Insert file header at top of buffer
 ------------------------------------------------------------

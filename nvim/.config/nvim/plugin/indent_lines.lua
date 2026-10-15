@@ -1,4 +1,4 @@
--- nvim/plugin/indent-lines.lua
+-- indent_lines.lua
 -- ============================================================================
 -- USER CONFIGURATION - Edit these values to customize the plugin
 -- ============================================================================
@@ -27,13 +27,6 @@ local custom_excluded_buftypes = {
 -- ============================================================================
 -- Theme palette (theme-aware)
 -- ============================================================================
--- theme.lua publishes its resolved palette on _G.__colorscheme_palette. We
--- build our indent-line highlight groups from that, so guide colors stay in
--- sync when the palette is tweaked or the colorscheme is swapped.
---
--- Source theme.lua *before* this file so the export exists on startup. If it
--- doesn't, the fallback below (identical to theme.lua's default gruvbox
--- palette) is used, and the ColorScheme autocmd below picks up the real one.
 local fallback_palette = {
   bg0 = "#282828",
   bg1 = "#3c3836",

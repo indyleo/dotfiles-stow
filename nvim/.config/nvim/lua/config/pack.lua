@@ -1,19 +1,4 @@
--- lua/config/pack.lua
--- Built-in plugin manager (Neovim 0.12+).
---
--- ┌─ COMMANDS ───────────────────────────────────────────────────────────────┐
--- │  :PackUpdate          – update all plugins (shows confirm buffer)        │
--- │  :PackUpdateForce     – update all plugins immediately, no confirm       │
--- │  :PackSync            – offline re-lock only (no network)                │
--- │  :PackStatus          – floating window: name │ rev │ active             │
--- │  :PackClean           – delete plugins removed from the spec list        │
--- │  :PackAdd <url>       – install a plugin from a URL right now            │
--- │  :PackDel <name>      – remove a plugin by name right now                │
--- │  :PackReinstall <name>– del + add in one shot (e.g. to switch branch)    │
--- │  :PackList            – print all plugin names to the command line        │
--- │  :PackEdit            – open this file for editing                       │
--- └──────────────────────────────────────────────────────────────────────────┘
-
+-- pack.lua
 local gh = function(x)
   return "https://github.com/" .. x
 end
@@ -550,23 +535,19 @@ end)
 
 local cmd = vim.api.nvim_create_user_command
 
--- :PackUpdate — interactive update (shows confirm buffer; :w to apply, :q to skip)
 cmd("PackUpdate", function()
   vim.pack.update()
 end, { desc = "Update all plugins (interactive confirm buffer)" })
 
--- :PackUpdateForce — pull + apply immediately, no confirm buffer
 cmd("PackUpdateForce", function()
   vim.pack.update(nil, { force = true })
   vim.notify("All plugins updated.", vim.log.levels.INFO)
 end, { desc = "Update all plugins immediately (no confirm)" })
 
--- :PackSync — re-lock from lockfile only, no network
 cmd("PackSync", function()
   vim.pack.update(nil, { offline = true, target = "lockfile" })
 end, { desc = "Re-sync plugins from lockfile (offline)" })
 
--- :PackStatus — floating window showing each plugin's name, rev, and active state
 cmd("PackStatus", function()
   local plugins = vim.pack.get()
   table.sort(plugins, function(a, b)
@@ -624,7 +605,6 @@ cmd("PackStatus", function()
   end
 end, { desc = "Show plugin status in a floating window" })
 
--- :PackClean — delete plugins that are on disk but no longer in the spec
 cmd("PackClean", function()
   local inactive = vim
     .iter(vim.pack.get())
@@ -659,7 +639,6 @@ cmd("PackClean", function()
   )
 end, { desc = "Delete plugins that are no longer in the spec" })
 
--- :PackAdd <url> [name] — install a new plugin immediately without editing this file
 cmd("PackAdd", function(o)
   local args = vim.split(o.args, "%s+", { trimempty = true })
   local src = args[1]
@@ -676,7 +655,6 @@ end, {
   desc = "Add and install a plugin from a URL",
 })
 
--- :PackDel <name> — remove a plugin by name
 cmd("PackDel", function(o)
   local name = vim.trim(o.args)
   if name == "" then
@@ -698,7 +676,6 @@ end, {
   desc = "Delete a managed plugin by name",
 })
 
--- :PackReinstall <name> — del + re-add in one shot (useful for branch switches)
 cmd("PackReinstall", function(o)
   local name = vim.trim(o.args)
   if name == "" then
@@ -727,7 +704,6 @@ end, {
   desc = "Reinstall a plugin (del + add) — useful after changing version/src",
 })
 
--- :PackList — print all managed plugin names to the command line
 cmd("PackList", function()
   local plugins = vim.pack.get()
   table.sort(plugins, function(a, b)
@@ -750,7 +726,6 @@ cmd("PackList", function()
   )
 end, { desc = "List all managed plugins ([+] active, [-] inactive)" })
 
--- :PackEdit — open this file for editing
 cmd("PackEdit", function()
   vim.cmd("edit " .. vim.fn.fnameescape(debug.getinfo(1, "S").source:sub(2)))
 end, { desc = "Open lua/config/pack.lua for editing" })
