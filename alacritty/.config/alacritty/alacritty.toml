@@ -30,101 +30,6 @@ style = "Regular"
 x = 0
 y = 1
 
-[[keyboard.bindings]]
-action = "Paste"
-key = "V"
-mods = "Control|Shift"
-
-[[keyboard.bindings]]
-action = "Copy"
-key = "C"
-mods = "Control|Shift"
-
-[[keyboard.bindings]]
-action = "PasteSelection"
-key = "Insert"
-mods = "Shift"
-
-[[keyboard.bindings]]
-action = "ResetFontSize"
-key = "Key0"
-mods = "Control"
-
-[[keyboard.bindings]]
-action = "IncreaseFontSize"
-key = "Equals"
-mods = "Control"
-
-[[keyboard.bindings]]
-action = "IncreaseFontSize"
-key = "Plus"
-mods = "Control"
-
-[[keyboard.bindings]]
-action = "DecreaseFontSize"
-key = "Minus"
-mods = "Control"
-
-[[keyboard.bindings]]
-action = "ToggleFullscreen"
-key = "F11"
-mods = "None"
-
-[[keyboard.bindings]]
-action = "Paste"
-key = "Paste"
-mods = "None"
-
-[[keyboard.bindings]]
-action = "Copy"
-key = "Copy"
-mods = "None"
-
-[[keyboard.bindings]]
-action = "ClearLogNotice"
-key = "L"
-mods = "Control"
-
-[[keyboard.bindings]]
-chars = "\f"
-key = "L"
-mods = "Control"
-
-[[keyboard.bindings]]
-action = "ScrollPageUp"
-key = "PageUp"
-mode = "~Alt"
-mods = "None"
-
-[[keyboard.bindings]]
-action = "ScrollPageDown"
-key = "PageDown"
-mode = "~Alt"
-mods = "None"
-
-[[keyboard.bindings]]
-action = "ScrollToTop"
-key = "Home"
-mode = "~Alt"
-mods = "Shift"
-
-[[keyboard.bindings]]
-action = "ScrollToBottom"
-key = "End"
-mode = "~Alt"
-mods = "Shift"
-
-# --------------------------------------------------
-# Vi Mode / Copy Mode bindings
-# --------------------------------------------------
-
-[[keyboard.bindings]]
-action = "ToggleViMode"
-key = "Escape"
-mods = "Control"
-
-# --------------------------------------------------
-
 [scrolling]
 history = 5000
 
@@ -147,7 +52,82 @@ instance = "Alacritty"
 x = 6
 y = 6
 
-[[keyboard.bindings]]
-key = "Return"
-mods = "Shift"
-chars = "\u001B\r"
+# =============================================================================
+# KEYBINDS
+# =============================================================================
+
+[keyboard]
+bindings = [
+	# --- Clipboard ---
+	{ key = "V", mods = "Control|Shift", action = "Paste" },
+	{ key = "C", mods = "Control|Shift", action = "Copy" },
+	{ key = "Insert", mods = "Shift", action = "PasteSelection" },
+
+	# --- Font size ---
+	{ key = "Key0", mods = "Control", action = "ResetFontSize" },
+	{ key = "Equals", mods = "Control", action = "IncreaseFontSize" },
+	{ key = "Plus", mods = "Control", action = "IncreaseFontSize" },
+	{ key = "Minus", mods = "Control", action = "DecreaseFontSize" },
+
+	# --- Window ---
+	{ key = "F11", mods = "None", action = "ToggleFullscreen" },
+	{ key = "Return", mods = "Control|Shift", action = "SpawnNewInstance" },
+
+	# --- Scrollback ---
+	{ key = "PageUp", mods = "None", mode = "~Alt", action = "ScrollPageUp" },
+	{ key = "PageDown", mods = "None", mode = "~Alt", action = "ScrollPageDown" },
+	{ key = "Home", mods = "Shift", mode = "~Alt", action = "ScrollToTop" },
+	{ key = "End", mods = "Shift", mode = "~Alt", action = "ScrollToBottom" },
+
+	# --- Ctrl+L ---
+	{ key = "L", mods = "Control", action = "ClearLogNotice" },
+	{ key = "L", mods = "Control", chars = "\f" },
+
+	# --- Vi mode ---
+	{ key = "Escape", mods = "Control", action = "ToggleViMode" },
+
+	# --- Shift+Enter as literal CR ---
+	{ key = "Return", mods = "Shift", chars = "\u001B\r" },
+]
+
+# =============================================================================
+# HINTS
+# =============================================================================
+# The `binding` field inside each hint is what activates it. You do NOT need
+# a matching entry in [keyboard].bindings — Alacritty registers these itself.
+
+[[hints.enabled]]
+regex = "(ipfs:|ipns:|magnet:|mailto:|gemini://|gopher://|https://|http://|news:|file://|ssh://|git://|/)[^\u0000-\u001F\u007F-\u009F<>\"\\s{-}\\^⟨⟩`]+"
+command = "xdg-open"
+post_processing = true
+mouse = { enabled = true }
+binding = { key = "O", mods = "Control|Shift" }
+hyperlinks = true
+
+[[hints.enabled]]
+regex = "(?:[\\w.\\-]+/)*[\\w.\\-]+\\.[A-Za-z0-9_]+(?::\\d+){1,2}"
+command = { program = "nvim", args = ["+{2}", "+normal! {3}G", "{1}"] }
+post_processing = true
+mouse = { enabled = true }
+binding = { key = "E", mods = "Control|Shift" }
+
+[[hints.enabled]]
+regex = "(?:[\\w.\\-]+/)+[\\w.\\-]+\\.[A-Za-z0-9_]+"
+command = { program = "nvim", args = ["{0}"] }
+post_processing = false
+mouse = { enabled = true }
+binding = { key = "F", mods = "Control|Shift" }
+
+[[hints.enabled]]
+regex = "(?:[\\w.\\-]+/)+[\\w.\\-]+/"
+command = { program = "lf", args = ["-last-dir-path=/tmp/lf-hint", "{0}"] }
+post_processing = false
+mouse = { enabled = true }
+binding = { key = "D", mods = "Control|Shift" }
+
+[[hints.enabled]]
+regex = "\\b[0-9a-f]{7,40}\\b"
+command = { program = "sh", args = ["-c", "git show {0} | moor"] }
+post_processing = true
+mouse = { enabled = false }
+binding = { key = "G", mods = "Control|Shift" }
