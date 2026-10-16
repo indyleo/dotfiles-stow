@@ -1,0 +1,39 @@
+# ~/.config/life-wallpaper/config.toml  -  reload with: pkill -HUP life-wallpaper
+# CLI flags override this file. Flat `key = value` only.
+
+cell_size = 8            # logical px; >= 8 recommended for rain/overlay glyphs
+fps = 8                  # generations per second
+density = 0.25           # soup density at start (also used for reseeds unless reseed_density is set)
+reseed_density = 0.30
+
+rule = "life"            # life | highlife | daynight | seeds | brain | rotate | "B36/S23"
+color = "age"            # age = yellow -> green -> orange -> red by cell age, or a single colour:
+                         # green yellow orange red aqua blue purple "#rrggbb"
+
+trail = true             # fading afterglow on dead cells
+trail_length = 4         # generations
+rain = false             # faint hex code-rain behind the cells
+rain_density = 1.0
+overlay = true          # bottom-left "gen N pop N rule hz" status line
+sysload = false          # CPU load -> speed, sparks and warmer colours
+patterns = true          # LWSS / pulsar / Gosper gun injections
+stamps = true            # Tux / Arch logo / terminal text stamps
+
+soft_reset_secs = 300
+stagnation_secs = 60
+glider_min_secs = 60
+glider_max_secs = 90
+special_min_secs = 90
+special_max_secs = 180
+stamp_min_secs = 150
+stamp_max_secs = 300
+
+# Palette (Gruvbox defaults)
+bg = "#282828"
+newborn = "#fabd2f"
+mature = "#b8bb26"
+old = "#fe8019"
+ancient = "#fb4934"
+dying = "#458588"        # Brian's Brain dying cells
+rain_color = "#689d6a"
+overlay_color = "#a89984"

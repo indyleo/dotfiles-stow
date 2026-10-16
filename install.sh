@@ -47,6 +47,7 @@ stowq startpage
 stowq foot
 stowq tridactyl
 stowq systemd
+stowq life-wallpaper
 
 echo "Enabling startpage service..."
 systemctl --user daemon-reload
