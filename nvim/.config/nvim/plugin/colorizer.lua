@@ -327,10 +327,38 @@ local function find_colors(line, with_names)
     end
   end
 
-  -- 0xRRGGBB
-  for s, hex, e in line:gmatch "()0[xX](%x%x%x%x%x%x)()" do
-    if not is_word(line:sub(s - 1, s - 1)) and not is_word(line:sub(e, e)) then
-      add_result(results, seen, s - 1, e - 1, hex_to_rgb(hex))
+  -- 0xRRGGBB, 0xAARRGGBB, and underscore-separated variants.
+  -- Examples:
+  --   0x282828
+  --   0xFF282828
+  --   0xFF28_2828
+  --   0xFFB8_BB26
+  --   0xFF_28_28_28
+  --
+  -- For 8-digit 0x values, interpret the format as AARRGGBB.
+  -- Alpha is ignored.
+
+  for s, hex, e in line:gmatch "()(0[xX][%x_]+)()" do
+    local prev_char = line:sub(s - 1, s - 1)
+    local next_char = line:sub(e, e)
+
+    if not is_word(prev_char) and not is_word(next_char) then
+      local digits = hex:sub(3)
+      local valid_format = digits:match "^%x%x%x%x%x%x$"
+        or digits:match "^%x%x%x%x%x%x%x%x$"
+        or digits:match "^%x%x%x%x_%x%x%x%x$"
+        or digits:match "^%x%x_%x%x_%x%x_%x%x$"
+
+      if valid_format then
+        digits = digits:gsub("_", "")
+
+        if #digits == 8 then
+          -- AARRGGBB: discard the first byte (alpha).
+          digits = digits:sub(3)
+        end
+
+        add_result(results, seen, s - 1, e - 1, hex_to_rgb(digits))
+      end
     end
   end
 
