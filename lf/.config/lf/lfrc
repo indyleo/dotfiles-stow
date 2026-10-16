@@ -55,7 +55,7 @@ cmd on-load &{{
     cmds=""
     for file in "$@"; do
         case "$file" in */.git|*/.git/*) continue;; esac
-        status=$(git status --porcelain --ignored -- "$file" | cut -c1-2 | head -n1)
+				status=$(git status --porcelain -- "$file" | cut -c1-2 | head -n1)
         cmds="${cmds}addcustominfo ${file} \"$status\"; "
     done
     lf -remote "send $id :$cmds"
