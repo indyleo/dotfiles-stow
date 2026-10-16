@@ -98,7 +98,8 @@ Item {
         lifeCheckProc.running = true;
 
         root.random();
-        cycleTimer.start();
+        // cycleTimer.start() is intentionally NOT called here.
+        // Its `running:` binding below decides whether it ticks.
     }
 
     // Mode changed at runtime (not the common case, but supported):
@@ -278,12 +279,25 @@ Item {
 
     // ------------------------------------------------------------
     // Timer
+    //
+    // Runs in every mode that should cycle its wallpaper every
+    // intervalSeconds:
+    //   - pictures / videos: pick a new random file
+    //   - wallpaper-engine:  pick a new random Workshop ID and
+    //                        restart the engine process on each
+    //                        monitor
+    //
+    // Does NOT run in life-wallpaper mode: the binary manages its
+    // own lifetime internally (soft_reset_secs in its config.toml)
+    // and killing/relaunching it every interval would cause a
+    // visible black flash and reset the generation counter.
     // ------------------------------------------------------------
 
     Timer {
         id: cycleTimer
         interval: root.intervalSeconds * 1000
         repeat: true
+        running: root.wallpaperMode !== "life-wallpaper"
         onTriggered: root.random()
     }
 
