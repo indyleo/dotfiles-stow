@@ -105,12 +105,14 @@ ShellRoot {
 	AudioSwitcher { id: audioSwitcher }
 	AudioMixer { id: audioMixer }
 	WallPaper {
-		id: wallPaper
-		wallpaperMode: "pictures"   // "pictures" | "videos" | "wallpaper-engine"
-		baseDir: "~/Pictures/Wallpapers"
-		subDir: "gruvbox"          // blank scans baseDir directly
-		intervalSeconds: 900
-		fpsWall: "60" // refresh rate on linuxwallpaper-engine
+    id: wallPaper
+    wallpaperMode: "life-wallpaper"
+    baseDir: "~/Pictures/Wallpapers"
+    subDir: "gruvbox"
+    intervalSeconds: 900
+    fpsWall: "60"
+    lifePreset: ""          // or "" to use ~/.config/life-wallpaper/config.toml
+    lifeExtraArgs: []     // optional extra flags
 	}
 	CalendarPopup { id: calendarPopup }
 	Connections { target: audioSwitcher; function onRequestMixer() { audioMixer.active = true } }
