@@ -490,6 +490,7 @@ local allow = {
   bash = true,
   zsh = true,
   fish = true,
+  qml = true,
 }
 
 local function stop_timer(timer)
