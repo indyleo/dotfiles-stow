@@ -1,53 +1,63 @@
-#!/bin/env bash
-is_stow_installed() {
-    command -v stow &> /dev/null
-}
+#!/usr/bin/env bash
+set -euo pipefail
 
-if ! is_stow_installed &> /dev/null; then
-    echo "Stow is not installed. Please install stow."
+# Resolve the repo root (where this script lives), following symlinks
+REPO_ROOT="$(cd -- "$(dirname -- "$(readlink -f -- "$0")")" && pwd)"
+
+PACKAGES=(
+    figletfonts shell xdg git yazi tmux nvim neovide ohmyposh alacritty
+    wezterm fastfetch espanso xorg picom dunst qutebrowser discordo Thunar
+    lf pipewire gurk twt lazygit rofi quickshell hypr mako startpage foot
+    tridactyl systemd life-wallpaper
+)
+
+function is_stow_installed() { command -v stow &>/dev/null; }
+
+if ! is_stow_installed; then
+    echo "Stow is not installed. Please install stow." >&2
     exit 1
 fi
 
-# Quick function to stow things with right args
-stowq() {
-    stow --target="$HOME" --adopt -v "$1"
+function stow_pkg()   { stow --target="$HOME" --adopt -v "$1"; }
+function unstow_pkg() { stow --target="$HOME" -D "$1" 2>/dev/null || true; }
+
+function stow_all() {
+    for pkg in "${PACKAGES[@]}"; do stow_pkg "$pkg"; done
+    ln -sf ~/.config/zsh/.zshenv ~/.zshenv
 }
 
-# Stowing
-stowq figletfonts
-stowq shell
-ln -sf  ~/.config/zsh/.zshenv ~/.zshenv
-stowq xdg
-stowq git
-stowq yazi
-stowq tmux
-stowq nvim
-stowq neovide
-stowq ohmyposh
-stowq alacritty
-stowq wezterm
-stowq fastfetch
-stowq espanso
-stowq xorg
-stowq picom
-stowq dunst
-stowq qutebrowser
-stowq discordo
-stowq Thunar
-stowq lf
-stowq pipewire
-stowq gurk
-stowq twt
-stowq lazygit
-stowq rofi
-stowq quickshell
-stowq hypr
-stowq mako
-stowq startpage
-stowq foot
-stowq tridactyl
-stowq systemd
-stowq life-wallpaper
+function unstow_all() {
+    for pkg in "${PACKAGES[@]}"; do unstow_pkg "$pkg"; done
+    rm -f ~/.zshenv
+}
+
+# ---------- relocate mode ----------
+# Usage: ./install.sh --relocate /new/path/to/dotfiles
+if [[ "${1:-}" == "--relocate" ]]; then
+    NEW_REPO="${2:?usage: $0 --relocate /new/path}"
+    NEW_REPO="$(realpath -m -- "$NEW_REPO")"
+
+    if [[ "$NEW_REPO" == "$REPO_ROOT" ]]; then
+        echo "Already at $NEW_REPO, nothing to do."
+        exit 0
+    fi
+
+    echo "Unstowing from $REPO_ROOT..."
+    cd "$REPO_ROOT"
+    unstow_all
+
+    echo "Moving $REPO_ROOT -> $NEW_REPO"
+    mkdir -p "$(dirname -- "$NEW_REPO")"
+    cd /                       # step out of the dir we're about to move
+    mv -- "$REPO_ROOT" "$NEW_REPO"
+
+    echo "Re-exec from $NEW_REPO/install.sh"
+    exec "$NEW_REPO/$(basename -- "$0")"
+fi
+
+# ---------- normal install ----------
+cd "$REPO_ROOT"
+stow_all
 
 echo "Enabling startpage service..."
 systemctl --user daemon-reload
@@ -55,6 +65,7 @@ systemctl --user enable startpage.service
 loginctl enable-linger "$USER"
 
 echo "Installing tpm..."
-git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+[[ -d ~/.tmux/plugins/tpm ]] || \
+    git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 
 echo "Done! You can restart your shell or reload your config."
