@@ -11,7 +11,7 @@ color = "age"            # age = yellow -> green -> orange -> red by cell age, o
                          # green yellow orange red aqua blue purple "#rrggbb"
 
 trail = true             # fading afterglow on dead cells
-trail_length = 4         # generations
+trail_length = 8         # generations
 rain = false             # faint hex code-rain behind the cells
 rain_density = 1.0
 overlay = true          # bottom-left "gen N pop N rule hz" status line
@@ -19,8 +19,15 @@ sysload = false          # CPU load -> speed, sparks and warmer colours
 patterns = true          # LWSS / pulsar / Gosper gun injections
 stamps = true            # Tux / Arch logo / terminal text stamps
 
-soft_reset_secs = 300
-stagnation_secs = 60
+# Staleness: the board is never wiped just because time passed. When it goes calm
+# (little still moving, or the whole board repeating) for stagnation_secs, new life
+# (soup patches in the emptiest areas, plus gliders) is added on top of what is there.
+stagnation_secs = 60     # how long the board must stay calm before new life is added
+calm_pct = 0.3           # calm = moving/chaotic cells below this % of the grid (0 = only a fully repeating board)
+# A full reset only happens when still lifes and oscillators clog the grid.
+clutter_pct = 8          # reset when settled shapes cover this % of the grid (0 = never reset)
+soft_reset_secs = 0      # optional timed full reset; 0 = never
+
 glider_min_secs = 60
 glider_max_secs = 90
 special_min_secs = 90
