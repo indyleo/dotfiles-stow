@@ -303,6 +303,7 @@ load("mason-tool-installer.nvim", function()
       "beautysh",
       "shellcheck",
       "shellharden",
+      "qmlls",
     },
     auto_update = true,
   }
@@ -348,6 +349,7 @@ load("nvim-lspconfig", function()
     "emmylua_ls",
     "luau_lsp",
     "gopls",
+    "qmlls",
   }
   for _, s in ipairs(servers) do
     vim.lsp.config[s] = { default_config = { capabilities = caps } }
