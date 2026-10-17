@@ -24,9 +24,23 @@ stamps = true            # Tux / Arch logo / terminal text stamps
 # (soup patches in the emptiest areas, plus gliders) is added on top of what is there.
 stagnation_secs = 60     # how long the board must stay calm before new life is added
 calm_pct = 0.3           # calm = moving/chaotic cells below this % of the grid (0 = only a fully repeating board)
-# A full reset only happens when still lifes and oscillators clog the grid.
-clutter_pct = 8          # reset when settled shapes cover this % of the grid (0 = never reset)
+# When still lifes and oscillators clog the grid, some of them are pruned (whole shapes,
+# fading out over a few generations) - the board is not wiped.
+clutter_pct = 8          # prune when settled shapes cover this % of the grid (0 = never prune)
 soft_reset_secs = 0      # optional timed full reset; 0 = never
+
+# Smoothness: cells crossfade between generations (births fade in, deaths fade out).
+smooth = true
+render_fps = 30          # frames per second while crossfading (idle boards draw nothing)
+pause_hidden = true      # stop simulating/drawing while a fullscreen window or lock screen covers it
+
+# Look of each cell
+cell_gap = 1             # empty px between cells (logical px, 0-8); 0 = solid blocks
+cell_round = false        # round the corners of each cell
+
+# Keep the board across restarts (saved to ~/.local/state/life-wallpaper/<output>.board)
+persist = true
+save_secs = 300          # also save every N seconds in case of a crash (0 = only on exit)
 
 glider_min_secs = 60
 glider_max_secs = 90
