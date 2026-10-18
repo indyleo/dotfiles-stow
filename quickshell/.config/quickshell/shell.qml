@@ -404,7 +404,7 @@ ShellRoot {
 
 		PanelWindow {
 			required property var modelData
-			readonly property bool isPrimary: modelData === Quickshell.screens[0]
+			readonly property bool isPrimary: PrimaryScreen.isPrimary(modelData)
 
 			readonly property string localActiveWindow: {
 				const monitor = Hyprland.monitorFor(modelData);
@@ -966,7 +966,7 @@ ShellRoot {
 	// OSD popup
 	PanelWindow {
 		id: osdWindow
-		screen: Quickshell.screens[0]
+		screen: PrimaryScreen.screen
 		visible: root.osdVisible
 		color: "transparent"
 		exclusionMode: ExclusionMode.Ignore
@@ -996,7 +996,7 @@ ShellRoot {
 	// Media OSD popup
 	PanelWindow {
 		id: mosdWindow
-		screen: Quickshell.screens[0]
+		screen: PrimaryScreen.screen
 		visible: root.mosdVisible
 		color: "transparent"
 		exclusionMode: ExclusionMode.Ignore
@@ -1144,7 +1144,7 @@ ShellRoot {
 	// Notification popups
 	PanelWindow {
 		id: notifWindow
-		screen: Quickshell.screens[0]
+		screen: PrimaryScreen.screen
 		visible: notifColumn.count > 0
 		color: "transparent"
 		exclusionMode: ExclusionMode.Ignore
@@ -1302,7 +1302,7 @@ ShellRoot {
 	// Notification center
 	PanelWindow {
 		id: notifCenterWindow
-		screen: Quickshell.screens[0]
+		screen: PrimaryScreen.screen
 		visible: root.notifCenterVisible
 		color: "transparent"
 		exclusionMode: ExclusionMode.Ignore
@@ -1745,7 +1745,7 @@ ShellRoot {
 	// Power menu overlay (single primary monitor, blurred background)
 	PanelWindow {
 		id: powerMenuWindow
-		screen: Quickshell.screens[0]
+		screen: PrimaryScreen.screen
 		visible: root.powerMenuVisible
 		color: "transparent"
 		exclusionMode: ExclusionMode.Ignore

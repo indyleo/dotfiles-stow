@@ -506,7 +506,7 @@ Item {
 
 	PanelWindow {
 		id: clipboardWindow
-		screen: Quickshell.screens[0]
+		screen: PrimaryScreen.screen
 		visible: root.active
 		color: "transparent"
 		exclusionMode: ExclusionMode.Ignore
@@ -1064,7 +1064,7 @@ Item {
 
 	PanelWindow {
 		id: previewWindow
-		screen: Quickshell.screens[0]
+		screen: PrimaryScreen.screen
 		visible: root.previewImagePath !== "" || root.previewHtmlContent !== ""
 		color: "transparent"
 		exclusionMode: ExclusionMode.Ignore

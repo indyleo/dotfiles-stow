@@ -51,7 +51,7 @@ PanelWindow {
 	readonly property color cal6: Theme.cal6
 	readonly property color cal14: Theme.cal14
 
-	screen: Quickshell.screens[0]
+	screen: PrimaryScreen.screen
 	color: "transparent"
 	exclusionMode: ExclusionMode.Normal
 	// Every other full-screen picker in this shell (AppLauncher, Dmenu,

@@ -36,7 +36,7 @@ PanelWindow {
     readonly property string cacheDir: StandardPaths.writableLocation(StandardPaths.HomeLocation).toString().replace("file://", "") + "/.cache/quickshell-launcher"
     readonly property string stateFile: cacheDir + "/cmd-launcher.json"
 
-    screen: Quickshell.screens[0]
+    screen: PrimaryScreen.screen
     color: "transparent"
     exclusionMode: ExclusionMode.Normal
     WlrLayershell.layer: WlrLayer.Overlay

@@ -426,7 +426,7 @@ function showActionPicker() {
 
 PanelWindow {
 	id: monitorPicker
-	screen: Quickshell.screens[0]
+	screen: PrimaryScreen.screen
 	visible: false
 	color: "transparent"
 	exclusionMode: ExclusionMode.Normal
@@ -547,7 +547,7 @@ PanelWindow {
 
 PanelWindow {
 	id: actionPicker
-	screen: Quickshell.screens[0]
+	screen: PrimaryScreen.screen
 	visible: false
 	color: "transparent"
 	exclusionMode: ExclusionMode.Normal

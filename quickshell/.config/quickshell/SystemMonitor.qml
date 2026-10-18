@@ -30,7 +30,7 @@ PanelWindow {
 	property bool active: false
 	visible: active
 
-	screen: Quickshell.screens[0]
+	screen: PrimaryScreen.screen
 	color: "transparent"
 	exclusionMode: ExclusionMode.Ignore
 	WlrLayershell.layer: WlrLayer.Overlay

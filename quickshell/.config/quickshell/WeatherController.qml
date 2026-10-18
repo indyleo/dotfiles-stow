@@ -94,7 +94,7 @@ Item {
 
     PanelWindow {
         id: weatherWindow
-        screen: Quickshell.screens[0]
+        screen: PrimaryScreen.screen
         visible: root.active
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore

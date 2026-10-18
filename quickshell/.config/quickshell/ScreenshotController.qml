@@ -12,7 +12,7 @@ PanelWindow {
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
-    screen: Quickshell.screens[0]
+    screen: PrimaryScreen.screen
     anchors {
         top: true
         bottom: true
