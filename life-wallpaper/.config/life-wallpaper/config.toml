@@ -1,46 +1,46 @@
 # ~/.config/life-wallpaper/config.toml  -  reload with: pkill -HUP life-wallpaper
 # CLI flags override this file. Flat `key = value` only.
 
-cell_size = 8            # logical px; >= 8 recommended for rain/overlay glyphs
-fps = 8                  # generations per second
-density = 0.25           # soup density at start (also used for reseeds unless reseed_density is set)
+cell_size = 8         # logical px; >= 8 recommended for rain/overlay glyphs
+fps = 8               # generations per second
+density = 0.25        # soup density at start (also used for reseeds unless reseed_density is set)
 reseed_density = 0.30
 
-rule = "life"            # life | highlife | daynight | seeds | brain | rotate | "B36/S23"
-color = "age"            # age = yellow -> green -> orange -> red by cell age, or a single colour:
-                         # green yellow orange red aqua blue purple "#rrggbb"
+rule = "life" # life | highlife | daynight | seeds | brain | rotate | "B36/S23"
+color = "age" # age = yellow -> green -> orange -> red by cell age, or a single colour:
+# green yellow orange red aqua blue purple "#rrggbb"
 
-trail = true             # fading afterglow on dead cells
-trail_length = 8         # generations
-rain = false             # faint hex code-rain behind the cells
+trail = true       # fading afterglow on dead cells
+trail_length = 8   # generations
+rain = false       # faint hex code-rain behind the cells
 rain_density = 1.0
-overlay = true          # bottom-left "gen N pop N rule hz" status line
-sysload = false          # CPU load -> speed, sparks and warmer colours
-patterns = true          # LWSS / pulsar / Gosper gun injections
-stamps = true            # Tux / Arch logo / terminal text stamps
+overlay = true     # bottom-left "gen N pop N rule hz" status line
+sysload = false    # CPU load -> speed, sparks and warmer colours
+patterns = true    # LWSS / pulsar / Gosper gun injections
+stamps = true      # Tux / Arch logo / terminal text stamps
 
 # Staleness: the board is never wiped just because time passed. When it goes calm
 # (little still moving, or the whole board repeating) for stagnation_secs, new life
 # (soup patches in the emptiest areas, plus gliders) is added on top of what is there.
-stagnation_secs = 60     # how long the board must stay calm before new life is added
-calm_pct = 0.3           # calm = moving/chaotic cells below this % of the grid (0 = only a fully repeating board)
+stagnation_secs = 60 # how long the board must stay calm before new life is added
+calm_pct = 0.3       # calm = moving/chaotic cells below this % of the grid (0 = only a fully repeating board)
 # When still lifes and oscillators clog the grid, some of them are pruned (whole shapes,
 # fading out over a few generations) - the board is not wiped.
-clutter_pct = 8          # prune when settled shapes cover this % of the grid (0 = never prune)
-soft_reset_secs = 0      # optional timed full reset; 0 = never
+clutter_pct = 8     # prune when settled shapes cover this % of the grid (0 = never prune)
+soft_reset_secs = 0 # optional timed full reset; 0 = never
 
 # Smoothness: cells crossfade between generations (births fade in, deaths fade out).
 smooth = true
-render_fps = 30          # frames per second while crossfading (idle boards draw nothing)
-pause_hidden = true      # stop simulating/drawing while a fullscreen window or lock screen covers it
+render_fps = 30     # frames per second while crossfading (idle boards draw nothing)
+pause_hidden = true # stop simulating/drawing while a fullscreen window or lock screen covers it
 
 # Look of each cell
-cell_gap = 1             # empty px between cells (logical px, 0-8); 0 = solid blocks
-cell_round = false        # round the corners of each cell
+cell_gap = 1       # empty px between cells (logical px, 0-8); 0 = solid blocks
+cell_round = false # round the corners of each cell
 
 # Keep the board across restarts (saved to ~/.local/state/life-wallpaper/<output>.board)
 persist = true
-save_secs = 300          # also save every N seconds in case of a crash (0 = only on exit)
+save_secs = 300 # also save every N seconds in case of a crash (0 = only on exit)
 
 glider_min_secs = 60
 glider_max_secs = 90
@@ -55,6 +55,6 @@ newborn = "#fabd2f"
 mature = "#b8bb26"
 old = "#fe8019"
 ancient = "#fb4934"
-dying = "#458588"        # Brian's Brain dying cells
+dying = "#458588"         # Brian's Brain dying cells
 rain_color = "#689d6a"
 overlay_color = "#a89984"
