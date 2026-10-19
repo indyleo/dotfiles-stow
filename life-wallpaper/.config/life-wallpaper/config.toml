@@ -60,17 +60,19 @@ rain_color = "#689d6a"
 overlay_color = "#a89984"
 
 # ---- Liveliness: keep things happening without ever wiping the board ----
-local_calm_secs = 12   # a tile of the board with nothing moving for this long gets new life (0 = off)
-tile_size = 16         # tile edge in cells
-decay_after = 120      # cells stuck in a still life / oscillator may die after this many generations (0 = off)
-decay_chance = 0.03    # per-generation chance for such a cell
-noise_per_sec = 1.5    # random single-cell disturbances ("cosmic rays") per second
-rule_shift_secs = 45   # every ~N seconds swap to a livelier rule for a moment (0 = off); Life/HighLife boards only
-rule_shift_gens = 10   # how many generations each swap lasts
-fastforward = true     # run extra generations per tick while the whole board is calm
+local_calm_secs = 12       # a tile of the board with nothing moving for this long gets new life (0 = off)
+tile_size = 16             # tile edge in cells
+decay_after = 120          # cells stuck in a still life / oscillator may die after this many generations (0 = off)
+decay_chance = 0.03        # per-generation chance for such a cell
+noise_per_sec = 1.5        # random single-cell disturbances ("cosmic rays") per second
+rule_shift_secs = 45       # every ~N seconds swap to a livelier rule for a moment (0 = off); Life/HighLife boards only
+rule_shift_gens = 10       # how many generations each swap lasts (per tile in ripple mode)
+rule_shift_mode = "ripple" # "ripple": tiles switch ring by ring from a random tile; "global": whole board at once
+rule_shift_stagger = 3     # ripple: generations between one ring of tiles and the next
+fastforward = true         # run extra generations per tick while the whole board is calm
 fastforward_speed = 4
-colonies = true        # births inherit the majority colour of their parents (needs color = "age")
-colony_mutation = 0.01 # chance a birth picks a random colony
+colonies = true            # births inherit the majority colour of their parents (needs color = "age")
+colony_mutation = 0.01     # chance a birth picks a random colony
 # colony_colors = "yellow,green,orange,red,aqua,blue,purple"   # 2 to 8 colours
 traffic = true         # convoys of LWSS / MWSS / HWSS crossing the board
 traffic_min_secs = 100
@@ -78,6 +80,13 @@ traffic_max_secs = 200
 gun_secs = 60          # Gosper guns are taken down after this long (0 = forever)
 symmetry_chance = 0.25 # chance an injected soup is mirror / rotation symmetric
 hypr_events = true     # Hyprland: workspace switch = gliders, window open / close = a patch of life
+hypr_locate = true     # ask Hyprland where the window is: bloom where a closed one was, halo around a new one
+clock_stamp_secs = 600 # every ~N seconds a stamp spells the time, HH:MM (0 = off; needs stamps = true)
+
+# ---- Audio (off by default; needs PipeWire's pw-cat; read at start-up, restart to change) ----
+audio = false           # gliders on beats of whatever is playing
+audio_sensitivity = 1.0 # 0.2 to 5, higher reacts to softer beats
+# audio_command = "pw-cat --record --format s16 --rate 11025 --channels 1 -P {stream.capture.sink=true} -"
 
 # ---- Look ----
 breathe = 0.3        # generation rate swells and ebbs by +-30% (0 = off)
