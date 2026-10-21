@@ -38,19 +38,6 @@ local function cargo_cmd(cmd)
   })
 end
 
-keymap("n", "<leader>ra", function()
-  vim.cmd.RustLsp "codeAction" -- supports rust-analyzer's grouping
-end, rsopts "Code actions")
-
-keymap(
-  "n",
-  "K", -- Override Neovim's built-in hover keymap with rustaceanvim's hover actions
-  function()
-    vim.cmd.RustLsp { "hover", "actions" }
-  end,
-  rsopts "Hover actions"
-)
-
 keymap("n", "<leader>rb", function()
   cargo_cmd "build"
 end, rsopts "Cargo build")
