@@ -8,7 +8,7 @@ PACKAGES=(
     figletfonts shell xdg git yazi tmux nvim neovide ohmyposh alacritty
     wezterm fastfetch espanso xorg picom dunst qutebrowser discordo Thunar
     lf pipewire gurk twt lazygit rofi quickshell hypr mako startpage foot
-    tridactyl systemd life-wallpaper btop
+    tridactyl systemd life-wallpaper btop xdg-desktop-portal
 )
 
 function is_stow_installed() { command -v stow &>/dev/null; }
