@@ -342,6 +342,179 @@ cmd archive %{{
 }}
 map er archive
 
+# VIDEO / AUDIO #
+
+# Both commands work on the selection, skip anything that isn't a video and run
+# in the background (&): progress goes to the statusline, a desktop notification
+# says when they are done, and lf stays usable during long batches.
+
+# Extract the audio of the selected videos to ~/Music as mp3 (never overwrites).
+# ":extract_audio delete" also trashes each original once its mp3 is written.
+cmd extract_audio &{{
+    set -f
+    dest=${XDG_MUSIC_DIR:-$HOME/Music}
+    sep=$(printf '\037')
+    undo=/tmp/lf_undo_$USER
+    okf=$(mktemp); skf=$(mktemp); erf=$(mktemp)
+    trap 'rm -f "$okf" "$skf" "$erf"' EXIT
+
+    is_video() {
+        case "$(printf '%s' "$1" | tr 'A-Z' 'a-z')" in
+            *.mp4|*.mkv|*.webm|*.mov|*.avi|*.m4v|*.flv|*.wmv) return 0 ;;
+            *) return 1 ;;
+        esac
+    }
+    report() {
+        cnt=$(wc -l < "$2")
+        [ "$cnt" -gt 0 ] || return 0
+        if command -v notify-send >/dev/null 2>&1; then
+            notify-send "$1 ($cnt)" "$(cat "$2")"
+        fi
+    }
+
+    total=0
+    for src in $fx; do
+        is_video "$src" && total=$((total + 1))
+    done
+    [ "$total" -gt 0 ] || { lf -remote "send $id echo No video selected"; exit 0; }
+    mkdir -p -- "$dest"
+
+    i=0
+    for src in $fx; do
+        is_video "$src" || continue
+        i=$((i + 1))
+        name=${src##*/}
+        lf -remote "send $id echo Extracting audio $i/$total"
+
+        # ffmpeg would fail on a video without audio; check first
+        if [ -z "$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_type -of csv=p=0 -i "$src" 2>/dev/null)" ]; then
+            printf '%s\n' "$name" >> "$skf"
+            continue
+        fi
+
+        stem=${name%.*}
+        out="$dest/$stem.mp3"
+        n=1
+        while [ -e "$out" ]; do
+            out="$dest/${stem}_$n.mp3"
+            n=$((n + 1))
+        done
+
+        # Write to .part first so a failed run never leaves a broken mp3 behind
+        if ffmpeg -nostdin -loglevel error -i "$src" -vn -map a:0 -c:a libmp3lame -q:a 2 -f mp3 "$out.part"; then
+            mv -- "$out.part" "$out"
+            printf 'convert%s%s\n' "$sep" "$out" >> "$undo"
+            printf '%s\n' "$name" >> "$okf"
+            if [ "${1:-}" = delete ] && trash-put -- "$src"; then
+                printf 'trash%s%s\n' "$sep" "$src" >> "$undo"
+            fi
+        else
+            rm -f -- "$out.part"
+            printf '%s\n' "$name" >> "$erf"
+        fi
+    done
+
+    report "Audio extracted" "$okf"
+    report "No audio stream" "$skf"
+    report "Extraction failed" "$erf"
+    lf -remote "send $id reload"
+    lf -remote "send $id echo Audio extraction finished"
+}}
+
+# Prompt for a quality, then hand the selection to compress_run in the background
+cmd compress_video %{{
+    printf " CRF 18-51, lower = better quality (default 28): "
+    read -r crf
+    case "$crf" in
+        ''|*[!0-9]*) crf=28 ;;
+    esac
+    [ "$crf" -lt 18 ] && crf=18
+    [ "$crf" -gt 51 ] && crf=51
+    lf -remote "send $id compress_run $crf"
+}}
+
+# Re-encode the selected videos to x265 mp4 (":compress_run 30" skips the prompt).
+# The original is only replaced when the result is actually smaller.
+cmd compress_run &{{
+    set -f
+    crf=${1:-28}
+    okf=$(mktemp); nsf=$(mktemp); erf=$(mktemp)
+    trap 'rm -f "$okf" "$nsf" "$erf"' EXIT
+
+    is_video() {
+        case "$(printf '%s' "$1" | tr 'A-Z' 'a-z')" in
+            *.mp4|*.mkv|*.webm|*.mov|*.avi|*.m4v|*.flv|*.wmv) return 0 ;;
+            *) return 1 ;;
+        esac
+    }
+    report() {
+        cnt=$(wc -l < "$2")
+        [ "$cnt" -gt 0 ] || return 0
+        body=$(cat "$2")
+        [ -z "${3:-}" ] || body=$(printf '%s\n%s' "$3" "$body")
+        if command -v notify-send >/dev/null 2>&1; then
+            notify-send "$1 ($cnt)" "$body"
+        fi
+    }
+
+    total=0
+    for src in $fx; do
+        is_video "$src" && total=$((total + 1))
+    done
+    [ "$total" -gt 0 ] || { lf -remote "send $id echo No video selected"; exit 0; }
+
+    i=0
+    saved=0
+    for src in $fx; do
+        is_video "$src" || continue
+        i=$((i + 1))
+        lf -remote "send $id echo Compressing $i/$total (CRF $crf)"
+
+        dir=${src%/*}
+        base=${src##*/}
+        stem=${base%.*}
+        tmp="$dir/.$stem.compressing.mp4"
+        final="$dir/$stem.mp4"
+        # a.mkv -> a.mp4, but never clobber a different file that already has that name
+        [ -e "$final" ] && [ "$final" != "$src" ] && final="$dir/${stem}_x265.mp4"
+
+        # Keep audio the mp4 container accepts as-is, re-encode the rest (opus, vorbis, flac...)
+        case "$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of csv=p=0 -i "$src" 2>/dev/null | head -n 1)" in
+            ''|aac|mp3|ac3|eac3) set -- -c:a copy ;;
+            *)                   set -- -c:a aac -b:a 160k ;;
+        esac
+
+        if ffmpeg -nostdin -loglevel error -y -i "$src" \
+            -map 0:v:0 -map '0:a:0?' -sn \
+            -c:v libx265 -crf "$crf" -tag:v hvc1 "$@" \
+            -movflags +faststart -f mp4 "$tmp"; then
+            old=$(stat -c %s -- "$src")
+            new=$(stat -c %s -- "$tmp")
+            if [ "$new" -lt "$old" ]; then
+                mv -f -- "$tmp" "$final"
+                [ "$final" = "$src" ] || rm -f -- "$src"
+                saved=$((saved + old - new))
+                printf '%s\n' "$base" >> "$okf"
+            else
+                rm -f -- "$tmp"
+                printf '%s\n' "$base" >> "$nsf"
+            fi
+        else
+            rm -f -- "$tmp"
+            printf '%s\n' "$base" >> "$erf"
+        fi
+    done
+
+    report "Compressed videos" "$okf" "Saved $(numfmt --to=iec "$saved")"
+    report "Not smaller, kept original" "$nsf"
+    report "Compression failed" "$erf"
+    lf -remote "send $id reload"
+    lf -remote "send $id echo Compression finished"
+}}
+map ea extract_audio
+map eA extract_audio delete
+map ec compress_video
+
 # FZF JUMP #
 
 # Fuzzy find any file or directory and jump to it
@@ -453,6 +626,16 @@ map r rename
 
 # Open a file with a handler based on mime type or extension
 cmd open ${{
+  # Picker mode (see FILE PICKER): enter chooses instead of opening
+  if [ -n "${LF_PICKER_OUT:-}" ]; then
+    case "${LF_PICKER_MODE:-file}" in
+      save) printf '%s\n' "$f" > "$LF_PICKER_OUT"; lf -remote "send $id quit" ;;
+      dir)  lf -remote "send $id echo Directory picker: ctrl-s chooses the current directory" ;;
+      *)    lf -remote "send $id pick" ;;
+    esac
+    exit 0
+  fi
+
   mime=$(file --mime-type -Lb "$f")
   ext="${f##*.}"
 
@@ -657,7 +840,7 @@ cmd undo %{{
       sed -i '$d' /tmp/lf_undo_$USER
       lf -remote 'send reload'
       ;;
-    mkscr|duplicate)
+    mkscr|duplicate|convert)
       rm -rf -- "$data"
       sed -i '$d' /tmp/lf_undo_$USER
       lf -remote 'send reload'
@@ -1158,6 +1341,59 @@ cmd du_sort ${{
     du -h --max-depth=1 2>/dev/null | sort -hr | ${PAGER:-less}
 }}
 map si du_sort
+
+# FILE PICKER #
+
+# Used when lf runs as a file chooser for GUI apps (browser upload/save dialogs)
+# through lf-wrapper.sh. The wrapper exports:
+#   LF_PICKER_MODE  file | files | dir | save
+#   LF_PICKER_OUT   file the chosen path(s) are written to (empty = cancelled)
+#   LF_PICKER_NAME  suggested file name (save mode)
+# Outside the wrapper these are unset and nothing here does anything.
+#
+#   file / files  enter (or ctrl-s) picks the file, or everything you marked
+#   dir           ctrl-s picks the directory you are in
+#   save          ctrl-s asks for a name and saves into the directory you are in;
+#                 enter on an existing file picks that file to overwrite
+cmd pick %{{
+    out=${LF_PICKER_OUT:-}
+    [ -n "$out" ] || { echo "Not in picker mode."; exit 0; }
+
+    case "${LF_PICKER_MODE:-file}" in
+        file)
+            if [ -d "$f" ]; then
+                echo "Pick a file (enter opens directories)."
+                exit 0
+            fi
+            printf '%s\n' "$f" > "$out"
+            ;;
+        files)
+            picked=$(printf '%s\n' "$fx" | while IFS= read -r p; do
+                [ -d "$p" ] || printf '%s\n' "$p"
+            done)
+            [ -n "$picked" ] || { echo "No files selected."; exit 0; }
+            printf '%s\n' "$picked" > "$out"
+            ;;
+        dir)
+            printf '%s\n' "$PWD" > "$out"
+            ;;
+        save)
+            printf " Save as [%s]: " "${LF_PICKER_NAME:-}"
+            IFS= read -r name
+            name=${name:-${LF_PICKER_NAME:-}}
+            case "$name" in
+                ""|.|..|*/*) echo "Invalid filename: $name"; exit 1 ;;
+            esac
+            if [ -d "$PWD/$name" ]; then
+                echo "$name is a directory."
+                exit 1
+            fi
+            printf '%s\n' "$PWD/$name" > "$out"
+            ;;
+    esac
+    lf -remote "send $id quit"
+}}
+map <c-s> pick
 
 # REPOMIX #
 
