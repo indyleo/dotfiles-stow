@@ -1,2 +1,2 @@
 [filechooser]
-cmd=lf-wrapper.sh
+cmd=lf-picker.sh
