@@ -62,6 +62,14 @@ hl.window_rule({
 	fullscreen = true,
 })
 
+-- lf file picker (lf-wrapper.sh opens it with class "lf-picker")
+hl.window_rule({
+	match = { class = "^(lf-picker)$" },
+	float = true,
+	center = true,
+	size = { 1000, 650 },
+})
+
 -- --- Layer Rules ---
 
 -- Rofi blur
