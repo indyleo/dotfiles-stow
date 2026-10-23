@@ -1358,6 +1358,7 @@ map si du_sort
 cmd pick %{{
     out=${LF_PICKER_OUT:-}
     [ -n "$out" ] || { echo "Not in picker mode."; exit 0; }
+    cwd=$(pwd)
 
     case "${LF_PICKER_MODE:-file}" in
         file)
@@ -1375,20 +1376,20 @@ cmd pick %{{
             printf '%s\n' "$picked" > "$out"
             ;;
         dir)
-            printf '%s\n' "$PWD" > "$out"
+            printf '%s\n' "$cwd" > "$out"
             ;;
         save)
             printf " Save as [%s]: " "${LF_PICKER_NAME:-}"
             IFS= read -r name
-						[ -n "$name" ] || name=${LF_PICKER_NAME:-}
+            [ -n "$name" ] || name=${LF_PICKER_NAME:-}
             case "$name" in
                 ""|.|..|*/*) echo "Invalid filename: $name"; exit 1 ;;
             esac
-            if [ -d "$PWD/$name" ]; then
+            if [ -d "$cwd/$name" ]; then
                 echo "$name is a directory."
                 exit 1
             fi
-            printf '%s\n' "$PWD/$name" > "$out"
+            printf '%s\n' "$cwd/$name" > "$out"
             ;;
     esac
     lf -remote "send $id quit"
