@@ -1345,7 +1345,7 @@ map si du_sort
 # FILE PICKER #
 
 # Used when lf runs as a file chooser for GUI apps (browser upload/save dialogs)
-# through lf-wrapper.sh. The wrapper exports:
+# through lf_picker.sh The wrapper exports:
 #   LF_PICKER_MODE  file | files | dir | save
 #   LF_PICKER_OUT   file the chosen path(s) are written to (empty = cancelled)
 #   LF_PICKER_NAME  suggested file name (save mode)
@@ -1380,7 +1380,7 @@ cmd pick %{{
         save)
             printf " Save as [%s]: " "${LF_PICKER_NAME:-}"
             IFS= read -r name
-            name=${name:-${LF_PICKER_NAME:-}}
+						[ -n "$name" ] || name=${LF_PICKER_NAME:-}
             case "$name" in
                 ""|.|..|*/*) echo "Invalid filename: $name"; exit 1 ;;
             esac
