@@ -74,6 +74,7 @@ map t
 map '"'
 map "'"
 map R
+map i
 
 # CORE NAVIGATION #
 
@@ -904,8 +905,6 @@ cmd pdf_merge %{{
     fi
 }}
 
-# "i" has to be free to act as a prefix
-map i
 map ic img_convert
 map ir img_resize
 map io img_rotate
