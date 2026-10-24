@@ -344,7 +344,7 @@ map er archive
 
 # VIDEO / AUDIO #
 
-# Both commands work on the selection, skip anything that isn't a video and run
+# These commands work on the selection, skip anything that isn't a video and run
 # in the background (&): progress goes to the statusline, a desktop notification
 # says when they are done, and lf stays usable during long batches.
 
@@ -511,9 +511,411 @@ cmd compress_run &{{
     lf -remote "send $id reload"
     lf -remote "send $id echo Compression finished"
 }}
+# Prompt for size, frame rate and length, then hand the selection to video_gif_run
+cmd video_gif %{{
+    printf " Width in px (default 480): "
+    read -r w
+    case "$w" in ''|*[!0-9]*) w=480 ;; esac
+    [ "$w" -lt 16 ] && w=16
+    printf " Frame rate 1-30 (default 12): "
+    read -r fps
+    case "$fps" in ''|*[!0-9]*) fps=12 ;; esac
+    [ "$fps" -lt 1 ] && fps=1
+    [ "$fps" -gt 30 ] && fps=30
+    printf " Seconds to convert from the start (default 10): "
+    read -r secs
+    case "$secs" in ''|*[!0-9]*) secs=10 ;; esac
+    [ "$secs" -lt 1 ] && secs=1
+    lf -remote "send $id video_gif_run $w $fps $secs"
+}}
+
+# Turn the selected videos into gifs next to them (palette-optimised, never overwrites)
+cmd video_gif_run &{{
+    set -f
+    w=${1:-480}
+    fps=${2:-12}
+    secs=${3:-10}
+    sep=$(printf '\037')
+    undo=/tmp/lf_undo_$USER
+    okf=$(mktemp); erf=$(mktemp)
+    trap 'rm -f "$okf" "$erf"' EXIT
+
+    is_video() {
+        case "$(printf '%s' "$1" | tr 'A-Z' 'a-z')" in
+            *.mp4|*.mkv|*.webm|*.mov|*.avi|*.m4v|*.flv|*.wmv) return 0 ;;
+            *) return 1 ;;
+        esac
+    }
+    report() {
+        cnt=$(wc -l < "$2")
+        [ "$cnt" -gt 0 ] || return 0
+        if command -v notify-send >/dev/null 2>&1; then
+            notify-send "$1 ($cnt)" "$(cat "$2")"
+        fi
+    }
+
+    total=0
+    for src in $fx; do
+        is_video "$src" && total=$((total + 1))
+    done
+    [ "$total" -gt 0 ] || { lf -remote "send $id echo No video selected"; exit 0; }
+
+    i=0
+    for src in $fx; do
+        is_video "$src" || continue
+        i=$((i + 1))
+        lf -remote "send $id echo Making gif $i/$total"
+
+        dir=${src%/*}
+        name=${src##*/}
+        stem=${name%.*}
+        out="$dir/$stem.gif"
+        n=1
+        while [ -e "$out" ]; do
+            out="$dir/${stem}_$n.gif"
+            n=$((n + 1))
+        done
+
+        # Write to .part first so a failed run never leaves a broken gif behind
+        if ffmpeg -nostdin -loglevel error -t "$secs" -i "$src" \
+            -vf "fps=$fps,scale=min($w\,iw):-1:flags=lanczos,split[s0][s1];[s0]palettegen=stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5" \
+            -loop 0 -f gif "$out.part"; then
+            mv -- "$out.part" "$out"
+            printf 'convert%s%s\n' "$sep" "$out" >> "$undo"
+            printf '%s\n' "${out##*/}" >> "$okf"
+        else
+            rm -f -- "$out.part"
+            printf '%s\n' "$name" >> "$erf"
+        fi
+    done
+
+    report "Gifs created" "$okf"
+    report "Gif failed" "$erf"
+    lf -remote "send $id reload"
+    lf -remote "send $id echo Gif conversion finished"
+}}
+
 map ea extract_audio
 map eA extract_audio delete
 map ec compress_video
+map eg video_gif
+
+# IMAGES / PDF (IMAGEMAGICK) #
+
+# Image commands work on the selection and skip anything that isn't an image.
+# They never touch the originals: results are written next to them as new files
+# (name_resized.png, name_rot90.jpg ...), never overwrite anything, and are
+# logged so "u" removes them again. The work runs in the background (img_run);
+# a desktop notification says when it is done.
+# Needs ImageMagick 7 (the "magick" command).
+
+# Convert to another format (png/jpg/webp/avif/gif/bmp/tiff/ico)
+cmd img_convert %{{
+    printf " Convert to (png/jpg/webp/avif/gif/bmp/tiff/ico) [png]: "
+    read -r fmt
+    fmt=$(printf '%s' "${fmt:-png}" | tr 'A-Z' 'a-z' | sed 's/^\.//')
+    case "$fmt" in
+        jpeg) fmt=jpg ;;
+        tif)  fmt=tiff ;;
+    esac
+    case "$fmt" in
+        png|jpg|webp|avif|gif|bmp|tiff|ico) ;;
+        *) echo "Unsupported format: $fmt"; exit 1 ;;
+    esac
+    lf -remote "send $id img_run convert $fmt"
+}}
+
+# Resize: percentage (50%) or ImageMagick geometry (1280x, x720, 800x600, 800x600!)
+cmd img_resize %{{
+    printf " Size (50%%, 1280x, x720, 800x600, add ! to force) [50%%]: "
+    read -r geo
+    geo=${geo:-50%}
+    case "$geo" in
+        *[!0-9x%\!^\<\>]*) echo "Invalid size: $geo"; exit 1 ;;
+    esac
+    lf -remote "send $id img_run resize $geo"
+}}
+
+# Rotate, or just fix the orientation from the EXIF data
+cmd img_rotate %{{
+    printf " Rotate (r = 90 right, l = 90 left, f = 180, a = auto-orient) [r]: "
+    read -r choice
+    case "${choice:-r}" in
+        r|R) arg=90 ;;
+        l|L) arg=270 ;;
+        f|F) arg=180 ;;
+        a|A) arg=auto ;;
+        *)   echo "Invalid choice: $choice"; exit 1 ;;
+    esac
+    lf -remote "send $id img_run rotate $arg"
+}}
+
+# Re-encode at a lower quality. A result that isn't smaller than the original is dropped.
+cmd img_compress %{{
+    printf " Quality 1-100, lower = smaller (default 80): "
+    read -r q
+    case "$q" in ''|*[!0-9]*) q=80 ;; esac
+    [ "$q" -lt 1 ] && q=1
+    [ "$q" -gt 100 ] && q=100
+    lf -remote "send $id img_run compress $q"
+}}
+
+# Change the colour space (grey, srgb, cmyk, lab, hsl, hsb, hwb, xyz, ycbcr)
+cmd img_colorspace %{{
+    printf " Colour space (gray/srgb/cmyk/lab/hsl/hsb/hwb/xyz/ycbcr) [gray]: "
+    read -r cs
+    cs=$(printf '%s' "${cs:-gray}" | tr 'A-Z' 'a-z')
+    case "$cs" in
+        gray|grey|g) arg=Gray ;;
+        srgb)        arg=sRGB ;;
+        cmyk)        arg=CMYK ;;
+        lab)         arg=Lab ;;
+        hsl)         arg=HSL ;;
+        hsb)         arg=HSB ;;
+        hwb)         arg=HWB ;;
+        xyz)         arg=XYZ ;;
+        ycbcr)       arg=YCbCr ;;
+        *) echo "Unsupported colour space: $cs"; exit 1 ;;
+    esac
+    lf -remote "send $id img_run colorspace $arg"
+}}
+
+# Shared worker: img_run convert|resize|rotate|strip|compress|colorspace|monochrome [argument]
+# (":img_run strip" and ":img_run monochrome" need no argument, ":img_run colorspace Gray" is
+# the one-key grey conversion)
+cmd img_run &{{
+    set -f
+    op=${1:-}
+    arg=${2:-}
+    sep=$(printf '\037')
+    undo=/tmp/lf_undo_$USER
+    okf=$(mktemp); skf=$(mktemp); erf=$(mktemp)
+    trap 'rm -f "$okf" "$skf" "$erf"' EXIT
+
+    command -v magick >/dev/null 2>&1 || { lf -remote "send $id echo magick not found, install imagemagick"; exit 1; }
+    case "$op" in
+        convert|resize|rotate|strip|compress|colorspace|monochrome) ;;
+        *) lf -remote "send $id echo Unknown image operation: $op"; exit 1 ;;
+    esac
+    case "$op" in
+        resize)   suffix=_resized ;;
+        rotate)   case "$arg" in auto) suffix=_oriented ;; *) suffix=_rot$arg ;; esac ;;
+        strip)    suffix=_clean ;;
+        compress) suffix=_small ;;
+        colorspace) suffix=_$(printf '%s' "$arg" | tr 'A-Z' 'a-z') ;;
+        monochrome) suffix=_mono ;;
+        *)        suffix= ;;
+    esac
+
+    is_image() {
+        case "$(printf '%s' "$1" | tr 'A-Z' 'a-z')" in
+            *.jpg|*.jpeg|*.png|*.gif|*.webp|*.bmp|*.tif|*.tiff|*.avif|*.heic|*.heif|*.ico) return 0 ;;
+            *) return 1 ;;
+        esac
+    }
+    report() {
+        cnt=$(wc -l < "$2")
+        [ "$cnt" -gt 0 ] || return 0
+        body=$(cat "$2")
+        [ -z "${3:-}" ] || body=$(printf '%s\n%s' "$3" "$body")
+        if command -v notify-send >/dev/null 2>&1; then
+            notify-send "$1 ($cnt)" "$body"
+        fi
+    }
+
+    total=0
+    for src in $fx; do
+        is_image "$src" && total=$((total + 1))
+    done
+    [ "$total" -gt 0 ] || { lf -remote "send $id echo No image selected"; exit 0; }
+
+    i=0
+    saved=0
+    for src in $fx; do
+        is_image "$src" || continue
+        i=$((i + 1))
+        lf -remote "send $id echo Image $op $i/$total"
+
+        dir=${src%/*}
+        name=${src##*/}
+        stem=${name%.*}
+        sext=$(printf '%s' "${name##*.}" | tr 'A-Z' 'a-z')
+        case "$sext" in
+            jpeg) norm=jpg ;;
+            tif)  norm=tiff ;;
+            heif) norm=heic ;;
+            *)    norm=$sext ;;
+        esac
+
+        if [ "$op" = convert ]; then ext=$arg; else ext=$sext; fi
+        if [ "$op" = convert ] && [ "$ext" = "$norm" ]; then
+            printf '%s\n' "$name" >> "$skf"
+            continue
+        fi
+
+        # First frame only, unless the result can be animated (gif/webp)
+        frames='[0]'
+        case "$ext" in gif|webp) frames= ;; esac
+        set -- "$src$frames"
+        if [ -z "$frames" ]; then
+            set -- "$@" -coalesce
+        fi
+        set -- "$@" -auto-orient
+
+        case "$op" in
+            convert)
+                case "$ext" in
+                    jpg) set -- "$@" -background white -alpha remove -alpha off ;;
+                    ico) set -- "$@" -resize '256x256>' -define icon:auto-resize=256,128,64,48,32,16 ;;
+                esac
+                ;;
+            resize) set -- "$@" -resize "$arg" ;;
+            rotate)
+                case "$arg" in
+                    auto) ;;
+                    *)    set -- "$@" -rotate "$arg" ;;
+                esac
+                ;;
+            strip) set -- "$@" -strip ;;
+            colorspace) set -- "$@" -colorspace "$arg" ;;
+            monochrome) set -- "$@" -monochrome ;;
+            compress)
+                # PNG is lossless, so quality does not apply: use maximum compression
+                case "$ext" in
+                    png) set -- "$@" -strip -define png:compression-level=9 ;;
+                    *)   set -- "$@" -strip -quality "$arg" ;;
+                esac
+                ;;
+        esac
+        if [ "$ext" = gif ] && [ -z "$frames" ]; then
+            set -- "$@" -layers Optimize
+        fi
+
+        # Write to a hidden temp file first so a failed run never leaves a broken image behind
+        tmp="$dir/.$stem.lfimg.$ext"
+        if magick "$@" "$tmp" 2>/dev/null; then
+            if [ "$op" = compress ]; then
+                old=$(stat -c %s -- "$src")
+                new=$(stat -c %s -- "$tmp")
+                if [ "$new" -ge "$old" ]; then
+                    rm -f -- "$tmp"
+                    printf '%s\n' "$name" >> "$skf"
+                    continue
+                fi
+                saved=$((saved + old - new))
+            fi
+            out="$dir/$stem$suffix.$ext"
+            n=1
+            while [ -e "$out" ]; do
+                out="$dir/$stem${suffix}_$n.$ext"
+                n=$((n + 1))
+            done
+            mv -- "$tmp" "$out"
+            printf 'convert%s%s\n' "$sep" "$out" >> "$undo"
+            printf '%s\n' "${out##*/}" >> "$okf"
+        else
+            rm -f -- "$tmp"
+            printf '%s\n' "$name" >> "$erf"
+        fi
+    done
+
+    extra=
+    [ "$op" != compress ] || extra="Saved $(numfmt --to=iec "$saved")"
+    report "Images: $op" "$okf" "$extra"
+    report "Skipped, nothing to do" "$skf"
+    report "Image $op failed" "$erf"
+    lf -remote "send $id reload"
+    lf -remote "send $id echo Image $op finished"
+}}
+
+# Put the selected images into one PDF, one image per page (in the current directory)
+# If this fails with "not authorized", the PDF rule in ImageMagick's policy.xml is blocking it.
+cmd img_pdf %{{
+    set -f
+    sep=$(printf '\037')
+    command -v magick >/dev/null 2>&1 || { echo "magick not found, install imagemagick"; exit 1; }
+    printf " PDF name [images.pdf]: "
+    read -r name
+    name=${name:-images.pdf}
+    case "$name" in
+        */*) echo "Invalid name: $name"; exit 1 ;;
+        *.pdf) ;;
+        *) name=$name.pdf ;;
+    esac
+    if [ -e "$name" ]; then
+        echo "Target exists: $name"
+        exit 1
+    fi
+
+    set --
+    for p in $fx; do
+        case "$(printf '%s' "$p" | tr 'A-Z' 'a-z')" in
+            *.jpg|*.jpeg|*.png|*.gif|*.webp|*.bmp|*.tif|*.tiff|*.avif|*.heic|*.heif)
+                set -- "$@" "${p}[0]" ;;
+        esac
+    done
+    [ $# -gt 0 ] || { echo "No image selected"; exit 0; }
+
+    if err=$(magick "$@" -auto-orient "$name" 2>&1); then
+        printf 'convert%s%s\n' "$sep" "$PWD/$name" >> "/tmp/lf_undo_$USER"
+        lf -remote "send $id reload"
+        lf -remote "send $id select \"$PWD/$name\""
+    else
+        rm -f -- "$name"
+        printf '%s\n' "$err" | head -n 1
+        exit 1
+    fi
+}}
+
+# Merge the selected PDFs into one (in the current directory, in selection order)
+cmd pdf_merge %{{
+    set -f
+    sep=$(printf '\037')
+    command -v pdfunite >/dev/null 2>&1 || { echo "pdfunite not found, install poppler"; exit 1; }
+    printf " Merged PDF name [merged.pdf]: "
+    read -r name
+    name=${name:-merged.pdf}
+    case "$name" in
+        */*) echo "Invalid name: $name"; exit 1 ;;
+        *.pdf) ;;
+        *) name=$name.pdf ;;
+    esac
+    if [ -e "$name" ]; then
+        echo "Target exists: $name"
+        exit 1
+    fi
+
+    set --
+    for p in $fx; do
+        case "$(printf '%s' "$p" | tr 'A-Z' 'a-z')" in
+            *.pdf) set -- "$@" "$p" ;;
+        esac
+    done
+    [ $# -ge 2 ] || { echo "Select at least two PDFs"; exit 1; }
+
+    if err=$(pdfunite "$@" "$name" 2>&1); then
+        printf 'convert%s%s\n' "$sep" "$PWD/$name" >> "/tmp/lf_undo_$USER"
+        lf -remote "send $id reload"
+        lf -remote "send $id select \"$PWD/$name\""
+    else
+        rm -f -- "$name"
+        printf '%s\n' "$err" | head -n 1
+        exit 1
+    fi
+}}
+
+# "i" has to be free to act as a prefix
+map i
+map ic img_convert
+map ir img_resize
+map io img_rotate
+map iq img_compress
+map is img_run strip
+map ig img_colorspace
+map iG img_run colorspace Gray
+map im img_run monochrome
+map ip img_pdf
+map ep pdf_merge
 
 # FZF JUMP #
 
@@ -999,7 +1401,26 @@ cmd yank %{{
             [ "$(stat -c %s -- "$f")" -le 1048576 ] || { echo "File is over 1 MiB."; exit 1; }
             clip < "$f"
             ;;
-        *) echo "usage: yank path|name|dir|content"; exit 1 ;;
+        image)
+            [ -f "$f" ] || { echo "Not a file."; exit 1; }
+            mime=$(file --mime-type -Lb -- "$f")
+            case "$mime" in image/*) ;; *) echo "Not an image."; exit 1 ;; esac
+            # Most apps only accept png from the clipboard, so convert anything else
+            png=$(mktemp --suffix=.png)
+            trap 'rm -f "$png"' EXIT
+            if [ "$mime" = image/png ]; then
+                cp -- "$f" "$png"
+            else
+                command -v magick >/dev/null 2>&1 || { echo "magick not found, install imagemagick"; exit 1; }
+                magick "${f}[0]" -auto-orient "$png" 2>/dev/null || { echo "Conversion failed."; exit 1; }
+            fi
+            if command -v wl-copy >/dev/null 2>&1; then
+                wl-copy --type image/png < "$png" >/dev/null 2>&1
+            else
+                xclip -selection clipboard -t image/png -i "$png" >/dev/null 2>&1
+            fi
+            ;;
+        *) echo "usage: yank path|name|dir|content|image"; exit 1 ;;
     esac
     echo "Copied $what to clipboard"
 }}
@@ -1007,6 +1428,7 @@ map yp yank path
 map yn yank name
 map yd yank dir
 map yc yank content
+map yi yank image
 
 # BULK RENAME #
 
