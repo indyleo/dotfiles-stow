@@ -603,13 +603,6 @@ map eg video_gif
 
 # IMAGES / PDF (IMAGEMAGICK) #
 
-# Image commands work on the selection and skip anything that isn't an image.
-# They never touch the originals: results are written next to them as new files
-# (name_resized.png, name_rot90.jpg ...), never overwrite anything, and are
-# logged so "u" removes them again. The work runs in the background (img_run);
-# a desktop notification says when it is done.
-# Needs ImageMagick 7 (the "magick" command).
-
 # Convert to another format (png/jpg/webp/avif/gif/bmp/tiff/ico)
 cmd img_convert %{{
     printf " Convert to (png/jpg/webp/avif/gif/bmp/tiff/ico) [png]: "
