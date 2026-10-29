@@ -18,6 +18,6 @@ hl.config({
 	},
 	misc = {
 		enable_swallow = true,
-		swallow_regex = "^(footclient|alacritty|kitty|wezterm|foot)$",
+		swallow_regex = "^(footclient|alacritty|kitty|wezterm|foot|Alacritty)$",
 	},
 })
