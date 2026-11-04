@@ -41,15 +41,15 @@ from datetime import datetime
 IS_WAYLAND = bool(os.environ.get("WAYLAND_DISPLAY"))
 
 # ── Config ────────────────────────────────────────────────────────────────────
-DEFAULT_HISTORY_FILE = os.path.expanduser("~/.local/share/rofi-websearch/history.txt")
+DEFAULT_HISTORY_FILE = os.path.expanduser("~/.local/share/websearch/history.txt")
 MAX_HISTORY = 200
 
 SEARCH_ENGINES = {
-    "searxng": "https://searxng.linuxlab.work/search?q={}",
     "brave": "https://search.brave.com/search?q={}",
-    "duckduckgo": "https://duckduckgo.com/?q={}",
+    "duckduckgo": "https://noai.duckduckgo.com/?q={}",
+    "mojeek": "https://www.mojeek.com/search?q={}",
 }
-DEFAULT_ENGINE = "searxng"
+DEFAULT_ENGINE = "brave"
 
 # ── Bang shortcuts ─────────────────────────────────────────────────────────────
 # Format: "!bang": ("Display Label", "https://example.com/search?q={}")

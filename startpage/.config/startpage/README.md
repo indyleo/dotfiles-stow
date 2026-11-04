@@ -1,12 +1,12 @@
 # Startpage
 
 A minimalistic, keyboard-driven browser startpage with a Gruvbox theme, a
-SearXNG search bar, quicklinks, live system/weather info, and a bit of
+Brave search bar, quicklinks, live system/weather info, and a bit of
 matrix-rain flavor. Plain HTML/CSS/JS, no build step, no dependencies.
 
 ## Features
 
-- **Search bar** backed by a SearXNG instance, with `!bang` shortcuts to jump
+- **Search bar** backed by Brave Search, with `!bang` shortcuts to jump
   straight to a specific site (see below).
 - **Vim-style link hints** — press `f` to overlay a letter on every quicklink
   and jump straight to it from the keyboard, Vimium-style.
@@ -50,22 +50,22 @@ matrix-rain flavor. Plain HTML/CSS/JS, no build step, no dependencies.
 
 ## Keybinds
 
-| Key   | Action                                                   |
-| ----- | -------------------------------------------------------- |
-| `/`   | Focus the search bar                                     |
-| `f`   | Jump to a link (hold `Shift` + key to open in a new tab) |
-| `n`   | Reroll the greeting quote/phrase                         |
-| `t`   | Cycle color theme                                        |
+| Key                   | Action                                                   |
+| --------------------- | -------------------------------------------------------- |
+| `/`                   | Focus the search bar                                     |
+| `f`                   | Jump to a link (hold `Shift` + key to open in a new tab) |
+| `n`                   | Reroll the greeting quote/phrase                         |
+| `t`                   | Cycle color theme                                        |
 | `p` / `d` / `s` / `h` | Clock+pomodoro / todo / scratchpad / Hacker News popover |
-| `?`   | Toggle the keybind cheatsheet                            |
-| `Esc` | Close overlay / forecast / clear search / exit hint mode |
+| `?`                   | Toggle the keybind cheatsheet                            |
+| `Esc`                 | Close overlay / forecast / clear search / exit hint mode |
 
 While in hint mode (`f`), `Backspace` corrects a mistyped hint letter without
 resetting the whole mode.
 
 ## Search bangs
 
-Type `!bang query` in the search bar to skip SearXNG and go straight to that
+Type `!bang query` in the search bar to skip Brave and go straight to that
 site's search (or just `!bang` with no query for the homepage). Current bangs:
 `!gh` GitHub, `!gl` GitLab, `!so` Stack Overflow, `!yt` YouTube, `!tw` Twitch,
 `!rd` Reddit, `!g` Google, `!ddg` DuckDuckGo, `!w` Wikipedia, `!npm` npm,
@@ -84,9 +84,8 @@ Markup lives in `index.html`, styling in `style.css`, and behavior in
   included in this repo.
 - **Quotes / phrases**: edit `quotes.txt` and `randomphrases.txt`, one entry
   per line.
-- **Search backend**: this defaults to a personal SearXNG instance
-  (`searxng.linuxlab.work`). To point it at your own instance (or another
-  search engine entirely), update all three of:
+- **Search backend**: this defaults to Brave Search
+  (`search.brave.com`). To point it at another engine, update all three of:
   1. the `<form action="...">` URL in the search bar,
   2. `form-action` in the `Content-Security-Policy` `<meta>` tag,
   3. any `connect-src` entries that reference it.
