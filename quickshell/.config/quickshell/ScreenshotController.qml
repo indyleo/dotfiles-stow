@@ -25,6 +25,7 @@ PanelWindow {
     signal colorPicked(string hexColor)
     signal screenshotFailed(string reason)
     signal qrDecoded(string text)   // NEW: emitted when a QR code is decoded
+    signal ocrDecoded(string text)  // NEW: emitted when text is extracted from an image
 
     // Public API
     function screenshotFull()    { captureFull() }
@@ -33,6 +34,7 @@ PanelWindow {
     function screenshotRegion()  { showRegionSelector() }
     function colorPicker()       { showColorPicker() }
     function qrScanner()         { showQrScanner() }  // NEW
+    function ocrScanner()        { showOcrScanner() } // NEW: grab text from a region
 
     // Timestamp helper
     function getTimestamp() {
@@ -72,7 +74,7 @@ PanelWindow {
     }
 
     // --- Selection overlay (region, color, and now qr) ---
-    property string selectorMode: ""   // "region", "color", or "qr"
+    property string selectorMode: ""   // "region", "color", "qr", or "ocr"
 
     function showRegionSelector() {
         selectorMode = "region"
@@ -95,6 +97,18 @@ PanelWindow {
             return
         }
         selectorMode = "qr"
+        root.visible = true
+        selectionRect.visible = false
+        regionMouseArea.selecting = false
+    }
+
+    // NEW: show overlay for OCR (same drag-to-select as region, mode = "ocr")
+    function showOcrScanner() {
+        if (!root.tesseractAvailable) {
+            root.screenshotFailed("OCR requires tesseract (install tesseract + a language pack, e.g. tesseract-data-eng)")
+            return
+        }
+        selectorMode = "ocr"
         root.visible = true
         selectionRect.visible = false
         regionMouseArea.selecting = false
@@ -221,7 +235,7 @@ PanelWindow {
                     root.captureAfterHide(function() {
                         capturePixel(x, y)
                     })
-                } else if (selectorMode === "region" || selectorMode === "qr") {
+                } else if (selectorMode === "region" || selectorMode === "qr" || selectorMode === "ocr") {
                     selecting = true
                     startX = mouse.x
                     startY = mouse.y
@@ -234,7 +248,7 @@ PanelWindow {
             }
 
             onReleased: (mouse) => {
-                if ((selectorMode !== "region" && selectorMode !== "qr") || !selecting || mouse.button !== Qt.LeftButton) return
+                if ((selectorMode !== "region" && selectorMode !== "qr" && selectorMode !== "ocr") || !selecting || mouse.button !== Qt.LeftButton) return
                 selecting = false
 
                 // Get geometry relative to the overlay (full-screen)
@@ -255,6 +269,10 @@ PanelWindow {
                 if (selectorMode === "qr") {
                     root.captureAfterHide(function() {
                         captureQrRegion(geometry)
+                    })
+                } else if (selectorMode === "ocr") {
+                    root.captureAfterHide(function() {
+                        captureOcrRegion(geometry)
                     })
                 } else {
                     root.captureAfterHide(function() {
@@ -353,6 +371,86 @@ PanelWindow {
         id: qrNotifyProc
         onExited: (code, status) => {
             if (code !== 0) console.warn("[QR] Notification failed (exit " + code + ")")
+        }
+    }
+
+    // --- NEW: OCR (extract text from a selected region) ---
+    property string ocrLang: "eng"   // e.g. "eng+deu" for several languages
+    property string ocrPsm: "6"      // 6 = single block of text, 3 = auto layout, 7 = single line
+
+    function captureOcrRegion(geometry) {
+        var temp = "/tmp/qs-ocr-" + Date.now() + ".png"
+        ocrGrimProc._tempPath = temp
+        ocrGrimProc.command = ["grim", "-g", geometry, temp]
+        ocrGrimProc.running = false
+        ocrGrimProc.running = true
+    }
+
+    Process {
+        id: ocrGrimProc
+        property string _tempPath
+        onExited: (code, status) => {
+            if (code === 0) {
+                ocrProc._tempPath = _tempPath
+                ocrProc.command = ["tesseract", _tempPath, "stdout",
+                                   "-l", root.ocrLang, "--psm", root.ocrPsm]
+                ocrProc.running = false
+                ocrProc.running = true
+            } else {
+                root.screenshotFailed("grim OCR capture failed (exit " + code + ")")
+            }
+        }
+    }
+
+    Process {
+        id: ocrProc
+        property string _tempPath
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var extracted = text.replace(/\f/g, "").trim()
+                if (extracted) {
+                    root.ocrDecoded(extracted)
+                    // "--" so text starting with "-" isn't parsed as a wl-copy option
+                    copyTextProc.command = ["wl-copy", "--", extracted]
+                    copyTextProc.running = false
+                    copyTextProc.running = true
+
+                    var preview = extracted.length > 200 ? extracted.substring(0, 200) + "…" : extracted
+                    ocrNotifyProc.command = ["notify-send", "Text Copied (OCR)", preview]
+                    ocrNotifyProc.running = false
+                    ocrNotifyProc.running = true
+                } else {
+                    root.screenshotFailed("No text detected in selection")
+                }
+            }
+        }
+        onExited: (code, status) => {
+            if (code !== 0) {
+                root.screenshotFailed("OCR failed (exit " + code + ") - is the '" + root.ocrLang + "' language pack installed?")
+            }
+        }
+    }
+
+    Process {
+        id: ocrNotifyProc
+        onExited: (code, status) => {
+            if (code !== 0) console.warn("[OCR] Notification failed (exit " + code + ")")
+        }
+    }
+
+    property bool tesseractAvailable: false
+
+    Process {
+        id: detectTesseractProc
+        running: true
+        command: ["sh", "-c", "command -v tesseract >/dev/null 2>&1 && echo yes || echo no"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.tesseractAvailable = (text.trim() === "yes")
+                if (!root.tesseractAvailable) {
+                    console.warn("[Screenshot] tesseract not found - OCR will be unavailable")
+                }
+            }
         }
     }
 

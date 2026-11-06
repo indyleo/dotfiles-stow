@@ -363,6 +363,7 @@ ShellRoot {
 		function monitor(): void { screenshot.screenshotMonitor() }
 		function region(): void  { screenshot.screenshotRegion() }
 		function qr(): void      { screenshot.qrScanner() }
+		function ocr(): void     { screenshot.ocrScanner() }
 		function color(): void   { screenshot.colorPicker() }
 	}
 
