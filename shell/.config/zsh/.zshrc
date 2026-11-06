@@ -12,18 +12,25 @@ HISTSIZE=10000
 SAVEHIST=10000
 HISTFILE="${XDG_CACHE_HOME:-$HOME/.cache}/history-zsh"
 
-# History options
+# Set Ops
 setopt HIST_IGNORE_ALL_DUPS      # Remove older duplicate before adding new
 setopt HIST_SAVE_NO_DUPS         # Don't write dupes to history file
 setopt HIST_REDUCE_BLANKS        # Remove excess whitespace
 setopt HIST_FIND_NO_DUPS         # Avoid dupes during reverse search
 setopt INC_APPEND_HISTORY        # Append history immediately
 setopt SHARE_HISTORY             # Share across terminals
+setopt INTERACTIVE_COMMENTS      # Allow # comments in interactive shell
+setopt NO_BEEP                   # No beep
+setopt AUTO_CD
+setopt GLOB_DOTS
+setopt EXTENDED_GLOB
 setopt EXTENDED_HISTORY
 setopt APPEND_HISTORY
-
-# Don't record commands that start with space (like ` ls`)
-setopt HIST_IGNORE_SPACE
+setopt HIST_IGNORE_SPACE # Don't record commands that start with space
+setopt AUTO_PUSHD                # Make `cd` push the old directory onto the stack
+setopt PUSHD_IGNORE_DUPS         # Don't add duplicate directories to the stack
+setopt COMPLETE_IN_WORD          # Allow tab-completion from the middle of a word
+setopt NO_FLOW_CONTROL           # Disable Ctrl-S / Ctrl-Q flow control so terminal doesn't freeze
 
 # Basic auto/tab complete:
 # NOTE: fpath must be extended *before* compinit runs, otherwise the added
