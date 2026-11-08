@@ -12,6 +12,9 @@ do
 done
 unset _pathdir
 
+# Atuin
+export ATUIN_SYNC_ADDRESS=https://atuin.linuxlab.work:8888
+
 # XDG Exports
 export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"

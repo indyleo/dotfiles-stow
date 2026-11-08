@@ -106,18 +106,29 @@ autocmd("BufWritePre", {
   end,
 })
 
--- Auto-compile config.def.h
+-- Auto-compile config.def.h (asks before running anything with sudo)
 autocmd("BufWritePost", {
   group = augroup "AutoCompileConfig",
   pattern = "config.def.h",
   callback = function(args)
-    if not proc_check "autocompile" then
-      local shellcmd = "cp -v config.def.h config.h && sudo make clean install"
-      if was_modified[args.buf] and vim.bo.filetype ~= "" and vim.fn.expand "%" ~= "" then
-        vim.cmd.CommandRun(shellcmd)
-      end
-    else
+    if proc_check "autocompile" then
       vim.notify("AutoCompilation already running", vim.log.levels.WARN)
+      was_modified[args.buf] = nil
+      return
+    end
+    if was_modified[args.buf] and vim.bo.filetype ~= "" and vim.fn.expand "%" ~= "" then
+      local shellcmd = "cp -v config.def.h config.h && sudo make clean install"
+      local dir = vim.fn.expand "%:p:h"
+      local choice = vim.fn.confirm(
+        ("Run privileged build in\n%s ?\n\n%s"):format(dir, shellcmd),
+        "&Yes\n&No",
+        2
+      )
+      if choice == 1 then
+        vim.cmd.CommandRun(shellcmd)
+      else
+        vim.notify("Build skipped: " .. shellcmd, vim.log.levels.INFO)
+      end
     end
     was_modified[args.buf] = nil
   end,
@@ -130,8 +141,12 @@ autocmd("BufWritePost", {
   callback = function(args)
     local filepath = vim.fn.expand "%:p"
     if was_modified[args.buf] and is_in_allowed_dir(filepath) then
-      vim.cmd.luafile(filepath)
-      vim.notify("Reloaded " .. vim.fn.expand "%:t", vim.log.levels.INFO)
+      local ok, err = pcall(vim.cmd.luafile, filepath)
+      if ok then
+        vim.notify("Reloaded " .. vim.fn.expand "%:t", vim.log.levels.INFO)
+      else
+        vim.notify("Reload FAILED for " .. vim.fn.expand "%:t" .. ":\n" .. tostring(err), vim.log.levels.ERROR)
+      end
     end
     was_modified[args.buf] = nil
   end,

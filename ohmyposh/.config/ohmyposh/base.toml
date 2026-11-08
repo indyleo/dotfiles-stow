@@ -32,7 +32,8 @@ style = 'folder'
 max_depth = 3
 
 [[blocks.segments]]
-template = ' {{ .HEAD }}{{ if or (.Working.Changed) (.Staging.Changed) }} ·{{ end }}{{ if gt .Behind 0 }} ↓{{ end }}{{ if gt .Ahead 0 }} ↑{{ end }}'
+# staged (+), unstaged (!), stash (≡), behind (↓), ahead (↑)
+template = ' {{ .HEAD }}{{ if .Staging.Changed }} +{{ end }}{{ if .Working.Changed }} !{{ end }}{{ if gt .StashCount 0 }} ≡{{ .StashCount }}{{ end }}{{ if gt .Behind 0 }} ↓{{ end }}{{ if gt .Ahead 0 }} ↑{{ end }}'
 foreground = 'gray'
 background = 'transparent'
 type = 'git'
@@ -41,10 +42,18 @@ style = 'plain'
 branch_icon = ''
 commit_icon = '@'
 fetch_status = true
+fetch_stash_count = true
 
 [[blocks]]
 type = 'rprompt'
 overflow = 'hidden'
+
+[[blocks.segments]]
+template = '{{ if gt .Code 0 }}✘ {{ .Code }} {{ end }}'
+foreground = 'red'
+background = 'transparent'
+type = 'text'
+style = 'plain'
 
 [[blocks.segments]]
 template = '{{ if .Env.LF_LEVEL }}lf{{ .Env.LF_LEVEL }} {{ end }}'
@@ -54,13 +63,25 @@ type = 'text'
 style = 'plain'
 
 [[blocks.segments]]
+# Only shown while a virtual environment is active
+template = '{{ if .Venv }}{{ .Venv }} {{ end }}'
+foreground = 'green'
+background = 'transparent'
+type = 'python'
+style = 'plain'
+[blocks.segments.properties]
+fetch_version = false
+fetch_virtual_env = true
+display_mode = 'environment'
+
+[[blocks.segments]]
 template = '{{ .FormattedMs }}'
 foreground = 'yellow'
 background = 'transparent'
 type = 'executiontime'
 style = 'plain'
 [blocks.segments.properties]
-threshold = 3000
+threshold = 1000
 style = 'austin'
 
 [[blocks]]

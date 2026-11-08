@@ -156,6 +156,7 @@ fi
 function zvm_after_init() {
     bindkey -M viins '^o' lp
     bindkey -M vicmd '^o' lp
+    command -v atuin >/dev/null 2>&1 && eval "$(atuin init zsh --disable-up-arrow)"
 }
 
 # Zoxide
@@ -169,6 +170,11 @@ command -v fzf >/dev/null 2>&1 && eval "$(fzf --zsh)"
 
 # ZVM
 ZVM_SYSTEM_CLIPBOARD_ENABLED=true
+
+# fzf-tab: must load after compinit and BEFORE autosuggestions/syntax-highlighting.
+source $PLUGINDIR/fzf-tab/fzf-tab.plugin.zsh 2>/dev/null
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --color=always --icons=always $realpath'
+zstyle ':fzf-tab:*' switch-group '<' '>'
 
 # Loading zsh plugins (LAST)
 source $PLUGINDIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh 2>/dev/null
@@ -200,3 +206,5 @@ precmd_functions+=(_fastfetch_once)
 
 # Add to bottom:
 # zprof > ~/.zprof
+
+. "$HOME/.atuin/bin/env"

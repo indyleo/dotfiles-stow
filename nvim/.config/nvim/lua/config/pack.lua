@@ -305,7 +305,7 @@ load("mason-tool-installer.nvim", function()
       "shellharden",
       "qmlls",
     },
-    auto_update = true,
+    auto_update = false, -- update manually with :MasonToolsUpdate
   }
 end)
 
@@ -407,12 +407,25 @@ load("nvim-lint", function()
     ShellCheck = { "shellcheck" },
     ["*"] = { "codespell" },
   }
+  -- Debounced linting: BufEnter/BufWritePost run immediately-ish, InsertLeave
+  -- and rapid repeats collapse into a single run.
   local lg = vim.api.nvim_create_augroup("lint", { clear = true })
+  local timer = vim.uv.new_timer()
+  local function debounced_lint()
+    timer:stop()
+    timer:start(
+      150,
+      0,
+      vim.schedule_wrap(function()
+        if vim.api.nvim_buf_is_valid(0) and vim.bo.buftype == "" then
+          lint.try_lint()
+        end
+      end)
+    )
+  end
   vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "InsertLeave" }, {
     group = lg,
-    callback = function()
-      lint.try_lint()
-    end,
+    callback = debounced_lint,
   })
 end)
 
