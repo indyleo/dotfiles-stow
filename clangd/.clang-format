@@ -1,0 +1,7 @@
+# Place in your project root (or ~/.clang-format) so clang-format matches
+# after/ftplugin/c.lua and cpp.lua: tabs, width 2.
+BasedOnStyle: LLVM
+UseTab: Always
+IndentWidth: 2
+TabWidth: 2
+ContinuationIndentWidth: 2

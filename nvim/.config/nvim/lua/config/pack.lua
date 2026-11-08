@@ -93,6 +93,12 @@ vim.pack.add {
   -- ── Which-key ─────────────────────────────────────────────────────────
   { src = gh "folke/which-key.nvim", name = "which-key.nvim" },
 
+  -- ── Debugging ─────────────────────────────────────────────────────────
+  { src = gh "mfussenegger/nvim-dap", name = "nvim-dap" },
+  { src = gh "rcarriga/nvim-dap-ui", name = "nvim-dap-ui" },
+  { src = gh "nvim-neotest/nvim-nio", name = "nvim-nio" },
+  { src = gh "mfussenegger/nvim-dap-python", name = "nvim-dap-python" },
+
   -- ── Personal ──────────────────────────────────────────────────────────
   { src = gh "indyleo/sword-nvim", name = "sword-nvim" },
 }
@@ -304,6 +310,9 @@ load("mason-tool-installer.nvim", function()
       "shellcheck",
       "shellharden",
       "qmlls",
+      "codelldb", -- C / C++ / Rust debugger
+      "debugpy", -- Python debugger
+      "delve", -- Go debugger
     },
     auto_update = false, -- update manually with :MasonToolsUpdate
   }

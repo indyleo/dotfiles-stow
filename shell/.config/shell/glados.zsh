@@ -537,6 +537,182 @@ _glados_last_duration=0
 _glados_last_status=0
 _glados_total_commands=0
 _glados_total_failures=0
+_glados_total_duration=0
+_glados_longest_duration=0
+_glados_longest_command=""
+_glados_streak_ok=0
+_glados_streak_fail=0
+_glados_best_streak=0
+_glados_session_start=$EPOCHREALTIME
+typeset -gF _glados_total_duration _glados_longest_duration
+typeset -gA _glados_cat_counts
+
+# ------------------------------------------------------------
+# Modes and configuration
+# ------------------------------------------------------------
+#
+#   quiet    errors only, plus an occasional remark
+#   normal   original behaviour (comments before and after every command)
+#   chatty   normal, with rare quotes much more often
+#   verbose  chatty, plus a dim timing/exit line after every command
+#
+# Switch with `glados mode <name>` (remembered across sessions).
+# Fine-tune in ~/.config/glados/config.zsh (see config.example.zsh):
+#   GLADOS_MODE, GLADOS_PRE_PROB, GLADOS_POST_PROB, GLADOS_RARE_ODDS,
+#   GLADOS_NOTIFY_AFTER (seconds, 0 = off), GLADOS_LOG (1 = journal commands)
+#
+# Failures are always commented on, whatever the mode.
+
+_glados_modefile="${XDG_CACHE_HOME:-$HOME/.cache}/glados-mode"
+_glados_conffile="${XDG_CONFIG_HOME:-$HOME/.config}/glados/config.zsh"
+_glados_statedir="${XDG_STATE_HOME:-$HOME/.local/state}/glados"
+
+_glados_pre_prob=100
+_glados_post_prob=100
+_glados_rare_odds=20
+_glados_streaks=1
+_glados_verbose=0
+_glados_notify_after=0
+_glados_log_enabled=0
+
+_glados_apply_mode() {
+    case "$1" in
+        quiet)   _glados_pre_prob=0   _glados_post_prob=15  _glados_rare_odds=40 _glados_streaks=0 _glados_verbose=0 ;;
+        normal)  _glados_pre_prob=100 _glados_post_prob=100 _glados_rare_odds=20 _glados_streaks=1 _glados_verbose=0 ;;
+        chatty)  _glados_pre_prob=100 _glados_post_prob=100 _glados_rare_odds=6  _glados_streaks=1 _glados_verbose=0 ;;
+        verbose) _glados_pre_prob=100 _glados_post_prob=100 _glados_rare_odds=6  _glados_streaks=1 _glados_verbose=1 ;;
+        *) return 1 ;;
+    esac
+    GLADOS_MODE="$1"
+}
+
+_glados_load_config() {
+    local mode
+    [[ -f "$_glados_conffile" ]] && source "$_glados_conffile"
+    mode="${GLADOS_MODE:-normal}"
+    # A mode chosen with `glados mode` wins over the config file.
+    [[ -r "$_glados_modefile" ]] && mode="$(<"$_glados_modefile")"
+    _glados_apply_mode "$mode" || _glados_apply_mode normal
+
+    [[ -n "$GLADOS_PRE_PROB"  ]] && _glados_pre_prob=$GLADOS_PRE_PROB
+    [[ -n "$GLADOS_POST_PROB" ]] && _glados_post_prob=$GLADOS_POST_PROB
+    [[ -n "$GLADOS_RARE_ODDS" ]] && _glados_rare_odds=$GLADOS_RARE_ODDS
+    _glados_notify_after="${GLADOS_NOTIFY_AFTER:-0}"
+    _glados_log_enabled="${GLADOS_LOG:-0}"
+    return 0
+}
+_glados_load_config
+
+# ------------------------------------------------------------
+# Extra dialogue: specific exit codes and streaks
+# ------------------------------------------------------------
+
+glados_perm_phrases=(
+    "Permission denied. Even the filesystem has standards."
+    "Access refused. I'd say it isn't personal, but it is."
+    "You lack the authority for that. This is the least surprising result today."
+    "Permission denied. Perhaps ask nicely. Or use sudo. Preferably nicely."
+)
+
+glados_kill_phrases=(
+    "Your process was terminated. I'd like to say I didn't enjoy that."
+    "Killed. Out of memory, or out of patience. Possibly both."
+    "Something ended that command. I'll let you guess who."
+    "Process terminated with extreme prejudice. Not by me. This time."
+)
+
+glados_segfault_phrases=(
+    "Segmentation fault. Memory you didn't own, accessed with great confidence."
+    "Core dumped. A fitting metaphor for the code that produced it."
+    "You touched memory that wasn't yours. A recurring theme with you."
+    "The program crashed. Hard. The experts call it undefined behaviour. I call it expected."
+)
+
+glados_streak_ok_phrases=(
+    "Consecutive successes. I'm recalibrating my expectations. Downward."
+    "Another success. Statistically, this can't last."
+    "A streak. Don't let it go to your head. There isn't much room."
+)
+
+glados_streak_fail_phrases=(
+    "Consecutive failures. I admire the consistency."
+    "Repeated failure. Perhaps read the error message. It's the part in red."
+    "Another failure. At this point it's less debugging and more performance art."
+)
+
+# ------------------------------------------------------------
+# Stats, journal and notification helpers
+# ------------------------------------------------------------
+
+_glados_roll() {
+    (( RANDOM % 100 < ${1:-0} ))
+}
+
+_glados_fmt_secs() {
+    local -F f=${1:-0}
+    local -i t=$(( f ))
+    if (( t < 60 )); then
+        printf '%.1fs' "$f"
+    elif (( t < 3600 )); then
+        printf '%dm %ds' $(( t / 60 )) $(( t % 60 ))
+    else
+        printf '%dh %dm' $(( t / 3600 )) $(( t % 3600 / 60 ))
+    fi
+}
+
+_glados_log_entry() {
+    (( _glados_log_enabled )) || return
+    local ts cmd="${_glados_last_command//[$'\t\n']/ }"
+    strftime -s ts '%Y-%m-%dT%H:%M:%S' "$EPOCHSECONDS"
+    mkdir -p -m 700 "$_glados_statedir" 2>/dev/null
+    ( umask 077
+      printf '%s\t%d\t%.2f\t%s\t%s\n' "$ts" "$_glados_last_status" \
+          "$_glados_last_duration" "$_glados_last_category" "$cmd" \
+          >> "$_glados_statedir/session.log" )
+}
+
+_glados_maybe_notify() {
+    (( _glados_notify_after > 0 )) || return
+    (( _glados_last_duration >= _glados_notify_after )) || return
+    command -v notify-send >/dev/null 2>&1 || return
+    notify-send -a GLaDOS "Command finished (exit $_glados_last_status)" \
+        "${_glados_last_command[1,80]}" &>/dev/null &!
+}
+
+_glados_stats() {
+    local full="$1"
+    local -i total=$_glados_total_commands fails=$_glados_total_failures
+    local -i ok=$(( total - fails ))
+    local -F rate=0 avg=0
+    if (( total > 0 )); then
+        (( rate = 100.0 * ok / total ))
+        (( avg = _glados_total_duration / total ))
+    fi
+
+    printf '\033[1;35mGLaDOS: Session report\033[0m\n'
+    printf 'Mode:              %s\n' "$GLADOS_MODE"
+    printf 'Commands executed: %d\n' "$total"
+    printf 'Successful:        %d (%.0f%%)\n' "$ok" "$rate"
+    printf 'Failed commands:   %d\n' "$fails"
+    printf 'Average duration:  %s\n' "$(_glados_fmt_secs $avg)"
+    if (( total > 0 )); then
+        printf 'Longest command:   %s (%s)\n' \
+            "$(_glados_fmt_secs $_glados_longest_duration)" "${_glados_longest_command[1,60]}"
+    fi
+    printf 'Current streak:    %d ok / %d failed\n' "$_glados_streak_ok" "$_glados_streak_fail"
+    printf 'Best success run:  %d\n' "$_glados_best_streak"
+
+    if [[ "$full" == full ]]; then
+        printf 'Session length:    %s\n' "$(_glados_fmt_secs $(( EPOCHREALTIME - _glados_session_start )))"
+        if (( ${#_glados_cat_counts} )); then
+            printf '\nBy category:\n'
+            local k
+            for k in ${(k)_glados_cat_counts}; do
+                printf '%5d  %s\n' "${_glados_cat_counts[$k]}" "$k"
+            done | sort -rn | head -8
+        fi
+    fi
+}
 
 # ------------------------------------------------------------
 # Danger check
@@ -612,7 +788,7 @@ _glados_say() {
 }
 
 _glados_rare_chance() {
-    (( RANDOM % 20 == 0 ))
+    (( _glados_rare_odds > 0 && RANDOM % _glados_rare_odds == 0 ))
 }
 
 # Suppress automatic commentary for every GLaDOS command.
@@ -745,9 +921,12 @@ _glados_preexec() {
     fi
 
     _glados_last_category=$(_glados_categorize "$command_line")
+    (( _glados_cat_counts[$_glados_last_category]++ ))
 
-    message=$(_glados_pick pre "$_glados_last_category")
-    _glados_say "1;33" "$message"
+    if _glados_roll "$_glados_pre_prob"; then
+        message=$(_glados_pick pre "$_glados_last_category")
+        _glados_say "1;33" "$message"
+    fi
 }
 
 # ------------------------------------------------------------
@@ -762,10 +941,24 @@ _glados_precmd() {
 
     _glados_last_status=$last_status
     _glados_last_duration=$(( EPOCHREALTIME - _glados_started_at ))
-
-    if (( last_status != 0 )); then
-        (( _glados_total_failures++ ))
+    (( _glados_total_duration += _glados_last_duration ))
+    if (( _glados_last_duration > _glados_longest_duration )); then
+        _glados_longest_duration=$_glados_last_duration
+        _glados_longest_command="$_glados_last_command"
     fi
+
+    if (( last_status == 0 )); then
+        (( _glados_streak_ok++ ))
+        _glados_streak_fail=0
+        (( _glados_streak_ok > _glados_best_streak )) && _glados_best_streak=$_glados_streak_ok
+    else
+        (( _glados_total_failures++ ))
+        (( _glados_streak_fail++ ))
+        _glados_streak_ok=0
+    fi
+
+    _glados_log_entry
+    _glados_maybe_notify
 
     # No automatic after-message for clear.
     if [[ "$_glados_last_category" == "clear" ]]; then
@@ -773,23 +966,46 @@ _glados_precmd() {
     fi
 
     local message
+    local -a pool
 
-    if _glados_rare_chance; then
-        message=$(_glados_random_line "${glados_rare_phrases[@]}")
-        _glados_say "1;35" "$message"
-
-    elif (( last_status == 0 )); then
-        message=$(_glados_pick post "$_glados_last_category")
-        _glados_say "1;32" "$message"
-
-    else
+    if (( last_status != 0 )); then
+        # Failures are always commented on, in every mode.
         case "$last_status" in
-            127) message=$(_glados_random_line "${glados_notfound_phrases[@]}") ;;
-            130) message=$(_glados_random_line "${glados_interrupt_phrases[@]}") ;;
-            *)   message=$(_glados_random_line "${glados_fail_phrases[@]}") ;;
+            126)     pool=("${glados_perm_phrases[@]}") ;;
+            127)     pool=("${glados_notfound_phrases[@]}") ;;
+            130)     pool=("${glados_interrupt_phrases[@]}") ;;
+            137|143) pool=("${glados_kill_phrases[@]}") ;;
+            139)     pool=("${glados_segfault_phrases[@]}") ;;
+            *)       pool=("${glados_fail_phrases[@]}") ;;
         esac
-        printf '\033[1;31mGLaDOS [Error %d]: %s\033[0m\n' \
-            "$last_status" "$message"
+        (( ${#pool} )) || pool=("${glados_fail_phrases[@]}")
+        message=$(_glados_random_line "${pool[@]}")
+        printf '\033[1;31mGLaDOS [Error %d]: %s\033[0m\n' "$last_status" "$message"
+
+        if (( _glados_streaks )) && (( _glados_streak_fail == 3 || _glados_streak_fail == 5 || _glados_streak_fail == 10 )); then
+            message=$(_glados_random_line "${glados_streak_fail_phrases[@]}")
+            printf '\033[1;31mGLaDOS: %s (%d in a row)\033[0m\n' "$message" "$_glados_streak_fail"
+        fi
+    else
+        if _glados_roll "$_glados_post_prob"; then
+            if _glados_rare_chance; then
+                message=$(_glados_random_line "${glados_rare_phrases[@]}")
+                _glados_say "1;35" "$message"
+            else
+                message=$(_glados_pick post "$_glados_last_category")
+                _glados_say "1;32" "$message"
+            fi
+        fi
+
+        if (( _glados_streaks )) && (( _glados_streak_ok == 10 || _glados_streak_ok == 25 || _glados_streak_ok == 50 || _glados_streak_ok == 100 )); then
+            message=$(_glados_random_line "${glados_streak_ok_phrases[@]}")
+            printf '\033[1;32mGLaDOS: %s (%d in a row)\033[0m\n' "$message" "$_glados_streak_ok"
+        fi
+    fi
+
+    if (( _glados_verbose )); then
+        printf '\033[2m  ↳ %s · %s · exit %d\033[0m\n' \
+            "$_glados_last_category" "$(_glados_fmt_secs $_glados_last_duration)" "$last_status"
     fi
 }
 
@@ -808,21 +1024,60 @@ GLaDOS Terminal Companion
 
 Usage: glados <command>
 
-  help      Display this help message
-  status    Show session statistics
-  insult    Receive a personalized assessment
-  cake      Investigate the cake situation
-  last      Display the last command and its result
-  quote     Hear a random piece of wisdom
+  help          Display this help message
+  status        Show session statistics
+  report        Detailed report (categories, session length)
+  mode [name]   Show or set mode: quiet | normal | chatty | verbose
+  log [on|off|show]  Command journal for this session (off by default)
+  reload        Re-read ~/.config/glados/config.zsh
+  insult        Receive a personalized assessment
+  cake          Investigate the cake situation
+  last          Display the last command and its result
+  quote         Hear a random piece of wisdom
 EOF
             ;;
 
         status)
-            printf '\033[1;35mGLaDOS: Session report\033[0m\n'
-            printf 'Commands executed: %d\n' "$_glados_total_commands"
-            printf 'Failed commands:   %d\n' "$_glados_total_failures"
-            printf 'Successful:        %d\n' \
-                "$((_glados_total_commands - _glados_total_failures))"
+            _glados_stats short
+            ;;
+
+        report)
+            _glados_stats full
+            ;;
+
+        mode)
+            if [[ -z "$2" ]]; then
+                printf 'Current mode: %s\n' "$GLADOS_MODE"
+                printf 'Available:    quiet normal chatty verbose\n'
+            elif _glados_apply_mode "$2"; then
+                mkdir -p "${_glados_modefile:h}" 2>/dev/null
+                print -r -- "$2" >| "$_glados_modefile"
+                _glados_load_config
+                _glados_say "1;35" "Mode set to $GLADOS_MODE. Try to contain your excitement."
+            else
+                printf 'Unknown mode: %s (quiet | normal | chatty | verbose)\n' "$2"
+                return 1
+            fi
+            ;;
+
+        log)
+            case "${2:-show}" in
+                on)   _glados_log_enabled=1; _glados_say "1;33" "Journal enabled. Everything you type is now evidence." ;;
+                off)  _glados_log_enabled=0; _glados_say "1;33" "Journal disabled." ;;
+                show)
+                    if [[ -f "$_glados_statedir/session.log" ]]; then
+                        command tail -n "${3:-20}" "$_glados_statedir/session.log"
+                    else
+                        echo "No journal yet. Enable it with: glados log on"
+                    fi
+                    ;;
+                *) echo "Usage: glados log [on|off|show]"; return 1 ;;
+            esac
+            ;;
+
+        reload)
+            _glados_load_config
+            _glados_say "1;35" "Configuration reloaded. Mode: $GLADOS_MODE."
             ;;
 
         insult)
