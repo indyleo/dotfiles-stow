@@ -30,6 +30,13 @@ cmd on-select &{{
 cmd on-cd &{{
     zoxide add "$PWD"
 
+    # The undo log lives in the state dir (it survives reboots). Keep it bounded.
+    mkdir -p "$HOME/.local/state/lf"
+    undo_log="$HOME/.local/state/lf/undo.log"
+    if [ -f "$undo_log" ] && [ "$(wc -l < "$undo_log")" -gt 1000 ]; then
+        tail -n 500 "$undo_log" > "$undo_log.tmp" && mv -f "$undo_log.tmp" "$undo_log"
+    fi
+
     branch_info=""
     if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         branch=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)
@@ -140,7 +147,7 @@ cmd mkdir %{{
     sep=$(printf '\037')
     [ -e "$name" ] && existed=true || existed=false
     mkdir -pv -- "$name"
-    $existed || printf 'mkdir%s%s\n' "$sep" "$PWD/$name" >> /tmp/lf_undo_$USER
+    $existed || printf 'mkdir%s%s\n' "$sep" "$PWD/$name" >> $HOME/.local/state/lf/undo.log
     lf -remote "send $id reload"
 }}
 
@@ -151,7 +158,7 @@ cmd mkfile %{{
     sep=$(printf '\037')
     [ -e "$name" ] && existed=true || existed=false
     touch -- "$name"
-    $existed || printf 'mkfile%s%s\n' "$sep" "$PWD/$name" >> /tmp/lf_undo_$USER
+    $existed || printf 'mkfile%s%s\n' "$sep" "$PWD/$name" >> $HOME/.local/state/lf/undo.log
     lf -remote "send $id reload"
 }}
 
@@ -177,7 +184,7 @@ cmd mkscr %{{
     sep=$(printf '\037')
     [ -e "$HOME/Scripts/$name" ] && existed=true || existed=false
     if out=$(mkscript -n -l "$l" "$t" "$name" 2>&1); then
-        $existed || printf 'mkscr%s%s\n' "$sep" "$HOME/Scripts/$name" >> /tmp/lf_undo_$USER
+        $existed || printf 'mkscr%s%s\n' "$sep" "$HOME/Scripts/$name" >> $HOME/.local/state/lf/undo.log
         lf -remote "send $id cd '~/Scripts/'"
     else
         printf '%s\n' "$out" | tail -n 1
@@ -214,7 +221,7 @@ map mp mkproj
 cmd trash %{{
     sep=$(printf '\037')
     for f in $fx; do
-        printf 'trash%s%s\n' "$sep" "$f" >> /tmp/lf_undo_$USER
+        printf 'trash%s%s\n' "$sep" "$f" >> $HOME/.local/state/lf/undo.log
         trash-put -vr "$f"
     done
 }}
@@ -238,6 +245,13 @@ cmd trash-empty %{{
 
 # Permanently delete the selection
 cmd remove %{{
+    count=$(printf '%s\n' "$fx" | grep -c . || true)
+    printf " PERMANENTLY delete %s item(s)? [y/N] " "$count"
+    read -r ans
+    case "$ans" in
+        y|Y|yes) ;;
+        *) echo "Cancelled"; exit 0 ;;
+    esac
     for f in $fx; do
         rm -rfv "$f"
     done
@@ -274,7 +288,7 @@ cmd paste %{{
         else
             mv -- "$src" "$target"
         fi
-        printf 'paste%s%s\n' "$sep" "$target" >> /tmp/lf_undo_$USER
+        printf 'paste%s%s\n' "$sep" "$target" >> $HOME/.local/state/lf/undo.log
     done
     lf -remote 'send clear'
     lf -remote 'send reload'
@@ -290,8 +304,25 @@ cmd chmod %{{
   printf " Chmod bits: "
   read -r bits
   [ -z "$bits" ] && exit
+  # Preview the result on a scratch copy of the mode before touching the file
+  scratch=$(mktemp)
+  chmod --reference="$f" -- "$scratch"
+  if ! chmod "$bits" -- "$scratch" 2>/dev/null; then
+    rm -f "$scratch"
+    echo "Invalid mode: $bits"
+    exit 1
+  fi
+  before=$(stat -c %A -- "$f")
+  after=$(stat -c %A -- "$scratch")
+  rm -f "$scratch"
+  printf " %s -> %s  apply? [y/N] " "${before#?}" "${after#?}"
+  read -r ans
+  case "$ans" in
+    y|Y|yes) ;;
+    *) echo "Cancelled"; exit 0 ;;
+  esac
   chmod "$bits" "$f"
-  printf 'chmod%s%s%s%s\n' "$sep" "$oldperms" "$sep" "$f" >> /tmp/lf_undo_$USER
+  printf 'chmod%s%s%s%s\n' "$sep" "$oldperms" "$sep" "$f" >> $HOME/.local/state/lf/undo.log
   lf -remote 'send reload'
 }}
 map et chmod
@@ -314,7 +345,7 @@ cmd extract %{{
   rm -f "$before"
   if [ -n "$new" ]; then
     line=$(printf '%s\n' "$new" | awk -v sep="$sep" -v pwd="$PWD" '{printf "%s%s/%s", sep, pwd, $0}')
-    printf 'extract%s\n' "$line" >> /tmp/lf_undo_$USER
+    printf 'extract%s\n' "$line" >> $HOME/.local/state/lf/undo.log
   fi
   lf -remote 'send reload'
   [ -z "$failed" ] || echo "$failed"
@@ -333,7 +364,7 @@ cmd archive %{{
   names=$(printf '%s\n' "$fx" | sed 's|.*/||')
   if msg=$(archives archive "$out" $names 2>&1); then
     case "$out" in /*) path=$out ;; *) path="$PWD/$out" ;; esac
-    printf 'archive%s%s\n' "$sep" "$path" >> /tmp/lf_undo_$USER
+    printf 'archive%s%s\n' "$sep" "$path" >> $HOME/.local/state/lf/undo.log
   else
     err=$(printf '%s\n' "$msg" | grep '^Error' | tail -n 1 || true)
     echo "${err:-Archive failed}"
@@ -355,7 +386,7 @@ cmd extract_audio &{{
     set -f
     dest=${XDG_MUSIC_DIR:-$HOME/Music}
     sep=$(printf '\037')
-    undo=/tmp/lf_undo_$USER
+    undo=$HOME/.local/state/lf/undo.log
     okf=$(mktemp); skf=$(mktemp); erf=$(mktemp)
     trap 'rm -f "$okf" "$skf" "$erf"' EXIT
 
@@ -537,7 +568,7 @@ cmd video_gif_run &{{
     fps=${2:-12}
     secs=${3:-10}
     sep=$(printf '\037')
-    undo=/tmp/lf_undo_$USER
+    undo=$HOME/.local/state/lf/undo.log
     okf=$(mktemp); erf=$(mktemp)
     trap 'rm -f "$okf" "$erf"' EXIT
 
@@ -682,7 +713,7 @@ cmd img_run &{{
     op=${1:-}
     arg=${2:-}
     sep=$(printf '\037')
-    undo=/tmp/lf_undo_$USER
+    undo=$HOME/.local/state/lf/undo.log
     okf=$(mktemp); skf=$(mktemp); erf=$(mktemp)
     trap 'rm -f "$okf" "$skf" "$erf"' EXIT
 
@@ -851,7 +882,7 @@ cmd img_pdf %{{
     [ $# -gt 0 ] || { echo "No image selected"; exit 0; }
 
     if err=$(magick "$@" -auto-orient "$name" 2>&1); then
-        printf 'convert%s%s\n' "$sep" "$PWD/$name" >> "/tmp/lf_undo_$USER"
+        printf 'convert%s%s\n' "$sep" "$PWD/$name" >> "$HOME/.local/state/lf/undo.log"
         lf -remote "send $id reload"
         lf -remote "send $id select \"$PWD/$name\""
     else
@@ -888,7 +919,7 @@ cmd pdf_merge %{{
     [ $# -ge 2 ] || { echo "Select at least two PDFs"; exit 1; }
 
     if err=$(pdfunite "$@" "$name" 2>&1); then
-        printf 'convert%s%s\n' "$sep" "$PWD/$name" >> "/tmp/lf_undo_$USER"
+        printf 'convert%s%s\n' "$sep" "$PWD/$name" >> "$HOME/.local/state/lf/undo.log"
         lf -remote "send $id reload"
         lf -remote "send $id select \"$PWD/$name\""
     else
@@ -1010,7 +1041,7 @@ cmd rename %{{
     mv -- "$old" "$newpath" || exit 1
 
     printf 'rename%s%s%s%s\n' \
-        "$sep" "$old" "$sep" "$newpath" >> "/tmp/lf_undo_$USER"
+        "$sep" "$old" "$sep" "$newpath" >> "$HOME/.local/state/lf/undo.log"
 
     lf -remote 'send reload'
 }}
@@ -1088,22 +1119,22 @@ map cs scp
 # Undo the last paste, rename, chmod or trash action
 cmd undo %{{
   sep=$(printf '\037')
-  [ ! -f /tmp/lf_undo_$USER ] && echo "Nothing to undo." && exit
-  last=$(tail -1 /tmp/lf_undo_$USER)
+  [ ! -f $HOME/.local/state/lf/undo.log ] && echo "Nothing to undo." && exit
+  last=$(tail -1 $HOME/.local/state/lf/undo.log)
   action=$(printf '%s' "$last" | cut -d"$sep" -f1)
   data=$(printf '%s' "$last" | cut -d"$sep" -f2-)
 
   case "$action" in
     paste)
       rm -rf "$data"
-      sed -i '$d' /tmp/lf_undo_$USER
+      sed -i '$d' $HOME/.local/state/lf/undo.log
       lf -remote 'send reload'
       ;;
     rename)
       old=$(printf '%s' "$data" | cut -d"$sep" -f1)
       new=$(printf '%s' "$data" | cut -d"$sep" -f2)
       mv -- "$new" "$old"
-      sed -i '$d' /tmp/lf_undo_$USER
+      sed -i '$d' $HOME/.local/state/lf/undo.log
       lf -remote 'send reload'
       ;;
 
@@ -1186,14 +1217,14 @@ cmd undo %{{
 
       rmdir "$stage"
       rm -f "$fields" "$olds" "$news"
-      sed -i '$d' "/tmp/lf_undo_$USER"
+      sed -i '$d' "$HOME/.local/state/lf/undo.log"
       lf -remote 'send reload'
       ;;
     chmod)
       perms=$(printf '%s' "$data" | cut -d"$sep" -f1)
       fp=$(printf '%s' "$data" | cut -d"$sep" -f2)
       chmod "$perms" "$fp"
-      sed -i '$d' /tmp/lf_undo_$USER
+      sed -i '$d' $HOME/.local/state/lf/undo.log
       lf -remote 'send reload'
       ;;
     trash)
@@ -1204,7 +1235,7 @@ cmd undo %{{
       if [ -e "$trashed" ] && [ -f "$trashinfo" ]; then
         mv "$trashed" "$path"
         rm "$trashinfo"
-        sed -i '$d' /tmp/lf_undo_$USER
+        sed -i '$d' $HOME/.local/state/lf/undo.log
       else
         echo "Can't find $filename in trash"
       fi
@@ -1212,7 +1243,7 @@ cmd undo %{{
       ;;
     mkdir)
       rmdir -- "$data" 2>/dev/null || echo "Not removed (missing or not empty): $data"
-      sed -i '$d' /tmp/lf_undo_$USER
+      sed -i '$d' $HOME/.local/state/lf/undo.log
       lf -remote 'send reload'
       ;;
     mkfile)
@@ -1221,17 +1252,17 @@ cmd undo %{{
       else
         rm -f -- "$data"
       fi
-      sed -i '$d' /tmp/lf_undo_$USER
+      sed -i '$d' $HOME/.local/state/lf/undo.log
       lf -remote 'send reload'
       ;;
     mkscr|duplicate|convert)
       rm -rf -- "$data"
-      sed -i '$d' /tmp/lf_undo_$USER
+      sed -i '$d' $HOME/.local/state/lf/undo.log
       lf -remote 'send reload'
       ;;
     link|archive)
       rm -f -- "$data"
-      sed -i '$d' /tmp/lf_undo_$USER
+      sed -i '$d' $HOME/.local/state/lf/undo.log
       lf -remote 'send reload'
       ;;
     extract)
@@ -1239,7 +1270,7 @@ cmd undo %{{
         [ -n "$p" ] || continue
         rm -rf -- "$p"
       done
-      sed -i '$d' /tmp/lf_undo_$USER
+      sed -i '$d' $HOME/.local/state/lf/undo.log
       lf -remote 'send reload'
       ;;
   esac
@@ -1500,6 +1531,19 @@ cmd bulk_rename ${{
         fi
     done 3< "$olds" 4< "$edited"
 
+    # Preview the renames and ask before applying anything
+    echo "Rename preview:"
+    while IFS= read -r old <&3 && IFS= read -r new <&4; do
+        [ "${old##*/}" = "$new" ] && continue
+        printf '  %s  ->  %s\n' "${old##*/}" "$new"
+    done 3< "$olds" 4< "$edited"
+    printf 'Apply these renames? [y/N] '
+    read -r ans
+    case "$ans" in
+        y|Y|yes) ;;
+        *) echo "Rename aborted."; exit 1 ;;
+    esac
+
     # Phase 1: stage changed originals (allows swaps and cycles)
     i=0
     while IFS= read -r old <&3 && IFS= read -r new <&4; do
@@ -1520,7 +1564,7 @@ cmd bulk_rename ${{
 
     # Record all changed paths in a single undo-log entry.
     # Format: bulk_rename<sep>old1<sep>new1<sep>old2<sep>new2...
-    log="/tmp/lf_undo_$USER"
+    log="$HOME/.local/state/lf/undo.log"
     printf 'bulk_rename%s' "$sep" >> "$log"
 
     while IFS= read -r old <&3 && IFS= read -r new <&4; do
@@ -1590,7 +1634,7 @@ cmd duplicate %{{
             n=$((n + 1))
         done
         cp -r -- "$src" "$target"
-        printf 'duplicate%s%s\n' "$sep" "$target" >> /tmp/lf_undo_$USER
+        printf 'duplicate%s%s\n' "$sep" "$target" >> $HOME/.local/state/lf/undo.log
     done
     lf -remote "send $id reload"
 }}
@@ -1615,7 +1659,7 @@ cmd symlink %{{
             n=$((n + 1))
         done
         ln $flags -- "$src" "$target"
-        printf 'link%s%s\n' "$sep" "$target" >> /tmp/lf_undo_$USER
+        printf 'link%s%s\n' "$sep" "$target" >> $HOME/.local/state/lf/undo.log
     done
     lf -remote "send $id reload"
 }}
@@ -1745,6 +1789,94 @@ cmd du_sort ${{
     du -h --max-depth=1 2>/dev/null | sort -hr | ${PAGER:-less}
 }}
 map si du_sort
+
+# SEARCH FILTERS / DUPLICATES / COMPARE / USAGE #
+
+# Fuzzy find files filtered by extension, size and age (needs fd).
+# Size uses fd syntax: +10M (bigger than 10 MB), -500k (smaller than 500 KB).
+# Age uses fd syntax: 2d, 3h, 1w (changed within).
+cmd fzf_filter ${{
+    printf " Extension (blank = any): "
+    read -r ext
+    printf " Size, e.g. +10M or -500k (blank = any): "
+    read -r size
+    printf " Modified within, e.g. 2d, 3h, 1w (blank = any): "
+    read -r age
+
+    set --
+    [ -z "$ext" ]  || set -- "$@" -e "${ext#.}"
+    [ -z "$size" ] || set -- "$@" --size "$size"
+    [ -z "$age" ]  || set -- "$@" --changed-within "$age"
+
+    res=$(fd --type f --hidden --exclude .git "$@" . 2>/dev/null |
+        fzf --reverse --prompt='Filter > ' \
+            --preview 'bat --color=always --style=numbers --line-range=:100 {} 2>/dev/null || cat {}') || true
+    [ -n "$res" ] || exit 0
+    abs="$PWD/$res"
+    esc_dir=$(dirname -- "$abs" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    esc_abs=$(printf '%s' "$abs" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    lf -remote "send $id cd \"$esc_dir\""
+    lf -remote "send $id select \"$esc_abs\""
+}}
+map ff fzf_filter
+
+# Find duplicate files under the current directory by content hash.
+# Only files that share a size are hashed, so large trees stay quick.
+cmd find_dupes ${{
+    clear
+    echo "Scanning $PWD for duplicates..."
+    find . -type f -size +0 -not -path '*/.git/*' -printf '%s\t%p\n' |
+        sort -n |
+        awk -F'\t' '
+            $1 == prev { if (!shown) { print prevline; shown = 1 } print $0; next }
+            { shown = 0; prev = $1; prevline = $0 }
+        ' |
+        cut -f2- | tr '\n' '\0' |
+        xargs -0 -r sha256sum 2>/dev/null |
+        sort | uniq -w64 -D > /tmp/lf_dupes_$USER
+    if [ -s /tmp/lf_dupes_$USER ]; then
+        echo "Groups of identical files (same hash = same content):" | cat - /tmp/lf_dupes_$USER | ${PAGER:-less}
+    else
+        printf "No duplicates found. Press Enter to continue..."
+        read -r _
+    fi
+    rm -f /tmp/lf_dupes_$USER
+}}
+map fd find_dupes
+
+# Compare two selected files side by side in Neovim (select both with space)
+cmd compare ${{
+    n=$(printf '%s\n' "$fx" | grep -c . || true)
+    if [ "$n" -ne 2 ]; then
+        printf "Select exactly two files first (space). Press Enter to continue..."
+        read -r _
+        exit 0
+    fi
+    a=$(printf '%s\n' "$fx" | sed -n 1p)
+    b=$(printf '%s\n' "$fx" | sed -n 2p)
+    nvim -d -- "$a" "$b"
+}}
+map ed compare
+
+# Interactive disk usage: dua or dust when installed, plain du otherwise
+cmd dua ${{
+    if command -v dua >/dev/null 2>&1; then
+        dua interactive "$PWD"
+    elif command -v dust >/dev/null 2>&1; then
+        dust -r "$PWD" | ${PAGER:-less -R}
+    else
+        du -h --max-depth=1 2>/dev/null | sort -hr | ${PAGER:-less}
+    fi
+}}
+map sI dua
+
+# Show the recent undo history (newest last)
+cmd undo_history ${{
+    log="$HOME/.local/state/lf/undo.log"
+    [ -s "$log" ] || { printf "Undo history is empty. Press Enter to continue..."; read -r _; exit 0; }
+    tail -n 40 "$log" | tr '\037' ' ' | cat -n | ${PAGER:-less}
+}}
+map eu undo_history
 
 # REPOMIX #
 

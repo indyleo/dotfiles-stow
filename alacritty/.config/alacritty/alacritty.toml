@@ -31,7 +31,7 @@ x = 0
 y = 1
 
 [scrolling]
-history = 5000
+history = 20000
 
 [terminal]
 shell = "zsh"
@@ -82,6 +82,23 @@ bindings = [
 	# --- Ctrl+L ---
 	{ key = "L", mods = "Control", action = "ClearLogNotice" },
 	{ key = "L", mods = "Control", chars = "\f" },
+
+	# --- History and search ---
+	{ key = "K", mods = "Control|Shift", action = "ClearHistory" },
+	{ key = "S", mods = "Control|Shift", action = "SearchForward" },
+	# Ctrl+Shift+B is Alacritty's default SearchBackward. Ctrl+Shift+F is taken by the file hint below.
+
+	# --- Opacity (live, via IPC; reloading the config restores 0.85) ---
+	{ key = "O", mods = "Control|Alt", command = { program = "alacritty", args = [
+		"msg",
+		"config",
+		"window.opacity=1.0",
+	] } },
+	{ key = "O", mods = "Control|Alt|Shift", command = { program = "alacritty", args = [
+		"msg",
+		"config",
+		"window.opacity=0.85",
+	] } },
 
 	# --- Vi mode ---
 	{ key = "Escape", mods = "Control", action = "ToggleViMode" },

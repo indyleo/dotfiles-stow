@@ -228,6 +228,42 @@ function fkill() {
     echo "$pid" | xargs kill "${1:--15}"
 }
 
+# Project root: git toplevel, else the nearest directory with a known marker.
+# Same markers as the Neovim sessions/test-runner plugins.
+function proot() {
+    local d="$PWD" m top
+    top=$(git rev-parse --show-toplevel 2>/dev/null) && { print -r -- "$top"; return 0; }
+    while [[ "$d" != "/" ]]; do
+        for m in Cargo.toml go.mod pyproject.toml package.json CMakeLists.txt Makefile; do
+            [[ -e "$d/$m" ]] && { print -r -- "$d"; return 0; }
+        done
+        d="${d:h}"
+    done
+    return 1
+}
+
+# cd to the project root
+function pcd() {
+    local r
+    r=$(proot) || { echo "No project root found"; return 1; }
+    cd "$r"
+}
+
+# Open a new Alacritty window at a project root, restoring its Neovim session.
+#   tproj [dir]   (defaults to the current project root, else $PWD)
+function tproj() {
+    local dir="${1:-$(proot 2>/dev/null)}"
+    dir="${dir:-$PWD}"
+    [[ -d "$dir" ]] || { echo "tproj: no such directory: $dir"; return 1; }
+    command -v alacritty >/dev/null 2>&1 || { echo "tproj: alacritty not found"; return 1; }
+    alacritty --working-directory "$dir" -e zsh -c 'nvim -c "silent! SessionLoad"; exec zsh' &>/dev/null &!
+}
+
+# New fully opaque Alacritty window (e.g. for screen sharing)
+function term-opaque() {
+    alacritty -o window.opacity=1.0 &>/dev/null &!
+}
+
 # Lf CD
 function lc() {
     # Create a temporary file to store the last directory
@@ -261,8 +297,40 @@ function lp() {
 }
 zle -N lp
 
+# Screenkey
+function scrky() {
+    # Get screen width and calculate X position for top-right
+    local screen_width=$(xrandr | grep '*' | awk '{print $1}' | cut -d 'x' -f1 | head -n1)
+    local window_width=250
+    local x_pos=$((screen_width - window_width - 10))
+
+    screenkey --no-systray --opacity 0.85 \
+        --bg-color "#282828" --font-color "#d5c4a1" \
+        -p fixed -g ${window_width}x40+${x_pos}+10 &
+    SCREENKEY_PID=$!
+    if [[ -n $ZSH_VERSION ]]; then
+        echo "Press enter to close screenkey"
+        read
+    else
+        read -p "Press enter to close screenkey"
+    fi
+    kill "$SCREENKEY_PID" 2>/dev/null
+}
+
+function edit() {
+    local files
+    files=$(find . -maxdepth 5 -type f | fzf -m --preview='bat --color=always --style=numbers {}')
+    [[ -z "$files" ]] && return
+
+    # Turn newline-separated string into array safely
+    local -a file_array
+    file_array=("${(f)files}")
+
+    nvim "${file_array[@]}"
+}
+
 # Bat Cat
-function cat() {
+cat() {
     if [[ -n "$WIDGET" ]]; then
         command cat "$@"
     else

@@ -110,12 +110,19 @@ case "${preview,,}" in
 
     *.svg)
         cache="$(cache_key)"
-        if [ ! -f "${cache}.jpg" ]; then
-            convert "$preview" "${cache}.jpg" 2>/dev/null
+        if [ ! -f "${cache}.png" ]; then
+            if command -v rsvg-convert >/dev/null 2>&1; then
+                rsvg-convert -w 1024 "$preview" -o "${cache}.png" 2>/dev/null
+            elif command -v magick >/dev/null 2>&1; then
+                magick -background none -density 192 "$preview" "${cache}.png" 2>/dev/null
+            else
+                convert -background none -density 192 "$preview" "${cache}.png" 2>/dev/null
+            fi
         fi
-        if [ -f "${cache}.jpg" ]; then
-            imguse "${cache}.jpg"
+        if [ -s "${cache}.png" ]; then
+            imguse "${cache}.png"
         else
+            rm -f "${cache}.png"
             txtuse
         fi
         ;;
@@ -145,12 +152,13 @@ case "${preview,,}" in
     *.pdf)
         cache="$(cache_key)"
         if [ ! -f "${cache}.jpg" ]; then
-            pdftoppm -jpeg -f 1 -singlefile "$preview" "$cache" 2>/dev/null
+            pdftoppm -jpeg -f 1 -singlefile -scale-to 1024 "$preview" "$cache" 2>/dev/null
         fi
         if [ -f "${cache}.jpg" ]; then
             imguse "${cache}.jpg"
         else
             try pdftotext "$preview" - ||
+            try pdfinfo "$preview" ||
             try exiftool "$preview"
         fi
         ;;
@@ -182,14 +190,16 @@ case "${preview,,}" in
     *.tgz|*.tar.gz) tar tzf "$preview" | headlimit ;;
     *.tar.bz2|*.tbz2) tar tjf "$preview" | headlimit ;;
     *.tar.xz|*.txz) xz --list "$preview" | headlimit ;;
+    *.tar.zst|*.tzst) tar --zstd -tf "$preview" | headlimit ;;
     *.tar) tar tf "$preview" | headlimit ;;
     *.zip|*.jar|*.war|*.ear|*.oxt) unzip -l "$preview" | headlimit ;;
     *.rar) unrar l "$preview" | headlimit ;;
     *.7z) 7z l "$preview" | headlimit ;;
+    *.gz) { echo "Compressed with gzip:"; zcat -- "$preview" 2>/dev/null | head -c 4096 | strings | headlimit; } ;;
 
     *.md)
         if command -v glow >/dev/null 2>&1; then
-            glow -s dark "$preview" | headlimit
+            glow -s dark -w "$max_cols" "$preview" | headlimit
         elif command -v mdcat >/dev/null 2>&1; then
             mdcat "$preview" | headlimit
         else
@@ -243,7 +253,7 @@ case "${preview,,}" in
         ;;
 
     *.json)
-        try jq . "$preview" || txtuse
+        try jq -C . "$preview" || txtuse
         ;;
 
     *.yaml|*.yml)
@@ -264,6 +274,14 @@ case "${preview,,}" in
         try hexdump -C "$preview"
         ;;
 
+    *.diff|*.patch)
+        if command -v bat >/dev/null 2>&1; then
+            bat --color=always --style=plain --pager=never --language=diff "$preview" | headlimit
+        else
+            txtuse
+        fi
+        ;;
+
     *.ino)
         if command -v bat >/dev/null 2>&1; then
             bat --color=always --style=plain --pager=never --language=cpp "$preview" | headlimit
@@ -279,7 +297,13 @@ case "${preview,,}" in
         # what the catch-all below already does, so a separate case for them
         # was redundant)
     *)
-        git_diff_preview || txtuse
+        if file --mime-encoding -b -- "$preview" 2>/dev/null | grep -q '^binary$'; then
+            file -b -- "$preview"
+            echo
+            xxd -l "$(( max_lines * 16 ))" "$preview" 2>/dev/null
+        else
+            git_diff_preview || txtuse
+        fi
         ;;
 esac
 
