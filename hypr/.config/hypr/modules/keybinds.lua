@@ -15,6 +15,8 @@ hl.bind(mainMod .. " + F", hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(browser))
 hl.bind(mainMod .. " + SHIFT + D", hl.dsp.exec_cmd("vesktop"))
 hl.bind(mainMod .. " + SHIFT + G", hl.dsp.exec_cmd("signal-desktop"))
+hl.bind(mainMod .. " + SHIFT + N", hl.dsp.exec_cmd("hyprctl dispatch focuswindow 'class:^(feishin)$'"))
+hl.bind(mainMod .. " + SHIFT + T", hl.dsp.exec_cmd("steam"))
 
 -- --- Launchers ---
 hl.bind(mainMod .. " + D", hl.dsp.exec_cmd(menu))

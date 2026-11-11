@@ -6,16 +6,40 @@
 --    \_/\_/  |_|_| |_|\__,_|\___/ \_/\_/   |_| \_\\__,_|_|\___||___/ --
 -- ################################################################## --
 
--- --- Window Rules ---
+-- ========================= MONITORS ================================ --
+
+local MON_TOP = "HDMI-A-1"
+local MON_MAIN = "DP-2"
+local MON_TOUCH = "HDMI-A-4"
+
+-- ========================= HELPERS ================================= --
+
+-- hyprsplit-compatible workspace syntax
+local function ws(number, monitor)
+	return string.format("%d monitor:%s", number, monitor)
+end
+
+-- Application placement helper
+local function place(name, class, workspace, monitor)
+	hl.window_rule({
+		name = name,
+		match = { class = class },
+		workspace = ws(workspace, monitor),
+	})
+end
+
+-- ========================= GENERAL RULES =========================== --
 
 -- Ignore maximize requests
 hl.window_rule({
+	name = "suppress-maximize",
 	match = { class = ".*" },
 	suppress_event = "maximize",
 })
 
 -- Fix XWayland dragging
 hl.window_rule({
+	name = "xwayland-fix",
 	match = {
 		class = "^$",
 		title = "^$",
@@ -24,71 +48,125 @@ hl.window_rule({
 	no_focus = true,
 })
 
--- Picture in picture
+-- ========================= PICTURE IN PICTURE ====================== --
+
 hl.window_rule({
-	match = { title = "^(Picture-in-Picture)$" },
+	name = "picture-in-picture",
+	match = {
+		title = "^(Picture-in-Picture)$",
+	},
 	float = true,
 	pin = true,
 	size = { 480, 270 },
 	move = { 14, 12 },
 })
 
--- Feishin: move to HDMI-A-4 (Touch Display) & workspace 1
+-- ========================= FEISHIN ================================= --
+
+-- Pin Feishin to workspace 1 on the touch display
 hl.window_rule({
-	match = { class = "^(feishin)$" },
-	monitor = "HDMI-A-4",
-	workspace = "1 monitor:HDMI-A-4",
+	name = "feishin-touch-display",
+	match = {
+		class = "^(feishin)$",
+	},
+	monitor = MON_TOUCH,
+	workspace = ws(1, MON_TOUCH),
 	fullscreen = false,
 })
 
--- Auto-fullscreen Steam games
+-- ========================= GAMING ================================== --
+
+-- Automatically fullscreen Steam games
 hl.window_rule({
-	match = { class = "^steam_app_[1-9][0-9]*$" },
+	name = "steam-game-fullscreen",
+	match = {
+		class = "^steam_app_[1-9][0-9]*$",
+	},
 	float = false,
 	fullscreen = true,
 })
 
--- SC2 / Brood War report class "steam_app_default", so the rule above
--- already catches them — but title-matching as an explicit fallback
--- in case Valve changes the class string on an update:
+-- StarCraft II fallback
 hl.window_rule({
-	match = { title = "^(StarCraft II)$" },
-	float = false,
-	fullscreen = true,
-})
-hl.window_rule({
-	match = { title = "^(Brood War)$" },
+	name = "starcraft-2-fullscreen",
+	match = {
+		title = "^(StarCraft II)$",
+	},
 	float = false,
 	fullscreen = true,
 })
 
--- lf file picker (lf-wrapper.sh opens it with class "lf-picker")
+-- Brood War fallback
 hl.window_rule({
-	match = { class = "^(lf-picker)$" },
+	name = "brood-war-fullscreen",
+	match = {
+		title = "^(Brood War)$",
+	},
+	float = false,
+	fullscreen = true,
+})
+
+-- ========================= FILE PICKER ============================= --
+
+hl.window_rule({
+	name = "lf-file-picker",
+	match = {
+		class = "^(lf-picker)$",
+	},
 	float = true,
 	center = true,
 	size = { 1000, 650 },
 })
 
--- --- Layer Rules ---
+-- ========================= AUTO PLACEMENT ========================== --
+
+-- Alacritty indy terminals → Workspace 8, main monitor
+hl.window_rule({
+	name = "indy-terminal",
+	match = {
+		class = "^Alacritty$",
+		title = "^indy$",
+	},
+	workspace = ws(8, MON_MAIN),
+})
+
+-- btop → Workspace 8, main monitor
+place("btop-workspace", "^btop$", 8, MON_MAIN)
+
+-- Discord / Vesktop → Workspace 7, main monitor
+place("vesktop-workspace", "^vesktop$", 7, MON_MAIN)
+
+-- Steam client → Workspace 9, main monitor
+place("steam-workspace", "^steam$", 9, MON_MAIN)
+
+-- LibreWolf → Workspace 6, main monitor
+place("librewolf-workspace", "^librewolf$", 6, MON_MAIN)
+
+-- ========================= LAYER RULES ============================== --
 
 -- Rofi blur
 hl.layer_rule({
-	match = { namespace = "rofi" },
+	match = {
+		namespace = "rofi",
+	},
 	blur = true,
 	ignore_alpha = 0.5,
 })
 
--- Notifications blur
+-- Notification blur
 hl.layer_rule({
-	match = { namespace = "notifications" },
+	match = {
+		namespace = "notifications",
+	},
 	blur = true,
 	ignore_alpha = 0.5,
 })
 
 -- Quickshell blur
 hl.layer_rule({
-	match = { namespace = "quickshell" },
+	match = {
+		namespace = "quickshell",
+	},
 	blur = true,
 	ignore_alpha = 0.5,
 })
