@@ -9,6 +9,7 @@ local uv = vim.uv or vim.loop
 
 local lf_win = nil
 local lf_buf = nil
+local lf_job = nil
 
 local function normalize_path(path)
   if not path or path == "" then
@@ -22,15 +23,35 @@ local function normalize_path(path)
 end
 
 local function get_float_dimensions()
-  local width = math.floor(vim.o.columns * 0.9)
-  local height = math.floor(vim.o.lines * 0.9)
+  -- Keep the float inside Neovim's usable editor area, including on small
+  -- terminals where a fixed percentage can otherwise exceed the screen.
+  local max_width = math.max(1, vim.o.columns - 2)
+  local max_height = math.max(1, vim.o.lines - vim.o.cmdheight - 2)
+  local width = math.min(max_width, math.max(1, math.floor(vim.o.columns * 0.9)))
+  local height = math.min(max_height, math.max(1, math.floor(max_height * 0.9)))
 
   return {
     width = width,
     height = height,
-    row = math.floor((vim.o.lines - height) / 2),
-    col = math.floor((vim.o.columns - width) / 2),
+    row = math.max(0, math.floor((max_height - height) / 2)),
+    col = math.max(0, math.floor((vim.o.columns - width) / 2)),
   }
+end
+
+local function close_lf(stop_job)
+  local win, job = lf_win, lf_job
+
+  -- Clear shared state first so WinClosed/BufWipeout callbacks cannot act on
+  -- a newly opened lf instance.
+  lf_win, lf_buf, lf_job = nil, nil, nil
+
+  if stop_job and job and job > 0 then
+    pcall(fn.jobstop, job)
+  end
+
+  if win and api.nvim_win_is_valid(win) then
+    pcall(api.nvim_win_close, win, true)
+  end
 end
 
 local function resize_lf()
@@ -39,8 +60,7 @@ local function resize_lf()
   end
 
   local size = get_float_dimensions()
-
-  api.nvim_win_set_config(lf_win, {
+  pcall(api.nvim_win_set_config, lf_win, {
     relative = "editor",
     width = size.width,
     height = size.height,
@@ -52,19 +72,33 @@ end
 local function open_lf_in_float(opts)
   opts = opts or {}
 
-  if fn.executable "lf" == 0 then
+  if fn.executable("lf") == 0 then
     vim.notify("lf not found in PATH", vim.log.levels.ERROR)
     return
   end
 
+  -- Reuse an already-open instance instead of creating an untracked float.
+  if lf_win and api.nvim_win_is_valid(lf_win) then
+    api.nvim_set_current_win(lf_win)
+    return
+  end
+
+  local start_dir = normalize_path(opts.start_dir or fn.getcwd())
+  if not start_dir or fn.isdirectory(start_dir) == 0 then
+    vim.notify("Invalid lf starting directory", vim.log.levels.ERROR)
+    return
+  end
+
   local size = get_float_dimensions()
+  local origin_win = api.nvim_get_current_win()
+  local buf = api.nvim_create_buf(false, true)
+  lf_buf = buf
 
-  lf_buf = api.nvim_create_buf(false, true)
+  api.nvim_set_option_value("filetype", "lf", { buf = buf })
+  api.nvim_set_option_value("bufhidden", "wipe", { buf = buf })
+  api.nvim_set_option_value("swapfile", false, { buf = buf })
 
-  api.nvim_set_option_value("filetype", "lf", { buf = lf_buf })
-  api.nvim_set_option_value("bufhidden", "wipe", { buf = lf_buf })
-
-  lf_win = api.nvim_open_win(lf_buf, true, {
+  local win = api.nvim_open_win(buf, true, {
     relative = "editor",
     width = size.width,
     height = size.height,
@@ -73,12 +107,19 @@ local function open_lf_in_float(opts)
     border = "rounded",
     style = "minimal",
   })
+  lf_win = win
 
-  api.nvim_set_option_value("winhl", "Normal:Normal,FloatBorder:FloatBorder", { win = lf_win })
+  api.nvim_set_option_value("winhl", "Normal:Normal,FloatBorder:FloatBorder", { win = win })
 
-  local cache_dir = fn.stdpath "cache"
+  local cache_dir = fn.stdpath("cache")
+  fn.mkdir(cache_dir, "p")
+
   local last_dir_file = cache_dir .. "/lf_last_dir"
   local selection_file = cache_dir .. "/lf_selection"
+
+  -- A previous crash must not make this launch consume stale selections.
+  os.remove(last_dir_file)
+  os.remove(selection_file)
 
   local function set_cwd(new_dir)
     local normalized_new = normalize_path(new_dir)
@@ -87,7 +128,6 @@ local function open_lf_in_float(opts)
     end
 
     local normalized_current = normalize_path(fn.getcwd())
-
     if normalized_current ~= normalized_new then
       vim.cmd("cd " .. fn.fnameescape(normalized_new))
       api.nvim_echo({
@@ -97,124 +137,151 @@ local function open_lf_in_float(opts)
   end
 
   local function open_file(file_path)
-    local file_dir = fn.fnamemodify(file_path, ":p:h")
+    if not file_path or file_path == "" then
+      return
+    end
+
+    local absolute_path = fn.fnamemodify(file_path, ":p")
+    if fn.filereadable(absolute_path) ~= 1 and fn.isdirectory(absolute_path) ~= 1 then
+      vim.notify("Selected path does not exist: " .. absolute_path, vim.log.levels.WARN)
+      return
+    end
+
+    local file_dir = fn.fnamemodify(absolute_path, ":h")
     set_cwd(file_dir)
 
-    local old_lf_win = lf_win
-    local prev_win = fn.win_getid(fn.winnr "#")
-
-    if api.nvim_win_is_valid(prev_win) and prev_win ~= old_lf_win then
-      api.nvim_set_current_win(prev_win)
-    else
-      if api.nvim_win_is_valid(old_lf_win) then
-        api.nvim_win_close(old_lf_win, true)
-      end
-      old_lf_win = nil
+    -- Return to the window from which :Lf was opened, not whichever window
+    -- happens to be Neovim's alternate window.
+    if origin_win and api.nvim_win_is_valid(origin_win) then
+      api.nvim_set_current_win(origin_win)
     end
 
-    lf_win = nil
-    lf_buf = nil
-
-    vim.cmd("edit " .. fn.fnameescape(file_path))
-
-    if old_lf_win and api.nvim_win_is_valid(old_lf_win) then
-      api.nvim_win_close(old_lf_win, true)
-    end
+    vim.cmd("edit " .. fn.fnameescape(absolute_path))
   end
-
-  local cwd = opts.start_dir or fn.getcwd()
 
   local job_id = fn.termopen({
     "lf",
     "-last-dir-path=" .. last_dir_file,
     "-selection-path=" .. selection_file,
   }, {
-    cwd = cwd,
+    cwd = start_dir,
 
-    on_exit = function(_, _)
+    on_exit = function(_, exit_code)
       vim.schedule(function()
-        local f = io.open(last_dir_file, "r")
+        -- Ignore callbacks belonging to an older lf instance.
+        if lf_buf ~= buf then
+          return
+        end
 
-        if f then
-          local last_dir = f:read "*l"
-          f:close()
-
-          if last_dir and last_dir ~= "" then
-            set_cwd(last_dir)
-          end
-
+        local last_dir
+        local dir_file = io.open(last_dir_file, "r")
+        if dir_file then
+          last_dir = dir_file:read("*l")
+          dir_file:close()
           os.remove(last_dir_file)
         end
 
-        local sel_f = io.open(selection_file, "r")
+        if last_dir and last_dir ~= "" then
+          set_cwd(last_dir)
+        end
 
-        if sel_f then
-          local files = {}
-
-          for line in sel_f:lines() do
+        local selected = {}
+        local sel_file = io.open(selection_file, "r")
+        if sel_file then
+          for line in sel_file:lines() do
             local trimmed = vim.trim(line)
-
-            if trimmed ~= "" and fn.filereadable(trimmed) == 1 then
-              table.insert(files, trimmed)
-            end
-          end
-
-          sel_f:close()
-          os.remove(selection_file)
-
-          if #files > 0 then
-            open_file(files[1])
-
-            if #files > 1 then
-              for i = 2, #files do
-                vim.cmd("argadd " .. fn.fnameescape(files[i]))
+            if trimmed ~= "" then
+              -- Resolve relative selections while lf's final directory is
+              -- still the current working directory.
+              local absolute = fn.fnamemodify(trimmed, ":p")
+              if fn.filereadable(absolute) == 1 then
+                selected[#selected + 1] = absolute
               end
-
-              vim.notify(string.format("Added %d files to arglist", #files - 1), vim.log.levels.INFO)
             end
           end
+          sel_file:close()
+          os.remove(selection_file)
+        end
+
+        local win = lf_win
+        lf_win, lf_buf, lf_job = nil, nil, nil
+
+        if win and api.nvim_win_is_valid(win) then
+          pcall(api.nvim_win_close, win, true)
+        end
+
+        if #selected > 0 then
+          open_file(selected[1])
+
+          if #selected > 1 then
+            for i = 2, #selected do
+              vim.cmd("argadd " .. fn.fnameescape(selected[i]))
+            end
+            vim.notify(
+              string.format("Added %d additional files to arglist", #selected - 1),
+              vim.log.levels.INFO
+            )
+          end
+        elseif origin_win and api.nvim_win_is_valid(origin_win) then
+          api.nvim_set_current_win(origin_win)
+        end
+
+        if exit_code ~= 0 then
+          vim.notify("lf exited with code " .. tostring(exit_code), vim.log.levels.WARN)
         end
       end)
     end,
   })
 
-  if job_id <= 0 then
+  if type(job_id) ~= "number" or job_id <= 0 then
     vim.notify("Failed to start lf", vim.log.levels.ERROR)
-
-    if api.nvim_win_is_valid(lf_win) then
-      api.nvim_win_close(lf_win, true)
+    close_lf(false)
+    if origin_win and api.nvim_win_is_valid(origin_win) then
+      api.nvim_set_current_win(origin_win)
     end
-
-    lf_win = nil
-    lf_buf = nil
-
     return
   end
 
-  local km = {
-    nowait = true,
-    silent = true,
-    noremap = true,
-  }
+  lf_job = job_id
 
-  api.nvim_buf_set_keymap(lf_buf, "t", "<Esc>", [[<C-\><C-n>:close<CR>]], km)
+  local function map(lhs, desc)
+    vim.keymap.set("t", lhs, function()
+      close_lf(true)
+      if origin_win and api.nvim_win_is_valid(origin_win) then
+        api.nvim_set_current_win(origin_win)
+      end
+    end, {
+      buffer = buf,
+      silent = true,
+      nowait = true,
+      desc = desc,
+    })
+  end
 
-  api.nvim_buf_set_keymap(lf_buf, "t", "<C-q>", [[<C-\><C-n>:close<CR>]], km)
+  map("<Esc>", "Close lf")
+  map("<C-q>", "Close lf")
 
-  vim.cmd "startinsert"
+  vim.cmd("startinsert")
 end
 
-vim.api.nvim_create_autocmd("VimResized", {
+api.nvim_create_autocmd("VimResized", {
   callback = resize_lf,
+  desc = "Resize lf floating window",
 })
 
-vim.api.nvim_create_autocmd({ "WinClosed", "BufWipeout" }, {
+api.nvim_create_autocmd({ "WinClosed", "BufWipeout" }, {
   callback = function()
     if lf_win and not api.nvim_win_is_valid(lf_win) then
-      lf_win = nil
-      lf_buf = nil
+      local job = lf_job
+      lf_win, lf_buf, lf_job = nil, nil, nil
+      if job and job > 0 then
+        pcall(fn.jobstop, job)
+      end
+    elseif lf_buf and not api.nvim_buf_is_valid(lf_buf) then
+      close_lf(true)
     end
   end,
+  desc = "Clean up lf state when its window or buffer closes",
 })
 
 api.nvim_create_user_command("Lf", function(cmd_opts)

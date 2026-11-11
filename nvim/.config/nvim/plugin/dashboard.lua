@@ -271,7 +271,9 @@ local function render(buf)
     pcall(api.nvim_buf_add_highlight, buf, ns, m[4], m[1], m[2], m[3])
   end
 
-  pcall(api.nvim_win_set_cursor, 0, { math.min(#lines, 10), 0 })
+  if api.nvim_get_current_buf() == buf then
+    pcall(api.nvim_win_set_cursor, 0, { math.min(#lines, 10), 0 })
+  end
 end
 
 -- ── Window / buffer setup ───────────────────────────────────────────────────
@@ -283,10 +285,48 @@ local function setup_buffer(buf)
   vim.bo[buf].modifiable = false
 end
 
+-- These options are window-local. Save them before applying dashboard styling,
+-- then restore them when the dashboard buffer is left.
+local window_options = {
+  "number",
+  "relativenumber",
+  "signcolumn",
+  "statuscolumn",
+  "foldcolumn",
+  "foldenable",
+  "wrap",
+  "cursorline",
+  "spell",
+  "list",
+  "colorcolumn",
+}
+
+local function save_window_options(win)
+  local saved = {}
+  for _, name in ipairs(window_options) do
+    local ok, value = pcall(api.nvim_get_option_value, name, { win = win })
+    if ok then
+      saved[name] = value
+    end
+  end
+  return saved
+end
+
+local function restore_window_options(win, saved)
+  if not api.nvim_win_is_valid(win) or not saved then
+    return
+  end
+
+  for name, value in pairs(saved) do
+    pcall(api.nvim_set_option_value, name, value, { win = win })
+  end
+end
+
 local function setup_window_options()
   vim.wo.number = false
   vim.wo.relativenumber = false
   vim.wo.signcolumn = "no"
+  vim.wo.statuscolumn = ""
   vim.wo.foldcolumn = "0"
   vim.wo.foldenable = false
   vim.wo.wrap = false
@@ -353,10 +393,24 @@ function M.open()
     return
   end
 
+  local win = api.nvim_get_current_win()
+  local saved_options = save_window_options(win)
   local orig_buf = api.nvim_get_current_buf()
   local buf = api.nvim_create_buf(false, true)
   setup_buffer(buf)
   api.nvim_set_current_buf(buf)
+
+  -- Restore the user's normal editing options as soon as they leave the
+  -- dashboard. This brings back sign/status columns and fold indicators.
+  api.nvim_create_autocmd("BufLeave", {
+    buffer = buf,
+    once = true,
+    callback = function()
+      restore_window_options(win, saved_options)
+    end,
+    desc = "Restore window options after leaving dashboard",
+  })
+
   setup_window_options()
   setup_keymaps(buf)
   render(buf)
@@ -418,8 +472,13 @@ api.nvim_create_autocmd("VimEnter", {
 api.nvim_create_autocmd("VimResized", {
   group = api.nvim_create_augroup("DashboardResize", { clear = true }),
   callback = function()
-    if vim.bo.filetype == "dashboard" then
-      vim.schedule(render)
+    local buf = api.nvim_get_current_buf()
+    if vim.bo[buf].filetype == "dashboard" then
+      vim.schedule(function()
+        if api.nvim_buf_is_valid(buf) and api.nvim_get_current_buf() == buf and vim.bo[buf].filetype == "dashboard" then
+          render(buf)
+        end
+      end)
     end
   end,
 })
@@ -427,10 +486,11 @@ api.nvim_create_autocmd("VimResized", {
 api.nvim_create_autocmd("ColorScheme", {
   group = api.nvim_create_augroup("DashboardTheme", { clear = true }),
   callback = function()
+    local buf = api.nvim_get_current_buf()
     vim.schedule(function()
       apply_highlights()
-      if vim.bo.filetype == "dashboard" then
-        render()
+      if api.nvim_buf_is_valid(buf) and api.nvim_get_current_buf() == buf and vim.bo[buf].filetype == "dashboard" then
+        render(buf)
       end
     end)
   end,
