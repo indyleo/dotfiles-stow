@@ -9,7 +9,7 @@
 -- ========================= MONITORS ================================ --
 
 local MON_TOP = "HDMI-A-1"
-local MON_MAIN = "DP-2"
+local MON_MAIN = "DP-1"
 local MON_TOUCH = "HDMI-A-4"
 
 -- ========================= HELPERS ================================= --
