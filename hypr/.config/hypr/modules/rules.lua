@@ -25,14 +25,15 @@ local MON_TOUCH = "HDMI-A-4" -- monitor 2: workspaces 11-15
 
 -- ========================= HELPERS ================================= --
 
--- Build a workspace rule string from a global workspace ID and a monitor.
--- Under hyprsplit, IDs 1-5 / 6-10 / 11-15 belong to monitors 0 / 1 / 2.
-local function ws(number, monitor)
-	return string.format("%d monitor:%s", number, monitor)
+-- Window rules take a plain workspace ID. Under hyprsplit, IDs 1-5 / 6-10 /
+-- 11-15 already belong to monitors 0 / 1 / 2, so the monitor is implied.
+-- (The "N monitor:X" form is workspace-rule syntax, not window-rule syntax.)
+local function ws(number, _monitor)
+	return tostring(number)
 end
 
--- Open windows of a class on a fixed workspace and monitor, every time
--- they are launched (not just at startup).
+-- Open windows of a class on a fixed workspace, every time they are
+-- launched (not just at startup).
 local function place(name, class, workspace, monitor)
 	hl.window_rule({
 		name = name,
@@ -77,7 +78,7 @@ hl.window_rule({
 
 -- ========================= FEISHIN ================================= --
 
--- Feishin → Workspace 11 (first workspace of the touch monitor)
+-- Feishin -> Workspace 11 (first workspace of the touch monitor)
 hl.window_rule({
 	name = "feishin-touch-display",
 	match = {
@@ -135,7 +136,7 @@ hl.window_rule({
 
 -- ========================= AUTO PLACEMENT ========================== --
 
--- Alacritty titled "indy" → Workspace 8, main monitor
+-- Alacritty titled "indy" -> Workspace 8, main monitor
 hl.window_rule({
 	name = "indy-terminal",
 	match = {
@@ -145,7 +146,7 @@ hl.window_rule({
 	workspace = ws(8, MON_MAIN),
 })
 
--- Alacritty titled "Terminal" (the one startup-apps.sh opens) → Workspace 8, main monitor
+-- Alacritty titled "Terminal" (the one startup-apps.sh opens) -> Workspace 8, main monitor
 -- Terminals with any other title open on whatever workspace you're on.
 hl.window_rule({
 	name = "main-terminal",
@@ -156,16 +157,16 @@ hl.window_rule({
 	workspace = ws(8, MON_MAIN),
 })
 
--- btop → Workspace 1, top monitor
+-- btop -> Workspace 1, top monitor
 place("btop-workspace", "^btop$", 1, MON_TOP)
 
--- Discord / Vesktop → Workspace 7, main monitor
+-- Discord / Vesktop -> Workspace 7, main monitor
 place("vesktop-workspace", "^vesktop$", 7, MON_MAIN)
 
--- Steam client → Workspace 9, main monitor
+-- Steam client -> Workspace 9, main monitor
 place("steam-workspace", "^steam$", 9, MON_MAIN)
 
--- LibreWolf → Workspace 6, main monitor
+-- LibreWolf -> Workspace 6, main monitor
 place("librewolf-workspace", "^librewolf$", 6, MON_MAIN)
 
 -- ========================= LAYER RULES ============================== --
