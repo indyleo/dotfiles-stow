@@ -16,7 +16,7 @@ else
 fi
 
 # hyprctl dispatch in 0.55+ parses args as Lua — use hl.dsp.* syntax
-toggle_scratch() {
+function toggle_scratch() {
     hyprctl dispatch "hl.dsp.workspace.toggle_special(\"${APP_ID}\")"
 }
 
