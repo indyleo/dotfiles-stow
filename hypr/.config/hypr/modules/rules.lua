@@ -121,19 +121,6 @@ hl.window_rule({
 	fullscreen = true,
 })
 
--- ========================= FILE PICKER ============================= --
-
--- lf file picker: centered floating window
-hl.window_rule({
-	name = "lf-file-picker",
-	match = {
-		class = "^(lf-picker)$",
-	},
-	float = true,
-	center = true,
-	size = { 1000, 650 },
-})
-
 -- ========================= AUTO PLACEMENT ========================== --
 
 -- Alacritty titled "indy" -> Workspace 8, main monitor
