@@ -88,7 +88,6 @@ vim.pack.add {
 
   -- ── Markdown / Docs ───────────────────────────────────────────────────
   { src = gh "MeanderingProgrammer/render-markdown.nvim", name = "render-markdown.nvim" },
-  { src = gh "3rd/image.nvim", name = "image.nvim" },
 
   -- ── Which-key ─────────────────────────────────────────────────────────
   { src = gh "folke/which-key.nvim", name = "which-key.nvim" },
@@ -515,27 +514,6 @@ end)
 load("render-markdown.nvim", function()
   require("render-markdown").setup {}
 end)
-
--- ── image.nvim ──────────────────────────────────────────────────────────
-if not vim.g.neovide then
-  load("image.nvim", function()
-    require("image").setup {
-      backend = "sixel",
-      integrations = {
-        markdown = {
-          enabled = true,
-          clear_in_insert_mode = false,
-          download_remote_images = true,
-          only_render_image_at_cursor = true,
-          only_render_image_at_cursor_mode = "popup",
-          filetypes = { "markdown", "vimwiki" },
-        },
-      },
-      max_height_window_percentage = 50,
-      kitty_method = "normal",
-    }
-  end)
-end
 
 -- ── which-key ───────────────────────────────────────────────────────────
 load("which-key.nvim", function()
