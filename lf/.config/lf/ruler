@@ -1,1 +1,1 @@
-{{with $.UserOptions.gitbranch}} {{printf "%s" .}}{{end -}}{{with $.UserOptions.statfmt}} {{printf "%s" .}}{{end -}}
+{{with $.UserOptions.gitbranch}} {{printf "%s" .}}{{end -}}{{with $.UserOptions.statfmt}} {{printf "%s" .}}{{end -}}{{with .Copy}} {{len . | printf "\033[7;33m %d \033[0m"}}{{end -}}{{with .Cut}} {{len . | printf "\033[7;31m %d \033[0m"}}{{end -}}{{with .Select}} {{len . | printf "\033[7;35m %d \033[0m"}}{{end -}}{{with .Visual}} {{len . | printf "\033[7;36m %d \033[0m"}}{{end -}}
