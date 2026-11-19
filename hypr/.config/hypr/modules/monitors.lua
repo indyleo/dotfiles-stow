@@ -24,3 +24,12 @@ hl.monitor({
 	scale = 1,
 	transform = 2,
 })
+
+-- --- Virtual Monitor (WayVR) ---
+hl.monitor({
+	output = "VR",
+	mode = "2560x1440@60",
+	position = "5000x0",
+	scale = 1,
+	transform = 0,
+})

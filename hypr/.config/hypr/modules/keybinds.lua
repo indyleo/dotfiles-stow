@@ -109,6 +109,9 @@ end
 hl.bind(mainMod .. " + CTRL + D", hs.dsp.workspace.swap_monitors({ monitor1 = "current", monitor2 = "+1" }))
 hl.bind(mainMod .. " + CTRL + G", hs.dsp.grab_rogue_windows())
 
+-- --- VR desktop ---
+hl.bind(mainMod .. " + V", hl.dsp.window.move({ workspace = 16, follow = false }))
+
 -- --- Scratchpads ---
 hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(scratchpad .. " termsc $SHELL"))
 hl.bind(mainMod .. " + Y", hl.dsp.exec_cmd(scratchpad .. " lfsc lf"))
