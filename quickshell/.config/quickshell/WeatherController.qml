@@ -38,45 +38,52 @@ Item {
         // makes curl itself report failure on HTTP error responses instead
         // of happily returning an error page that JSON.parse would then
         // choke on with a confusing error.
-        command: ["curl", "-s", "-f", "--max-time", "10",
-            "wttr.in/" + encodeURIComponent(root.location) + "?format=j1"]
+        command: ["curl", "-s", "-f", "--max-time", "10", "wttr.in/" + encodeURIComponent(root.location) + "?format=j1"]
         stderr: StdioCollector {}
         stdout: StdioCollector {
             onStreamFinished: {
-                if (text.trim() === "") return // handled in onExited via exit code
+                if (text.trim() === "")
+                    // handled in onExited via exit code
+                    return;
                 try {
-                    var data = JSON.parse(text.trim())
-                    var current = data.current_condition[0]
+                    var data = JSON.parse(text.trim());
+                    var current = data.current_condition[0];
 
-                    root.temperature = current.temp_C + "°C"
-                    root.feelsLike = "Feels like " + current.FeelsLikeC + "°C"
-                    root.condition = current.weatherDesc[0].value
-                    root.humidity = "Humidity: " + current.humidity + "%"
-                    root.wind = "Wind: " + current.windspeedKmph + " km/h"
+                    root.temperature = current.temp_C + "°C";
+                    root.feelsLike = "Feels like " + current.FeelsLikeC + "°C";
+                    root.condition = current.weatherDesc[0].value;
+                    root.humidity = "Humidity: " + current.humidity + "%";
+                    root.wind = "Wind: " + current.windspeedKmph + " km/h";
 
                     // Simple matching to map conditions to icons
-                    var condLow = root.condition.toLowerCase()
-                    if (condLow.includes("sun") || condLow.includes("clear")) root.weatherIcon = "󰖙"
-                    else if (condLow.includes("rain") || condLow.includes("drizzle")) root.weatherIcon = "󰖗"
-                    else if (condLow.includes("cloud") || condLow.includes("overcast")) root.weatherIcon = "󰖐"
-                    else if (condLow.includes("snow")) root.weatherIcon = "󰖘"
-                    else if (condLow.includes("thunder") || condLow.includes("storm")) root.weatherIcon = "󰖓"
-                    else root.weatherIcon = "󰖐"
+                    var condLow = root.condition.toLowerCase();
+                    if (condLow.includes("sun") || condLow.includes("clear"))
+                        root.weatherIcon = "󰖙";
+                    else if (condLow.includes("rain") || condLow.includes("drizzle"))
+                        root.weatherIcon = "󰖗";
+                    else if (condLow.includes("cloud") || condLow.includes("overcast"))
+                        root.weatherIcon = "󰖐";
+                    else if (condLow.includes("snow"))
+                        root.weatherIcon = "󰖘";
+                    else if (condLow.includes("thunder") || condLow.includes("storm"))
+                        root.weatherIcon = "󰖓";
+                    else
+                        root.weatherIcon = "󰖐";
 
-                    root.hasError = false
-                    root.errorMessage = ""
-                } catch(e) {
-                    console.log("Weather parse error: " + e)
-                    root.hasError = true
-                    root.errorMessage = "Couldn't read weather data"
+                    root.hasError = false;
+                    root.errorMessage = "";
+                } catch (e) {
+                    console.log("Weather parse error: " + e);
+                    root.hasError = true;
+                    root.errorMessage = "Couldn't read weather data";
                 }
             }
         }
         onExited: (code, status) => {
             if (code !== 0) {
-                console.warn("[WeatherController] curl failed with exit code", code, weatherProc.stderr.text)
-                root.hasError = true
-                root.errorMessage = code === 28 ? "Weather request timed out" : "Couldn't reach weather service"
+                console.warn("[WeatherController] curl failed with exit code", code, weatherProc.stderr.text);
+                root.hasError = true;
+                root.errorMessage = code === 28 ? "Weather request timed out" : "Couldn't reach weather service";
             }
         }
     }
@@ -87,8 +94,8 @@ Item {
         repeat: true
         triggeredOnStart: true
         onTriggered: {
-            weatherProc.running = false
-            weatherProc.running = true
+            weatherProc.running = false;
+            weatherProc.running = true;
         }
     }
 
@@ -99,7 +106,12 @@ Item {
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Overlay
-        anchors { top: true; bottom: true; left: true; right: true }
+        anchors {
+            top: true
+            bottom: true
+            left: true
+            right: true
+        }
 
         // Increased height to accommodate the new layout
         Rectangle {
@@ -206,12 +218,12 @@ Item {
                         cursorShape: Qt.PointingHandCursor
                         hoverEnabled: true
                         onEntered: {
-                            weatherCloseBtn.color = "#7c6f64"
-                            weatherCloseBtn.border.color = "#ebdbb2"
+                            weatherCloseBtn.color = "#7c6f64";
+                            weatherCloseBtn.border.color = "#ebdbb2";
                         }
                         onExited: {
-                            weatherCloseBtn.color = "#504945"
-                            weatherCloseBtn.border.color = "#7c6f64"
+                            weatherCloseBtn.color = "#504945";
+                            weatherCloseBtn.border.color = "#7c6f64";
                         }
                         onClicked: root.active = false
                     }

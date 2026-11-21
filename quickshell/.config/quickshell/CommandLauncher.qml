@@ -41,7 +41,12 @@ PanelWindow {
     exclusionMode: ExclusionMode.Normal
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
-    anchors { top: true; bottom: true; left: true; right: true }
+    anchors {
+        top: true
+        bottom: true
+        left: true
+        right: true
+    }
 
     // ------------------------------------------------------------
     // $PATH discovery
@@ -51,24 +56,7 @@ PanelWindow {
     // across $PATH dirs with a SEEN scratch file (same trick AppLauncher
     // uses) rather than an associative array, since dash's `sh` doesn't
     // have those.
-    readonly property string listScript: [
-        "SEEN=$(mktemp)",
-        "OLDIFS=$IFS",
-        "IFS=':'",
-        "for d in $PATH; do",
-        "  IFS=\"$OLDIFS\"",
-        "  [ -n \"$d\" ] && [ -d \"$d\" ] || continue",
-        "  for f in \"$d\"/*; do",
-        "    [ -f \"$f\" ] && [ -x \"$f\" ] || continue",
-        "    b=$(basename \"$f\")",
-        "    grep -qxF \"$b\" \"$SEEN\" 2>/dev/null && continue",
-        "    echo \"$b\" >> \"$SEEN\"",
-        "    printf '%s\\0' \"$b\"",
-        "  done",
-        "  IFS=':'",
-        "done",
-        "rm -f \"$SEEN\""
-    ].join("\n")
+    readonly property string listScript: ["SEEN=$(mktemp)", "OLDIFS=$IFS", "IFS=':'", "for d in $PATH; do", "  IFS=\"$OLDIFS\"", "  [ -n \"$d\" ] && [ -d \"$d\" ] || continue", "  for f in \"$d\"/*; do", "    [ -f \"$f\" ] && [ -x \"$f\" ] || continue", "    b=$(basename \"$f\")", "    grep -qxF \"$b\" \"$SEEN\" 2>/dev/null && continue", "    echo \"$b\" >> \"$SEEN\"", "    printf '%s\\0' \"$b\"", "  done", "  IFS=':'", "done", "rm -f \"$SEEN\""].join("\n")
 
     // Set whenever a refresh is requested while a scan is already running,
     // so we re-run once the in-flight scan finishes instead of restarting
@@ -81,13 +69,13 @@ PanelWindow {
         stdout: StdioCollector {}
         onExited: (code, status) => {
             if (code !== 0) {
-                console.warn("[CommandLauncher] Failed to list $PATH executables:", code)
+                console.warn("[CommandLauncher] Failed to list $PATH executables:", code);
             } else {
-                root.executables = listProc.stdout.text.split("\u0000").filter(n => n !== "")
+                root.executables = listProc.stdout.text.split("\u0000").filter(n => n !== "");
             }
             if (root.listRefreshPending) {
-                root.listRefreshPending = false
-                listProc.running = true
+                root.listRefreshPending = false;
+                listProc.running = true;
             }
         }
     }
@@ -98,10 +86,10 @@ PanelWindow {
             // the process partway through and can leave `executables`
             // truncated). Just flag that we want another pass once it
             // finishes.
-            root.listRefreshPending = true
-            return
+            root.listRefreshPending = true;
+            return;
         }
-        listProc.running = true
+        listProc.running = true;
     }
 
     // ------------------------------------------------------------
@@ -127,50 +115,55 @@ PanelWindow {
         command: ["mkdir", "-p", root.cacheDir]
         onExited: (code, status) => {
             if (code === 0) {
-                root.cacheDirReady = true
+                root.cacheDirReady = true;
             } else {
-                console.warn("[CommandLauncher] Failed to create cache dir:", code)
+                console.warn("[CommandLauncher] Failed to create cache dir:", code);
             }
             // Flush whatever the most recent save asked for, if any. Only
             // the *latest* pending state matters, so no queue is needed
             // beyond a single slot.
             if (root.pendingSaveData !== "") {
-                var data = root.pendingSaveData
-                root.pendingSaveData = ""
-                if (root.cacheDirReady) stateFileObj.setText(data)
+                var data = root.pendingSaveData;
+                root.pendingSaveData = "";
+                if (root.cacheDirReady)
+                    stateFileObj.setText(data);
             }
         }
     }
 
     Component.onCompleted: {
-        mkdirProc.running = true
+        mkdirProc.running = true;
     }
 
     function loadState() {
         try {
-            var parsed = JSON.parse(stateFileObj.text())
-            root.usage = (parsed && typeof parsed.usage === "object") ? parsed.usage : {}
-            root.history = (parsed && Array.isArray(parsed.history)) ? parsed.history : []
+            var parsed = JSON.parse(stateFileObj.text());
+            root.usage = (parsed && typeof parsed.usage === "object") ? parsed.usage : {};
+            root.history = (parsed && Array.isArray(parsed.history)) ? parsed.history : [];
         } catch (e) {
-            root.usage = {}
-            root.history = []
+            root.usage = {};
+            root.history = [];
         }
     }
 
     function saveState() {
-        var data = JSON.stringify({ usage: root.usage, history: root.history })
+        var data = JSON.stringify({
+            usage: root.usage,
+            history: root.history
+        });
         if (root.cacheDirReady) {
             // Common case: dir already exists, just write directly. No
             // process spawn, no race.
-            stateFileObj.setText(data)
+            stateFileObj.setText(data);
         } else {
             // Still within the narrow startup window before mkdirProc has
             // exited. Queue the latest data - mkdirProc's onExited will
             // flush it once the dir is ready. If saveState() is called
             // again before that happens, it just overwrites this slot,
             // which is correct since only the newest state matters.
-            root.pendingSaveData = data
-            if (!mkdirProc.running) mkdirProc.running = true
+            root.pendingSaveData = data;
+            if (!mkdirProc.running)
+                mkdirProc.running = true;
         }
     }
 
@@ -181,39 +174,45 @@ PanelWindow {
     // ------------------------------------------------------------
 
     function runCommand(cmd) {
-        var trimmed = cmd.trim()
-        if (trimmed === "") return
+        var trimmed = cmd.trim();
+        if (trimmed === "")
+            return;
+        Quickshell.execDetached({
+            command: ["sh", "-c", trimmed]
+        });
 
-        Quickshell.execDetached({ command: ["sh", "-c", trimmed] })
+        var h = root.history.filter(function (c) {
+            return c !== trimmed;
+        });
+        h.unshift(trimmed);
+        if (h.length > 50)
+            h = h.slice(0, 50);
+        root.history = h;
 
-        var h = root.history.filter(function(c) { return c !== trimmed })
-        h.unshift(trimmed)
-        if (h.length > 50) h = h.slice(0, 50)
-        root.history = h
-
-        var firstToken = trimmed.split(/\s+/)[0]
+        var firstToken = trimmed.split(/\s+/)[0];
         if (root.executables.indexOf(firstToken) !== -1) {
-            var u = root.usage
-            u[firstToken] = (u[firstToken] || 0) + 1
-            root.usage = u
+            var u = root.usage;
+            u[firstToken] = (u[firstToken] || 0) + 1;
+            root.usage = u;
         }
 
-        root.saveState()
-        root.active = false
+        root.saveState();
+        root.active = false;
     }
 
     function runSelected() {
-        root.runCommand(searchInput.text)
+        root.runCommand(searchInput.text);
     }
 
     // Tab fills the input from the highlighted suggestion without running
     // it, so you can add arguments before pressing Enter.
     function fillFromSelection() {
-        var list = root.filteredItems
-        if (list.length === 0) return
-        var idx = Math.max(0, Math.min(root.selectedIndex, list.length - 1))
-        searchInput.text = list[idx].text
-        searchInput.cursorPosition = searchInput.text.length
+        var list = root.filteredItems;
+        if (list.length === 0)
+            return;
+        var idx = Math.max(0, Math.min(root.selectedIndex, list.length - 1));
+        searchInput.text = list[idx].text;
+        searchInput.cursorPosition = searchInput.text.length;
     }
 
     // ------------------------------------------------------------
@@ -222,55 +221,69 @@ PanelWindow {
     // ------------------------------------------------------------
 
     readonly property var filteredItems: {
-        var q = searchText.trim().toLowerCase()
-        var seen = {}
-        var results = []
+        var q = searchText.trim().toLowerCase();
+        var seen = {};
+        var results = [];
 
         for (var i = 0; i < history.length; i++) {
-            var h = history[i]
-            if (q !== "" && h.toLowerCase().indexOf(q) === -1) continue
-            if (seen[h]) continue
-            seen[h] = true
-            results.push({ text: h, isHistory: true })
+            var h = history[i];
+            if (q !== "" && h.toLowerCase().indexOf(q) === -1)
+                continue;
+            if (seen[h])
+                continue;
+            seen[h] = true;
+            results.push({
+                text: h,
+                isHistory: true
+            });
         }
 
-        var exeMatches = executables.filter(function(e) {
-            if (seen[e]) return false
-            if (q === "") return true
-            return e.toLowerCase().indexOf(q) !== -1
-        })
-        exeMatches.sort(function(a, b) {
+        var exeMatches = executables.filter(function (e) {
+            if (seen[e])
+                return false;
+            if (q === "")
+                return true;
+            return e.toLowerCase().indexOf(q) !== -1;
+        });
+        exeMatches.sort(function (a, b) {
             if (q !== "") {
-                var aStarts = a.toLowerCase().startsWith(q) ? 0 : 1
-                var bStarts = b.toLowerCase().startsWith(q) ? 0 : 1
-                if (aStarts !== bStarts) return aStarts - bStarts
+                var aStarts = a.toLowerCase().startsWith(q) ? 0 : 1;
+                var bStarts = b.toLowerCase().startsWith(q) ? 0 : 1;
+                if (aStarts !== bStarts)
+                    return aStarts - bStarts;
             }
-            var au = usage[a] || 0
-            var bu = usage[b] || 0
-            if (au !== bu) return bu - au
-            return a.localeCompare(b)
-        })
+            var au = usage[a] || 0;
+            var bu = usage[b] || 0;
+            if (au !== bu)
+                return bu - au;
+            return a.localeCompare(b);
+        });
         for (var j = 0; j < exeMatches.length; j++) {
-            results.push({ text: exeMatches[j], isHistory: false })
+            results.push({
+                text: exeMatches[j],
+                isHistory: false
+            });
         }
 
-        return results
+        return results;
     }
 
     onFilteredItemsChanged: {
-        if (root.selectedIndex >= filteredItems.length) root.selectedIndex = Math.max(0, filteredItems.length - 1)
+        if (root.selectedIndex >= filteredItems.length)
+            root.selectedIndex = Math.max(0, filteredItems.length - 1);
     }
 
     onActiveChanged: {
         if (active) {
-            searchText = ""
-            selectedIndex = 0
-            refreshExecutables()
-            loadState()
-            focusTimer.start()
+            searchText = "";
+            selectedIndex = 0;
+            refreshExecutables();
+            loadState();
+            focusTimer.start();
         } else {
-            searchText = ""
-            if (searchInput) searchInput.text = ""
+            searchText = "";
+            if (searchInput)
+                searchInput.text = "";
         }
     }
 
@@ -336,21 +349,23 @@ PanelWindow {
                     verticalAlignment: TextInput.AlignVCenter
                     focus: true
                     onTextChanged: {
-                        root.searchText = text
-                        root.selectedIndex = 0
+                        root.searchText = text;
+                        root.selectedIndex = 0;
                     }
                     Keys.onEscapePressed: root.active = false
                     Keys.onReturnPressed: root.runSelected()
                     Keys.onTabPressed: root.fillFromSelection()
                     Keys.onUpPressed: {
-                        if (root.filteredItems.length === 0) return
-                        root.selectedIndex = Math.max(0, root.selectedIndex - 1)
-                        itemList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
+                        if (root.filteredItems.length === 0)
+                            return;
+                        root.selectedIndex = Math.max(0, root.selectedIndex - 1);
+                        itemList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
                     }
                     Keys.onDownPressed: {
-                        if (root.filteredItems.length === 0) return
-                        root.selectedIndex = Math.min(root.filteredItems.length - 1, root.selectedIndex + 1)
-                        itemList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
+                        if (root.filteredItems.length === 0)
+                            return;
+                        root.selectedIndex = Math.min(root.filteredItems.length - 1, root.selectedIndex + 1);
+                        itemList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
                     }
                 }
             }
@@ -439,8 +454,14 @@ PanelWindow {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     hoverEnabled: true
-                    onEntered: { closeBtn.color = cal3; closeBtn.border.color = cal6 }
-                    onExited: { closeBtn.color = cal2; closeBtn.border.color = cal3 }
+                    onEntered: {
+                        closeBtn.color = cal3;
+                        closeBtn.border.color = cal6;
+                    }
+                    onExited: {
+                        closeBtn.color = cal2;
+                        closeBtn.border.color = cal3;
+                    }
                     onClicked: root.active = false
                 }
             }

@@ -34,33 +34,19 @@ PanelWindow {
     exclusionMode: ExclusionMode.Normal
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
-    anchors { top: true; bottom: true; left: true; right: true }
+    anchors {
+        top: true
+        bottom: true
+        left: true
+        right: true
+    }
 
     // ------------------------------------------------------------
     // App discovery
     // ------------------------------------------------------------
 
     // NUL-delimited discovery keeps desktop filenames intact, including spaces.
-    readonly property string listScript: [
-        "SEEN=$(mktemp)",
-        "for d in \"$HOME/.local/share/applications\" \"/usr/local/share/applications\" \"/usr/share/applications\" \"/var/lib/flatpak/exports/share/applications\" \"$HOME/.local/share/flatpak/exports/share/applications\" \"/var/lib/snapd/desktop/applications\"; do",
-        "  [ -d \"$d\" ] || continue",
-        "  while IFS= read -r -d '' f; do",
-        "    base=$(basename \"$f\")",
-        "    nodisplay=$(grep -m1 '^NoDisplay=' \"$f\" | cut -d= -f2-)",
-        "    hidden=$(grep -m1 '^Hidden=' \"$f\" | cut -d= -f2-)",
-        "    [ \"$nodisplay\" = \"true\" ] && continue",
-        "    [ \"$hidden\" = \"true\" ] && continue",
-        "    grep -qxF \"$base\" \"$SEEN\" 2>/dev/null && continue",
-        "    echo \"$base\" >> \"$SEEN\"",
-        "    name=$(grep -m1 '^Name=' \"$f\" | cut -d= -f2-)",
-        "    [ -z \"$name\" ] && continue",
-        "    icon=$(grep -m1 '^Icon=' \"$f\" | cut -d= -f2-)",
-        "    printf '%s\\x1f%s\\x1f%s\\0' \"$name\" \"$icon\" \"$f\"",
-        "  done < <(find \"$d\" -maxdepth 1 \\( -type f -o -type l \\) -name '*.desktop' -print0 2>/dev/null)",
-        "done",
-        "rm -f \"$SEEN\""
-    ].join("\n")
+    readonly property string listScript: ["SEEN=$(mktemp)", "for d in \"$HOME/.local/share/applications\" \"/usr/local/share/applications\" \"/usr/share/applications\" \"/var/lib/flatpak/exports/share/applications\" \"$HOME/.local/share/flatpak/exports/share/applications\" \"/var/lib/snapd/desktop/applications\"; do", "  [ -d \"$d\" ] || continue", "  while IFS= read -r -d '' f; do", "    base=$(basename \"$f\")", "    nodisplay=$(grep -m1 '^NoDisplay=' \"$f\" | cut -d= -f2-)", "    hidden=$(grep -m1 '^Hidden=' \"$f\" | cut -d= -f2-)", "    [ \"$nodisplay\" = \"true\" ] && continue", "    [ \"$hidden\" = \"true\" ] && continue", "    grep -qxF \"$base\" \"$SEEN\" 2>/dev/null && continue", "    echo \"$base\" >> \"$SEEN\"", "    name=$(grep -m1 '^Name=' \"$f\" | cut -d= -f2-)", "    [ -z \"$name\" ] && continue", "    icon=$(grep -m1 '^Icon=' \"$f\" | cut -d= -f2-)", "    printf '%s\\x1f%s\\x1f%s\\0' \"$name\" \"$icon\" \"$f\"", "  done < <(find \"$d\" -maxdepth 1 \\( -type f -o -type l \\) -name '*.desktop' -print0 2>/dev/null)", "done", "rm -f \"$SEEN\""].join("\n")
 
     Process {
         id: listProc
@@ -68,22 +54,26 @@ PanelWindow {
         stdout: StdioCollector {}
         onExited: (code, status) => {
             if (code !== 0) {
-                console.warn("[AppLauncher] Failed to list applications:", code)
-                return
+                console.warn("[AppLauncher] Failed to list applications:", code);
+                return;
             }
             // Records are NUL-delimited so whitespace in filenames is preserved.
-            var records = listProc.stdout.text.split("\u0000").filter(r => r !== "")
-            var apps = records.map(function(record) {
-                var parts = record.split("\u001F")
-                return { name: parts[0] || "", icon: parts[1] || "", path: parts.slice(2).join("\u001F") || "" }
-            }).filter(a => a.name !== "" && a.path !== "")
-            root.allApps = apps
+            var records = listProc.stdout.text.split("\u0000").filter(r => r !== "");
+            var apps = records.map(function (record) {
+                var parts = record.split("\u001F");
+                return {
+                    name: parts[0] || "",
+                    icon: parts[1] || "",
+                    path: parts.slice(2).join("\u001F") || ""
+                };
+            }).filter(a => a.name !== "" && a.path !== "");
+            root.allApps = apps;
         }
     }
 
     function refreshApps() {
-        listProc.running = false
-        listProc.running = true
+        listProc.running = false;
+        listProc.running = true;
     }
 
     // ------------------------------------------------------------
@@ -107,41 +97,41 @@ PanelWindow {
         property var callback
         onExited: (code, status) => {
             if (mkdirProc.callback) {
-                var cb = mkdirProc.callback
-                mkdirProc.callback = null
-                cb(code)
+                var cb = mkdirProc.callback;
+                mkdirProc.callback = null;
+                cb(code);
             }
         }
     }
 
     function loadUsage() {
         try {
-            var parsed = JSON.parse(usageFileObj.text())
-            root.usage = (parsed && typeof parsed === "object") ? parsed : {}
+            var parsed = JSON.parse(usageFileObj.text());
+            root.usage = (parsed && typeof parsed === "object") ? parsed : {};
         } catch (e) {
-            root.usage = {}
+            root.usage = {};
         }
     }
 
     function saveUsage() {
-        var data = JSON.stringify(root.usage)
-        mkdirProc.callback = function(code) {
+        var data = JSON.stringify(root.usage);
+        mkdirProc.callback = function (code) {
             if (code === 0) {
-                usageFileObj.setText(data)
+                usageFileObj.setText(data);
             } else {
-                console.warn("[AppLauncher] Failed to create cache dir:", code)
+                console.warn("[AppLauncher] Failed to create cache dir:", code);
             }
-        }
-        mkdirProc.command = ["mkdir", "-p", root.cacheDir]
-        mkdirProc.running = false
-        mkdirProc.running = true
+        };
+        mkdirProc.command = ["mkdir", "-p", root.cacheDir];
+        mkdirProc.running = false;
+        mkdirProc.running = true;
     }
 
     function bumpUsage(path) {
-        var u = root.usage
-        u[path] = (u[path] || 0) + 1
-        root.usage = u
-        saveUsage()
+        var u = root.usage;
+        u[path] = (u[path] || 0) + 1;
+        root.usage = u;
+        saveUsage();
     }
 
     // ------------------------------------------------------------
@@ -154,16 +144,12 @@ PanelWindow {
 
     Process {
         id: detectLauncherProc
-        command: ["sh", "-c",
-            "command -v dex >/dev/null 2>&1 && echo dex || " +
-            "{ command -v gtk-launch >/dev/null 2>&1 && echo gtk-launch || " +
-            "{ command -v gio >/dev/null 2>&1 && echo gio || echo none; }; }"
-        ]
+        command: ["sh", "-c", "command -v dex >/dev/null 2>&1 && echo dex || " + "{ command -v gtk-launch >/dev/null 2>&1 && echo gtk-launch || " + "{ command -v gio >/dev/null 2>&1 && echo gio || echo none; }; }"]
         stdout: StdioCollector {
             onStreamFinished: {
-                root.launchMethod = text.trim()
+                root.launchMethod = text.trim();
                 if (root.launchMethod === "none") {
-                    console.warn("[AppLauncher] No desktop-file launcher found (checked dex, gtk-launch, gio) - launching apps will not work")
+                    console.warn("[AppLauncher] No desktop-file launcher found (checked dex, gtk-launch, gio) - launching apps will not work");
                 }
             }
         }
@@ -176,42 +162,45 @@ PanelWindow {
         stderr: StdioCollector {}
         onExited: (code, status) => {
             if (code !== 0) {
-                console.warn("[AppLauncher] Failed to launch:", code, launchProc.stderr.text)
+                console.warn("[AppLauncher] Failed to launch:", code, launchProc.stderr.text);
             } else {
-                console.log("[AppLauncher] Launched:", launchProc.launchPath)
+                console.log("[AppLauncher] Launched:", launchProc.launchPath);
             }
         }
     }
 
     function launchApp(app) {
-        if (!app || !app.path) return
-
-        var cmd
+        if (!app || !app.path)
+            return;
+        var cmd;
         if (root.launchMethod === "dex") {
-            cmd = ["dex", app.path]
+            cmd = ["dex", app.path];
         } else if (root.launchMethod === "gtk-launch") {
             // gtk-launch wants a desktop-file *id* (basename, no extension,
             // no directory), resolved against XDG_DATA_DIRS.
-            var base = app.path.split("/").pop().replace(/\.desktop$/, "")
-            cmd = ["gtk-launch", base]
+            var base = app.path.split("/").pop().replace(/\.desktop$/, "");
+            cmd = ["gtk-launch", base];
         } else if (root.launchMethod === "gio") {
-            cmd = ["gio", "launch", app.path]
+            cmd = ["gio", "launch", app.path];
         } else {
-            console.warn("[AppLauncher] Cannot launch, no launcher available:", app.path)
-            return
+            console.warn("[AppLauncher] Cannot launch, no launcher available:", app.path);
+            return;
         }
 
         // Use Quickshell's native detached execution to safely launch the app
-        Quickshell.execDetached({ command: cmd })
-        root.bumpUsage(app.path)
-        root.active = false
+        Quickshell.execDetached({
+            command: cmd
+        });
+        root.bumpUsage(app.path);
+        root.active = false;
     }
 
     function launchSelected() {
-        var list = root.filteredApps
-        if (list.length === 0) return
-        var idx = Math.max(0, Math.min(root.selectedIndex, list.length - 1))
-        root.launchApp(list[idx])
+        var list = root.filteredApps;
+        if (list.length === 0)
+            return;
+        var idx = Math.max(0, Math.min(root.selectedIndex, list.length - 1));
+        root.launchApp(list[idx]);
     }
 
     // ------------------------------------------------------------
@@ -219,42 +208,48 @@ PanelWindow {
     // ------------------------------------------------------------
 
     readonly property var filteredApps: {
-        var q = searchText.trim().toLowerCase()
-        var list = allApps
+        var q = searchText.trim().toLowerCase();
+        var list = allApps;
 
         if (q !== "") {
-            list = list.filter(function(a) { return a.name.toLowerCase().includes(q) })
+            list = list.filter(function (a) {
+                return a.name.toLowerCase().includes(q);
+            });
         }
 
-        list = list.slice().sort(function(a, b) {
+        list = list.slice().sort(function (a, b) {
             if (q !== "") {
-                var aStarts = a.name.toLowerCase().startsWith(q) ? 0 : 1
-                var bStarts = b.name.toLowerCase().startsWith(q) ? 0 : 1
-                if (aStarts !== bStarts) return aStarts - bStarts
+                var aStarts = a.name.toLowerCase().startsWith(q) ? 0 : 1;
+                var bStarts = b.name.toLowerCase().startsWith(q) ? 0 : 1;
+                if (aStarts !== bStarts)
+                    return aStarts - bStarts;
             }
-            var au = root.usage[a.path] || 0
-            var bu = root.usage[b.path] || 0
-            if (au !== bu) return bu - au
-            return a.name.localeCompare(b.name)
-        })
+            var au = root.usage[a.path] || 0;
+            var bu = root.usage[b.path] || 0;
+            if (au !== bu)
+                return bu - au;
+            return a.name.localeCompare(b.name);
+        });
 
-        return list
+        return list;
     }
 
     onFilteredAppsChanged: {
-        if (root.selectedIndex >= filteredApps.length) root.selectedIndex = Math.max(0, filteredApps.length - 1)
+        if (root.selectedIndex >= filteredApps.length)
+            root.selectedIndex = Math.max(0, filteredApps.length - 1);
     }
 
     onActiveChanged: {
         if (active) {
-            searchText = ""
-            selectedIndex = 0
-            refreshApps()
-            loadUsage()
-            focusTimer.start()
+            searchText = "";
+            selectedIndex = 0;
+            refreshApps();
+            loadUsage();
+            focusTimer.start();
         } else {
-          searchText = ""
-          if (searchInput) searchInput.text = ""
+            searchText = "";
+            if (searchInput)
+                searchInput.text = "";
         }
     }
 
@@ -266,7 +261,7 @@ PanelWindow {
     }
 
     Component.onCompleted: {
-        detectLauncherProc.running = true
+        detectLauncherProc.running = true;
     }
 
     // ------------------------------------------------------------
@@ -324,20 +319,22 @@ PanelWindow {
                     verticalAlignment: TextInput.AlignVCenter
                     focus: true
                     onTextChanged: {
-                        root.searchText = text
-                        root.selectedIndex = 0
+                        root.searchText = text;
+                        root.selectedIndex = 0;
                     }
                     Keys.onEscapePressed: root.active = false
                     Keys.onReturnPressed: root.launchSelected()
                     Keys.onUpPressed: {
-                        if (root.filteredApps.length === 0) return
-                        root.selectedIndex = Math.max(0, root.selectedIndex - 1)
-                        appList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
+                        if (root.filteredApps.length === 0)
+                            return;
+                        root.selectedIndex = Math.max(0, root.selectedIndex - 1);
+                        appList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
                     }
                     Keys.onDownPressed: {
-                        if (root.filteredApps.length === 0) return
-                        root.selectedIndex = Math.min(root.filteredApps.length - 1, root.selectedIndex + 1)
-                        appList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
+                        if (root.filteredApps.length === 0)
+                            return;
+                        root.selectedIndex = Math.min(root.filteredApps.length - 1, root.selectedIndex + 1);
+                        appList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
                     }
                 }
             }
@@ -423,8 +420,14 @@ PanelWindow {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     hoverEnabled: true
-                    onEntered: { closeBtn.color = cal3; closeBtn.border.color = cal6 }
-                    onExited: { closeBtn.color = cal2; closeBtn.border.color = cal3 }
+                    onEntered: {
+                        closeBtn.color = cal3;
+                        closeBtn.border.color = cal6;
+                    }
+                    onExited: {
+                        closeBtn.color = cal2;
+                        closeBtn.border.color = cal3;
+                    }
                     onClicked: root.active = false
                 }
             }

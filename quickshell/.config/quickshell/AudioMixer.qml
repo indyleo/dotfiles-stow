@@ -23,7 +23,12 @@ PanelWindow {
     color: "transparent"
     exclusionMode: ExclusionMode.Normal
     WlrLayershell.layer: WlrLayer.Overlay
-    anchors { top: true; bottom: true; left: true; right: true }
+    anchors {
+        top: true
+        bottom: true
+        left: true
+        right: true
+    }
 
     // Track every stream node unconditionally first - deliberately not
     // gated on n.audio/n.properties being already truthy. Those become
@@ -33,11 +38,19 @@ PanelWindow {
     // a circular dependency that could leave freshly-appearing playback
     // streams permanently unclassified (never enough to get tracked, so
     // .audio never populates, so they never pass the filter).
-    readonly property var allStreamNodes: Pipewire.nodes.values.filter(function(n) { return n.isStream })
-    readonly property var allSinkNodes: Pipewire.nodes.values.filter(function(n) { return !n.isStream && n.isSink })
-    readonly property var allSourceNodes: Pipewire.nodes.values.filter(function(n) { return !n.isStream && !n.isSink })
+    readonly property var allStreamNodes: Pipewire.nodes.values.filter(function (n) {
+        return n.isStream;
+    })
+    readonly property var allSinkNodes: Pipewire.nodes.values.filter(function (n) {
+        return !n.isStream && n.isSink;
+    })
+    readonly property var allSourceNodes: Pipewire.nodes.values.filter(function (n) {
+        return !n.isStream && !n.isSink;
+    })
 
-    PwObjectTracker { objects: root.allStreamNodes.concat(root.allSinkNodes).concat(root.allSourceNodes) }
+    PwObjectTracker {
+        objects: root.allStreamNodes.concat(root.allSinkNodes).concat(root.allSourceNodes)
+    }
 
     // media.class is PipeWire's own authoritative direction string
     // ("Stream/Output/Audio" for playback, "Stream/Input/Audio" for
@@ -47,29 +60,35 @@ PanelWindow {
     // "recording" and the playback list stayed empty). isSink is kept
     // only as a fallback for the rare node that's missing media.class.
     function isPlaybackStream(n) {
-        var mc = (n.properties && n.properties["media.class"]) || ""
-        if (mc.indexOf("Output") !== -1) return true
-        if (mc.indexOf("Input") !== -1) return false
-        return n.isSink
+        var mc = (n.properties && n.properties["media.class"]) || "";
+        if (mc.indexOf("Output") !== -1)
+            return true;
+        if (mc.indexOf("Input") !== -1)
+            return false;
+        return n.isSink;
     }
 
-    readonly property var playbackStreams: root.allStreamNodes.filter(function(n) {
-        return n.audio && root.isPlaybackStream(n)
+    readonly property var playbackStreams: root.allStreamNodes.filter(function (n) {
+        return n.audio && root.isPlaybackStream(n);
     })
-    readonly property var recordingStreams: root.allStreamNodes.filter(function(n) {
-        return n.audio && !root.isPlaybackStream(n)
+    readonly property var recordingStreams: root.allStreamNodes.filter(function (n) {
+        return n.audio && !root.isPlaybackStream(n);
     })
 
-    readonly property var sinks: root.allSinkNodes.filter(function(n) { return n.audio })
-    readonly property var sources: root.allSourceNodes.filter(function(n) { return n.audio })
+    readonly property var sinks: root.allSinkNodes.filter(function (n) {
+        return n.audio;
+    })
+    readonly property var sources: root.allSourceNodes.filter(function (n) {
+        return n.audio;
+    })
 
     function appLabel(node) {
-        var props = node.properties || {}
-        return props["application.name"] || node.description || node.nickname || node.name
+        var props = node.properties || {};
+        return props["application.name"] || node.description || node.nickname || node.name;
     }
 
     function deviceLabel(node) {
-        return node.description || node.nickname || node.name
+        return node.description || node.nickname || node.name;
     }
 
     // Quickshell's Pipewire binding doesn't expose stream rerouting
@@ -77,15 +96,17 @@ PanelWindow {
     // pipewire graph via pipewire-pulse) for exactly this one operation.
     // Everything else here (volume, mute) is done through the native
     // property writes above, no subprocess involved.
-    signal requestSwitcher()
+    signal requestSwitcher
 
-    Process { id: moveProc }
+    Process {
+        id: moveProc
+    }
 
     function moveStream(node, targetDevice, kind) {
-        var verb = kind === "sink" ? "move-sink-input" : "move-source-output"
-        moveProc.command = ["pactl", verb, String(node.id), targetDevice.name]
-        moveProc.running = false
-        moveProc.running = true
+        var verb = kind === "sink" ? "move-sink-input" : "move-source-output";
+        moveProc.command = ["pactl", verb, String(node.id), targetDevice.name];
+        moveProc.running = false;
+        moveProc.running = true;
     }
 
     Rectangle {
@@ -111,7 +132,9 @@ PanelWindow {
                     font.pixelSize: root.fontSize + 4
                     font.bold: true
                 }
-                Item { Layout.fillWidth: true }
+                Item {
+                    Layout.fillWidth: true
+                }
                 Rectangle {
                     id: devicesBtn
                     Layout.preferredWidth: devicesText.implicitWidth + 24
@@ -132,9 +155,18 @@ PanelWindow {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         hoverEnabled: true
-                        onEntered: { devicesBtn.color = cal3; devicesBtn.border.color = cal14 }
-                        onExited: { devicesBtn.color = cal2; devicesBtn.border.color = cal3 }
-                        onClicked: { root.active = false; root.requestSwitcher() }
+                        onEntered: {
+                            devicesBtn.color = cal3;
+                            devicesBtn.border.color = cal14;
+                        }
+                        onExited: {
+                            devicesBtn.color = cal2;
+                            devicesBtn.border.color = cal3;
+                        }
+                        onClicked: {
+                            root.active = false;
+                            root.requestSwitcher();
+                        }
                     }
                 }
             }
@@ -148,7 +180,12 @@ PanelWindow {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     spacing: 6
-                    Text { text: "Playback"; color: cal14; font.family: root.fontFamily; font.pixelSize: root.fontSize + 2 }
+                    Text {
+                        text: "Playback"
+                        color: cal14
+                        font.family: root.fontFamily
+                        font.pixelSize: root.fontSize + 2
+                    }
                     ListView {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -173,7 +210,12 @@ PanelWindow {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     spacing: 6
-                    Text { text: "Recording"; color: cal14; font.family: root.fontFamily; font.pixelSize: root.fontSize + 2 }
+                    Text {
+                        text: "Recording"
+                        color: cal14
+                        font.family: root.fontFamily
+                        font.pixelSize: root.fontSize + 2
+                    }
                     ListView {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -215,8 +257,14 @@ PanelWindow {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     hoverEnabled: true
-                    onEntered: { closeBtn.color = cal3; closeBtn.border.color = cal6 }
-                    onExited: { closeBtn.color = cal2; closeBtn.border.color = cal3 }
+                    onEntered: {
+                        closeBtn.color = cal3;
+                        closeBtn.border.color = cal6;
+                    }
+                    onExited: {
+                        closeBtn.color = cal2;
+                        closeBtn.border.color = cal3;
+                    }
                     onClicked: root.active = false
                 }
             }
@@ -245,7 +293,11 @@ PanelWindow {
             border.color: cal3
             clip: true
 
-            Behavior on height { NumberAnimation { duration: 100 } }
+            Behavior on height {
+                NumberAnimation {
+                    duration: 100
+                }
+            }
 
             ColumnLayout {
                 anchors.fill: parent
@@ -298,7 +350,10 @@ PanelWindow {
                         Layout.fillWidth: true
                         value: streamRow.safeVolume
                         muted: streamRow.safeMuted
-                        onMoved: (v) => { if (streamRow.modelData.audio != null) streamRow.modelData.audio.volume = v }
+                        onMoved: v => {
+                            if (streamRow.modelData.audio != null)
+                                streamRow.modelData.audio.volume = v;
+                        }
                     }
                     Text {
                         Layout.preferredWidth: 36
@@ -345,8 +400,8 @@ PanelWindow {
                             onEntered: parent.border.color = cal14
                             onExited: parent.border.color = cal3
                             onClicked: {
-                                root.moveStream(streamRow.modelData, deviceOption.modelData, streamRow.kind)
-                                streamRow.deviceMenuOpen = false
+                                root.moveStream(streamRow.modelData, deviceOption.modelData, streamRow.kind);
+                                streamRow.deviceMenuOpen = false;
                             }
                         }
                     }

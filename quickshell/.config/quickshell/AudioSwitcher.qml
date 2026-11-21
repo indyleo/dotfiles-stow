@@ -22,7 +22,12 @@ PanelWindow {
     color: "transparent"
     exclusionMode: ExclusionMode.Normal
     WlrLayershell.layer: WlrLayer.Overlay
-    anchors { top: true; bottom: true; left: true; right: true }
+    anchors {
+        top: true
+        bottom: true
+        left: true
+        right: true
+    }
 
     // Previously this parsed `pactl list short sinks` by splitting on
     // whitespace. That short format is index/name/driver/sample-spec/state -
@@ -35,28 +40,36 @@ PanelWindow {
     // AudioController.qml) that exposes real node metadata directly, so
     // there's no text format to misparse and no subprocess that can fail
     // silently.
-    readonly property var allSinkNodes: Pipewire.nodes.values.filter(function(n) {
-        return !n.isStream && n.isSink
+    readonly property var allSinkNodes: Pipewire.nodes.values.filter(function (n) {
+        return !n.isStream && n.isSink;
     })
-    readonly property var allSourceNodes: Pipewire.nodes.values.filter(function(n) {
-        return !n.isStream && !n.isSink
+    readonly property var allSourceNodes: Pipewire.nodes.values.filter(function (n) {
+        return !n.isStream && !n.isSink;
     })
 
-    PwObjectTracker { objects: root.allSinkNodes.concat(root.allSourceNodes) }
+    PwObjectTracker {
+        objects: root.allSinkNodes.concat(root.allSourceNodes)
+    }
 
-    readonly property var sinks: root.allSinkNodes.filter(function(n) { return n.audio })
-    readonly property var sources: root.allSourceNodes.filter(function(n) { return n.audio })
+    readonly property var sinks: root.allSinkNodes.filter(function (n) {
+        return n.audio;
+    })
+    readonly property var sources: root.allSourceNodes.filter(function (n) {
+        return n.audio;
+    })
 
-    signal requestMixer()
+    signal requestMixer
 
     function deviceLabel(node) {
-        return node.description || node.nickname || node.name
+        return node.description || node.nickname || node.name;
     }
 
     function setDefault(node, type) {
-        if (type === "sink") Pipewire.preferredDefaultAudioSink = node
-        else Pipewire.preferredDefaultAudioSource = node
-        root.active = false
+        if (type === "sink")
+            Pipewire.preferredDefaultAudioSink = node;
+        else
+            Pipewire.preferredDefaultAudioSource = node;
+        root.active = false;
     }
 
     Rectangle {
@@ -82,7 +95,9 @@ PanelWindow {
                     font.pixelSize: root.fontSize + 4
                     font.bold: true
                 }
-                Item { Layout.fillWidth: true }
+                Item {
+                    Layout.fillWidth: true
+                }
                 Rectangle {
                     id: perAppBtn
                     Layout.preferredWidth: perAppText.implicitWidth + 24
@@ -103,9 +118,18 @@ PanelWindow {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         hoverEnabled: true
-                        onEntered: { perAppBtn.color = cal3; perAppBtn.border.color = cal14 }
-                        onExited: { perAppBtn.color = cal2; perAppBtn.border.color = cal3 }
-                        onClicked: { root.active = false; root.requestMixer() }
+                        onEntered: {
+                            perAppBtn.color = cal3;
+                            perAppBtn.border.color = cal14;
+                        }
+                        onExited: {
+                            perAppBtn.color = cal2;
+                            perAppBtn.border.color = cal3;
+                        }
+                        onClicked: {
+                            root.active = false;
+                            root.requestMixer();
+                        }
                     }
                 }
             }
@@ -118,7 +142,12 @@ PanelWindow {
                 ColumnLayout {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    Text { text: "Outputs"; color: cal14; font.family: root.fontFamily; font.pixelSize: root.fontSize + 2 }
+                    Text {
+                        text: "Outputs"
+                        color: cal14
+                        font.family: root.fontFamily
+                        font.pixelSize: root.fontSize + 2
+                    }
                     ListView {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -151,8 +180,10 @@ PanelWindow {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
                                 hoverEnabled: true
-                                onEntered: if (!sinkDelegate.isDefault) parent.border.color = cal14
-                                onExited: if (!sinkDelegate.isDefault) parent.border.color = cal3
+                                onEntered: if (!sinkDelegate.isDefault)
+                                    parent.border.color = cal14
+                                onExited: if (!sinkDelegate.isDefault)
+                                    parent.border.color = cal3
                                 onClicked: root.setDefault(sinkDelegate.modelData, "sink")
                             }
 
@@ -166,8 +197,18 @@ PanelWindow {
                                     ColumnLayout {
                                         Layout.fillWidth: true
                                         spacing: 0
-                                        Text { text: root.deviceLabel(sinkDelegate.modelData); color: cal6; font.family: root.fontFamily; font.pixelSize: root.fontSize }
-                                        Text { text: sinkDelegate.modelData.name; color: cal3; font.family: root.fontFamily; font.pixelSize: root.fontSize - 2 }
+                                        Text {
+                                            text: root.deviceLabel(sinkDelegate.modelData)
+                                            color: cal6
+                                            font.family: root.fontFamily
+                                            font.pixelSize: root.fontSize
+                                        }
+                                        Text {
+                                            text: sinkDelegate.modelData.name
+                                            color: cal3
+                                            font.family: root.fontFamily
+                                            font.pixelSize: root.fontSize - 2
+                                        }
                                     }
                                     Text {
                                         visible: sinkDelegate.isDefault
@@ -197,7 +238,10 @@ PanelWindow {
                                         Layout.fillWidth: true
                                         value: sinkDelegate.safeVolume
                                         muted: sinkDelegate.safeMuted
-                                        onMoved: (v) => { if (sinkDelegate.modelData.audio != null) sinkDelegate.modelData.audio.volume = v }
+                                        onMoved: v => {
+                                            if (sinkDelegate.modelData.audio != null)
+                                                sinkDelegate.modelData.audio.volume = v;
+                                        }
                                     }
                                     Text {
                                         Layout.preferredWidth: 36
@@ -215,7 +259,12 @@ PanelWindow {
                 ColumnLayout {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    Text { text: "Inputs"; color: cal14; font.family: root.fontFamily; font.pixelSize: root.fontSize + 2 }
+                    Text {
+                        text: "Inputs"
+                        color: cal14
+                        font.family: root.fontFamily
+                        font.pixelSize: root.fontSize + 2
+                    }
                     ListView {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -240,8 +289,10 @@ PanelWindow {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
                                 hoverEnabled: true
-                                onEntered: if (!sourceDelegate.isDefault) parent.border.color = cal14
-                                onExited: if (!sourceDelegate.isDefault) parent.border.color = cal3
+                                onEntered: if (!sourceDelegate.isDefault)
+                                    parent.border.color = cal14
+                                onExited: if (!sourceDelegate.isDefault)
+                                    parent.border.color = cal3
                                 onClicked: root.setDefault(sourceDelegate.modelData, "source")
                             }
 
@@ -255,8 +306,18 @@ PanelWindow {
                                     ColumnLayout {
                                         Layout.fillWidth: true
                                         spacing: 0
-                                        Text { text: root.deviceLabel(sourceDelegate.modelData); color: cal6; font.family: root.fontFamily; font.pixelSize: root.fontSize }
-                                        Text { text: sourceDelegate.modelData.name; color: cal3; font.family: root.fontFamily; font.pixelSize: root.fontSize - 2 }
+                                        Text {
+                                            text: root.deviceLabel(sourceDelegate.modelData)
+                                            color: cal6
+                                            font.family: root.fontFamily
+                                            font.pixelSize: root.fontSize
+                                        }
+                                        Text {
+                                            text: sourceDelegate.modelData.name
+                                            color: cal3
+                                            font.family: root.fontFamily
+                                            font.pixelSize: root.fontSize - 2
+                                        }
                                     }
                                     Text {
                                         visible: sourceDelegate.isDefault
@@ -286,7 +347,10 @@ PanelWindow {
                                         Layout.fillWidth: true
                                         value: sourceDelegate.safeVolume
                                         muted: sourceDelegate.safeMuted
-                                        onMoved: (v) => { if (sourceDelegate.modelData.audio != null) sourceDelegate.modelData.audio.volume = v }
+                                        onMoved: v => {
+                                            if (sourceDelegate.modelData.audio != null)
+                                                sourceDelegate.modelData.audio.volume = v;
+                                        }
                                     }
                                     Text {
                                         Layout.preferredWidth: 36
@@ -322,8 +386,14 @@ PanelWindow {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     hoverEnabled: true
-                    onEntered: { closeBtn.color = cal3; closeBtn.border.color = cal6 }
-                    onExited: { closeBtn.color = cal2; closeBtn.border.color = cal3 }
+                    onEntered: {
+                        closeBtn.color = cal3;
+                        closeBtn.border.color = cal6;
+                    }
+                    onExited: {
+                        closeBtn.color = cal2;
+                        closeBtn.border.color = cal3;
+                    }
                     onClicked: root.active = false
                 }
             }

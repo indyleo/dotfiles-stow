@@ -4,79 +4,85 @@ import Quickshell.Services.Notifications
 
 // Notification daemon + history store.
 Item {
-	id: root
+    id: root
 
-	readonly property int historyLimit: 25
+    readonly property int historyLimit: 25
 
-	property var history: []
+    property var history: []
 
-	function pushHistory(n, reason) {
-		const snapshot = {
-			appName: n.appName,
-			summary: n.summary,
-			body: n.body,
-			appIcon: n.appIcon,
-			image: n.image,
-			urgency: n.urgency,
-			time: Date.now(),
-			closeReason: reason
-		}
-		root.history = [snapshot, ...root.history]
-		if (root.history.length > root.historyLimit)
-			root.history = root.history.slice(0, root.historyLimit)
-	}
+    function pushHistory(n, reason) {
+        const snapshot = {
+            appName: n.appName,
+            summary: n.summary,
+            body: n.body,
+            appIcon: n.appIcon,
+            image: n.image,
+            urgency: n.urgency,
+            time: Date.now(),
+            closeReason: reason
+        };
+        root.history = [snapshot, ...root.history];
+        if (root.history.length > root.historyLimit)
+            root.history = root.history.slice(0, root.historyLimit);
+    }
 
-	function clearHistory() { root.history = [] }
+    function clearHistory() {
+        root.history = [];
+    }
 
-	function removeHistory(index) {
-		if (index < 0 || index >= root.history.length) return
-		root.history = root.history.filter((_, i) => i !== index)
-	}
+    function removeHistory(index) {
+        if (index < 0 || index >= root.history.length)
+            return;
+        root.history = root.history.filter((_, i) => i !== index);
+    }
 
-	property bool dndEnabled: false
+    property bool dndEnabled: false
 
-	NotificationServer {
-		id: server
+    NotificationServer {
+        id: server
 
-		imageSupported: true
-		bodyMarkupSupported: true
-		bodyImagesSupported: true
-		actionsSupported: true
-		actionIconsSupported: false
-		persistenceSupported: true
-		keepOnReload: true
+        imageSupported: true
+        bodyMarkupSupported: true
+        bodyImagesSupported: true
+        actionsSupported: true
+        actionIconsSupported: false
+        persistenceSupported: true
+        keepOnReload: true
 
-		onNotification: notification => {
-			notification.tracked = true
-			notification.closed.connect(reason => root.pushHistory(notification, reason))
-			// DND: still tracked (so it still lands in history via the
-			// closed signal above) but dismissed immediately so it never
-			// actually renders as a visible popup.
-			if (root.dndEnabled) notification.dismiss()
-		}
-	}
+        onNotification: notification => {
+            notification.tracked = true;
+            notification.closed.connect(reason => root.pushHistory(notification, reason));
+            // DND: still tracked (so it still lands in history via the
+            // closed signal above) but dismissed immediately so it never
+            // actually renders as a visible popup.
+            if (root.dndEnabled)
+                notification.dismiss();
+        }
+    }
 
-	readonly property alias popups: server.trackedNotifications
+    readonly property alias popups: server.trackedNotifications
 
-	function dismissAll() {
-		const list = server.trackedNotifications.values.slice()
-		list.forEach(n => n.dismiss())
-	}
+    function dismissAll() {
+        const list = server.trackedNotifications.values.slice();
+        list.forEach(n => n.dismiss());
+    }
 
-	function invokeDefaultAction(n) {
-		if (!n.actions || n.actions.length === 0) return
-		let def = null
-		for (let i = 0; i < n.actions.length; i++) {
-			if (n.actions[i].identifier === "default") {
-				def = n.actions[i]
-				break
-			}
-		}
-		if (!def) def = n.actions[0]
-		def.invoke()
-	}
+    function invokeDefaultAction(n) {
+        if (!n.actions || n.actions.length === 0)
+            return;
+        let def = null;
+        for (let i = 0; i < n.actions.length; i++) {
+            if (n.actions[i].identifier === "default") {
+                def = n.actions[i];
+                break;
+            }
+        }
+        if (!def)
+            def = n.actions[0];
+        def.invoke();
+    }
 
-	function hasProgress(n) {
-		return n.hints && n.hints.value !== undefined && !isNaN(n.hints.value)
-	}
+    function hasProgress(n) {
+        return n.hints && n.hints.value !== undefined && !isNaN(n.hints.value);
+    }
 }

@@ -18,38 +18,59 @@ Item {
     readonly property string text: show ? percentage + "%" : ""
 
     readonly property string icon: {
-        if (!show) return "󰂑"
+        if (!show)
+            return "󰂑";
         if (status === "Charging") {
-            if (percentage >= 100) return "󰂅"
-            if (percentage >= 90) return "󰂋"
-            if (percentage >= 80) return "󰂊"
-            if (percentage >= 70) return "󰢞"
-            if (percentage >= 60) return "󰂉"
-            if (percentage >= 50) return "󰢝"
-            if (percentage >= 40) return "󰂈"
-            if (percentage >= 30) return "󰂇"
-            if (percentage >= 20) return "󰂆"
-            if (percentage >= 10) return "󰢜"
-            return "󰢟"
+            if (percentage >= 100)
+                return "󰂅";
+            if (percentage >= 90)
+                return "󰂋";
+            if (percentage >= 80)
+                return "󰂊";
+            if (percentage >= 70)
+                return "󰢞";
+            if (percentage >= 60)
+                return "󰂉";
+            if (percentage >= 50)
+                return "󰢝";
+            if (percentage >= 40)
+                return "󰂈";
+            if (percentage >= 30)
+                return "󰂇";
+            if (percentage >= 20)
+                return "󰂆";
+            if (percentage >= 10)
+                return "󰢜";
+            return "󰢟";
         } else if (status === "Discharging") {
-            if (percentage >= 100) return "󰁹"
-            if (percentage >= 90) return "󰂂"
-            if (percentage >= 80) return "󰂁"
-            if (percentage >= 70) return "󰂀"
-            if (percentage >= 60) return "󰁿"
-            if (percentage >= 50) return "󰁾"
-            if (percentage >= 40) return "󰁽"
-            if (percentage >= 30) return "󰁼"
-            if (percentage >= 20) return "󰁻"
-            if (percentage >= 10) return "󰁺"
-            return "󰂎"
+            if (percentage >= 100)
+                return "󰁹";
+            if (percentage >= 90)
+                return "󰂂";
+            if (percentage >= 80)
+                return "󰂁";
+            if (percentage >= 70)
+                return "󰂀";
+            if (percentage >= 60)
+                return "󰁿";
+            if (percentage >= 50)
+                return "󰁾";
+            if (percentage >= 40)
+                return "󰁽";
+            if (percentage >= 30)
+                return "󰁼";
+            if (percentage >= 20)
+                return "󰁻";
+            if (percentage >= 10)
+                return "󰁺";
+            return "󰂎";
         } else if (status === "Full") {
-            return "󰂄"
+            return "󰂄";
         }
-        return "󰂑"
+        return "󰂑";
     }
 
-    signal changed()
+    signal changed
     onPercentageChanged: changed()
     onStatusChanged: changed()
     onAvailableChanged: changed()
@@ -61,8 +82,9 @@ Item {
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
-                const name = text.trim()
-                if (name !== "") root.batteryPath = "/sys/class/power_supply/" + name
+                const name = text.trim();
+                if (name !== "")
+                    root.batteryPath = "/sys/class/power_supply/" + name;
             }
         }
     }
@@ -99,8 +121,8 @@ Item {
     function refresh() {
         if (root.batteryPath !== "") {
             // Force reload of sysfs files
-            capacityFile.reload()
-            statusFile.reload()
+            capacityFile.reload();
+            statusFile.reload();
         }
     }
 }

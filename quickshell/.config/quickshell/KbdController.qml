@@ -19,8 +19,8 @@ Item {
         property string action: ""
         stdout: StdioCollector {
             onStreamFinished: {
-                controller.pendingAdjust = true
-                refreshTimer.start()
+                controller.pendingAdjust = true;
+                refreshTimer.start();
             }
         }
     }
@@ -31,13 +31,13 @@ Item {
         stdout: SplitParser {
             onRead: data => {
                 if (data) {
-                    const val = parseInt(data.trim())
+                    const val = parseInt(data.trim());
                     if (!isNaN(val)) {
-                        controller.level = val
-                        controller.updateIconText()
+                        controller.level = val;
+                        controller.updateIconText();
                         if (controller.pendingAdjust) {
-                            controller.pendingAdjust = false
-                            controller.adjusted(controller.level)
+                            controller.pendingAdjust = false;
+                            controller.adjusted(controller.level);
                         }
                     }
                 }
@@ -51,15 +51,15 @@ Item {
         stdout: SplitParser {
             onRead: data => {
                 if (data && !data.includes("N/A")) {
-                    controller.available = true
+                    controller.available = true;
                 }
             }
         }
     }
 
     Component.onCompleted: {
-        checkProc.running = true
-        refreshLevel()
+        checkProc.running = true;
+        refreshLevel();
     }
 
     Timer {
@@ -69,39 +69,40 @@ Item {
     }
 
     function refreshLevel() {
-        levelProc.running = false
-        levelProc.running = true
+        levelProc.running = false;
+        levelProc.running = true;
     }
 
     function inc() {
-        adjust("--inc")
+        adjust("--inc");
     }
 
     function dec() {
-        adjust("--dec")
+        adjust("--dec");
     }
 
     function toggle() {
-        adjust("--toggle")
+        adjust("--toggle");
     }
 
     function adjust(action) {
-        if (!available) return
-        adjustProc.command = ["sysctl", "kbd", action]
-        adjustProc.running = false
-        adjustProc.running = true
+        if (!available)
+            return;
+        adjustProc.command = ["sysctl", "kbd", action];
+        adjustProc.running = false;
+        adjustProc.running = true;
     }
 
     function updateIconText() {
         if (level === 0) {
-            icon = "󰌌 󰃞"
+            icon = "󰌌 󰃞";
         } else if (level <= 33) {
-            icon = "󰌌 󰃝"
+            icon = "󰌌 󰃝";
         } else if (level <= 66) {
-            icon = "󰌌 󰃟"
+            icon = "󰌌 󰃟";
         } else {
-            icon = "󰌌 󰃠"
+            icon = "󰌌 󰃠";
         }
-        text = level + "%"
+        text = level + "%";
     }
 }

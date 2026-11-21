@@ -34,35 +34,41 @@ PanelWindow {
     exclusionMode: ExclusionMode.Normal
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
-    anchors { top: true; bottom: true; left: true; right: true }
+    anchors {
+        top: true
+        bottom: true
+        left: true
+        right: true
+    }
 
     // ------------------------------------------------------------
     // Invocation — called over IPC by the qsdmenu wrapper script:
     //   qs ipc call pick dmenu <inputFile> <outputFifo> <prompt>
     // ------------------------------------------------------------
 
-		function open(inputFile, outFile, prompt) {
-			root.outputPath = outFile
-			root.masked = prompt.length > 0 && prompt.charCodeAt(0) === 1
-			if (root.masked) prompt = prompt.substring(1)
-			root.promptText = prompt !== "" ? prompt : (root.masked ? "Password" : "run")
-			root.selectedSet = {}
-			inputFileView.path = inputFile
+    function open(inputFile, outFile, prompt) {
+        root.outputPath = outFile;
+        root.masked = prompt.length > 0 && prompt.charCodeAt(0) === 1;
+        if (root.masked)
+            prompt = prompt.substring(1);
+        root.promptText = prompt !== "" ? prompt : (root.masked ? "Password" : "run");
+        root.selectedSet = {};
+        inputFileView.path = inputFile;
 
-			searchInput.text = ""
-			root.searchText = ""   // keep property in sync
-		}
+        searchInput.text = "";
+        root.searchText = "";   // keep property in sync
+    }
 
     FileView {
         id: inputFileView
         onLoaded: {
-            var content = text()
-            root.items = content !== "" ? content.split("\n").filter(l => l !== "") : []
-            root.searchText = ""
-            root.selectedIndex = 0
-            root.selectedSet = {}
-            root.active = true
-            focusTimer.start()
+            var content = text();
+            root.items = content !== "" ? content.split("\n").filter(l => l !== "") : [];
+            root.searchText = "";
+            root.selectedIndex = 0;
+            root.selectedSet = {};
+            root.active = true;
+            focusTimer.start();
         }
     }
 
@@ -85,11 +91,13 @@ PanelWindow {
     readonly property int selectedCount: Object.keys(root.selectedSet).length
 
     function toggleSelect(value) {
-        var updated = Object.assign({}, root.selectedSet)
-        if (updated[value]) delete updated[value]
-        else updated[value] = true
-        root.selectedSet = updated
-				searchInput.text = ""
+        var updated = Object.assign({}, root.selectedSet);
+        if (updated[value])
+            delete updated[value];
+        else
+            updated[value] = true;
+        root.selectedSet = updated;
+        searchInput.text = "";
     }
 
     // ------------------------------------------------------------
@@ -97,16 +105,18 @@ PanelWindow {
     // wrapper script is blocked reading, then closes the picker
     // ------------------------------------------------------------
 
-    Process { id: writeProc }
+    Process {
+        id: writeProc
+    }
 
     function submit(value) {
         if (root.outputPath !== "") {
-            writeProc.command = ["sh", "-c", "printf '%s' \"$1\" > \"$2\"", "write-result", value, root.outputPath]
-            writeProc.running = false
-            writeProc.running = true
+            writeProc.command = ["sh", "-c", "printf '%s' \"$1\" > \"$2\"", "write-result", value, root.outputPath];
+            writeProc.running = false;
+            writeProc.running = true;
         }
-        root.active = false
-        root.selectedSet = {}
+        root.active = false;
+        root.selectedSet = {};
     }
 
     function submitMulti(values) {
@@ -116,23 +126,23 @@ PanelWindow {
             // spelled - passed via argv, never interpolated into the
             // script text, so no quoting concerns even with spaces/quotes
             // in an item).
-            var script = 'out="$1"; shift; printf "%s\\n" "$@" > "$out"'
-            writeProc.command = ["sh", "-c", script, "write-result-multi", root.outputPath].concat(values)
-            writeProc.running = false
-            writeProc.running = true
+            var script = 'out="$1"; shift; printf "%s\\n" "$@" > "$out"';
+            writeProc.command = ["sh", "-c", script, "write-result-multi", root.outputPath].concat(values);
+            writeProc.running = false;
+            writeProc.running = true;
         }
-        root.active = false
-        root.selectedSet = {}
+        root.active = false;
+        root.selectedSet = {};
     }
 
     function submitSelected() {
-        var list = root.filteredItems
+        var list = root.filteredItems;
         if (list.length > 0 && root.selectedIndex >= 0 && root.selectedIndex < list.length) {
-            root.submit(list[root.selectedIndex])
+            root.submit(list[root.selectedIndex]);
         } else {
             // No match highlighted — submit the raw typed text,
             // same as dmenu's "free text" behaviour.
-            root.submit(root.searchText)
+            root.submit(root.searchText);
         }
     }
 
@@ -140,14 +150,14 @@ PanelWindow {
     // submit that whole set; otherwise fall back to normal single-select.
     function confirm() {
         if (root.selectedCount > 0) {
-            root.submitMulti(Object.keys(root.selectedSet))
+            root.submitMulti(Object.keys(root.selectedSet));
         } else {
-            root.submitSelected()
+            root.submitSelected();
         }
     }
 
     function cancel() {
-        root.submit("")
+        root.submit("");
     }
 
     // ------------------------------------------------------------
@@ -155,13 +165,17 @@ PanelWindow {
     // ------------------------------------------------------------
 
     readonly property var filteredItems: {
-        var q = searchText.trim().toLowerCase()
-        if (q === "") return items
-        return items.filter(function(i) { return i.toLowerCase().includes(q) })
+        var q = searchText.trim().toLowerCase();
+        if (q === "")
+            return items;
+        return items.filter(function (i) {
+            return i.toLowerCase().includes(q);
+        });
     }
 
     onFilteredItemsChanged: {
-        if (root.selectedIndex >= filteredItems.length) root.selectedIndex = Math.max(0, filteredItems.length - 1)
+        if (root.selectedIndex >= filteredItems.length)
+            root.selectedIndex = Math.max(0, filteredItems.length - 1);
     }
 
     // ------------------------------------------------------------
@@ -191,7 +205,9 @@ PanelWindow {
                     font.pixelSize: root.fontSize + 4
                     font.bold: true
                 }
-                Item { Layout.fillWidth: true }
+                Item {
+                    Layout.fillWidth: true
+                }
                 Text {
                     visible: root.selectedCount > 0
                     text: root.selectedCount + " selected"
@@ -220,20 +236,22 @@ PanelWindow {
                     echoMode: root.masked ? TextInput.Password : TextInput.Normal
                     focus: true
                     onTextChanged: {
-                        root.searchText = text
-                        root.selectedIndex = 0
+                        root.searchText = text;
+                        root.selectedIndex = 0;
                     }
                     Keys.onEscapePressed: root.cancel()
                     Keys.onReturnPressed: root.confirm()
                     Keys.onUpPressed: {
-                        if (root.filteredItems.length === 0) return
-                        root.selectedIndex = Math.max(0, root.selectedIndex - 1)
-                        itemList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
+                        if (root.filteredItems.length === 0)
+                            return;
+                        root.selectedIndex = Math.max(0, root.selectedIndex - 1);
+                        itemList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
                     }
                     Keys.onDownPressed: {
-                        if (root.filteredItems.length === 0) return
-                        root.selectedIndex = Math.min(root.filteredItems.length - 1, root.selectedIndex + 1)
-                        itemList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
+                        if (root.filteredItems.length === 0)
+                            return;
+                        root.selectedIndex = Math.min(root.filteredItems.length - 1, root.selectedIndex + 1);
+                        itemList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
                     }
                 }
             }
@@ -289,11 +307,11 @@ PanelWindow {
                         cursorShape: Qt.PointingHandCursor
                         hoverEnabled: true
                         onEntered: root.selectedIndex = itemDelegate.index
-                        onClicked: (mouse) => {
+                        onClicked: mouse => {
                             if (mouse.modifiers & Qt.ControlModifier) {
-                                root.toggleSelect(itemDelegate.modelData)
+                                root.toggleSelect(itemDelegate.modelData);
                             } else {
-                                root.submit(itemDelegate.modelData)
+                                root.submit(itemDelegate.modelData);
                             }
                         }
                     }
@@ -322,8 +340,14 @@ PanelWindow {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     hoverEnabled: true
-                    onEntered: { closeBtn.color = cal3; closeBtn.border.color = cal6 }
-                    onExited: { closeBtn.color = cal2; closeBtn.border.color = cal3 }
+                    onEntered: {
+                        closeBtn.color = cal3;
+                        closeBtn.border.color = cal6;
+                    }
+                    onExited: {
+                        closeBtn.color = cal2;
+                        closeBtn.border.color = cal3;
+                    }
                     onClicked: root.cancel()
                 }
             }

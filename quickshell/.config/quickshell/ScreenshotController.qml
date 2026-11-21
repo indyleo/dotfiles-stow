@@ -28,96 +28,104 @@ PanelWindow {
     signal ocrDecoded(string text)  // NEW: emitted when text is extracted from an image
 
     // Public API
-    function screenshotFull()    { captureFull() }
-    function screenshotWindow()  { captureWindow() }
-    function screenshotMonitor() { captureMonitor() }
-    function screenshotRegion()  { showRegionSelector() }
-    function colorPicker()       { showColorPicker() }
-    function qrScanner()         { showQrScanner() }  // NEW
-    function ocrScanner()        { showOcrScanner() } // NEW: grab text from a region
+    function screenshotFull() {
+        captureFull();
+    }
+    function screenshotWindow() {
+        captureWindow();
+    }
+    function screenshotMonitor() {
+        captureMonitor();
+    }
+    function screenshotRegion() {
+        showRegionSelector();
+    }
+    function colorPicker() {
+        showColorPicker();
+    }
+    function qrScanner() {
+        showQrScanner();
+    }  // NEW
+    function ocrScanner() {
+        showOcrScanner();
+    } // NEW: grab text from a region
 
     // Timestamp helper
     function getTimestamp() {
-        var now = new Date()
-        var y = now.getFullYear()
-        var mo = String(now.getMonth() + 1).padStart(2, "0")
-        var d = String(now.getDate()).padStart(2, "0")
-        var h = String(now.getHours()).padStart(2, "0")
-        var mi = String(now.getMinutes()).padStart(2, "0")
-        var s = String(now.getSeconds()).padStart(2, "0")
-        return y + "-" + mo + "-" + d + "_" + h + "-" + mi + "-" + s
+        var now = new Date();
+        var y = now.getFullYear();
+        var mo = String(now.getMonth() + 1).padStart(2, "0");
+        var d = String(now.getDate()).padStart(2, "0");
+        var h = String(now.getHours()).padStart(2, "0");
+        var mi = String(now.getMinutes()).padStart(2, "0");
+        var s = String(now.getSeconds()).padStart(2, "0");
+        return y + "-" + mo + "-" + d + "_" + h + "-" + mi + "-" + s;
     }
 
     // Save, copy, notify after successful capture
     function finalizeImage(filePath) {
-        root.screenshotCaptured(filePath)
+        root.screenshotCaptured(filePath);
 
-        copyImageProc.command = ["sh", "-c", "wl-copy --type image/png < \"$1\"", "sh", filePath]
-        copyImageProc.running = false
-        copyImageProc.running = true
+        copyImageProc.command = ["sh", "-c", "wl-copy --type image/png < \"$1\"", "sh", filePath];
+        copyImageProc.running = false;
+        copyImageProc.running = true;
 
-        var timestamp = getTimestamp()
-        var filename = timestamp + ".png"
-        var saveDir = "$HOME/Pictures/Screenshots"
+        var timestamp = getTimestamp();
+        var filename = timestamp + ".png";
+        var saveDir = "$HOME/Pictures/Screenshots";
 
-        saveImageProc._filename = filename
-        saveImageProc._saveDir = saveDir
-        saveImageProc.command = [
-            "sh", "-c",
-            "mkdir -p \"" + saveDir + "\" && cp \"$1\" \"" + saveDir + "/$2\"",
-            "sh",
-            filePath,
-            filename
-        ]
-        saveImageProc.running = false
-        saveImageProc.running = true
+        saveImageProc._filename = filename;
+        saveImageProc._saveDir = saveDir;
+        saveImageProc.command = ["sh", "-c", "mkdir -p \"" + saveDir + "\" && cp \"$1\" \"" + saveDir + "/$2\"", "sh", filePath, filename];
+        saveImageProc.running = false;
+        saveImageProc.running = true;
     }
 
     // --- Selection overlay (region, color, and now qr) ---
     property string selectorMode: ""   // "region", "color", "qr", or "ocr"
 
     function showRegionSelector() {
-        selectorMode = "region"
-        root.visible = true
-        selectionRect.visible = false
-        regionMouseArea.selecting = false
+        selectorMode = "region";
+        root.visible = true;
+        selectionRect.visible = false;
+        regionMouseArea.selecting = false;
     }
 
     function showColorPicker() {
-        selectorMode = "color"
-        root.visible = true
-        selectionRect.visible = false
-        regionMouseArea.selecting = false
+        selectorMode = "color";
+        root.visible = true;
+        selectionRect.visible = false;
+        regionMouseArea.selecting = false;
     }
 
     // NEW: show overlay for QR scanning (same as region but mode = "qr")
     function showQrScanner() {
         if (!root.zbarAvailable) {
-            root.screenshotFailed("QR scanning requires zbarimg (install zbar-tools)")
-            return
+            root.screenshotFailed("QR scanning requires zbarimg (install zbar-tools)");
+            return;
         }
-        selectorMode = "qr"
-        root.visible = true
-        selectionRect.visible = false
-        regionMouseArea.selecting = false
+        selectorMode = "qr";
+        root.visible = true;
+        selectionRect.visible = false;
+        regionMouseArea.selecting = false;
     }
 
     // NEW: show overlay for OCR (same drag-to-select as region, mode = "ocr")
     function showOcrScanner() {
         if (!root.tesseractAvailable) {
-            root.screenshotFailed("OCR requires tesseract (install tesseract + a language pack, e.g. tesseract-data-eng)")
-            return
+            root.screenshotFailed("OCR requires tesseract (install tesseract + a language pack, e.g. tesseract-data-eng)");
+            return;
         }
-        selectorMode = "ocr"
-        root.visible = true
-        selectionRect.visible = false
-        regionMouseArea.selecting = false
+        selectorMode = "ocr";
+        root.visible = true;
+        selectionRect.visible = false;
+        regionMouseArea.selecting = false;
     }
 
     function hideSelector() {
-        selectorMode = ""
-        root.visible = false
-        selectionRect.visible = false
+        selectorMode = "";
+        root.visible = false;
+        selectionRect.visible = false;
     }
 
     // Wayland layer-shell surfaces don't unmap synchronously when you flip
@@ -137,23 +145,24 @@ PanelWindow {
         property var pendingCallback: null
         property int attemptsLeft: 0
         onTriggered: {
-            if (!pendingCallback) return
-            var cb = pendingCallback
+            if (!pendingCallback)
+                return;
+            var cb = pendingCallback;
             // Give the compositor a couple of extra idle passes to actually
             // commit the unmap before we trust it and fire. Cheap insurance
             // against a single dropped/delayed frame; doesn't add real
             // latency since animationFrame ticks are ~16ms.
             if (attemptsLeft > 0) {
-                attemptsLeft--
-                Qt.callLater(function() {
-                    Qt.callLater(function() {
-                        postHideTimer.pendingCallback = null
-                        cb()
-                    })
-                })
+                attemptsLeft--;
+                Qt.callLater(function () {
+                    Qt.callLater(function () {
+                        postHideTimer.pendingCallback = null;
+                        cb();
+                    });
+                });
             } else {
-                pendingCallback = null
-                cb()
+                pendingCallback = null;
+                cb();
             }
         }
     }
@@ -162,10 +171,10 @@ PanelWindow {
     // has had a chance to actually remove it from the screen. Use this
     // instead of calling hideSelector() immediately followed by a capture.
     function captureAfterHide(callback) {
-        hideSelector()
-        postHideTimer.pendingCallback = callback
-        postHideTimer.attemptsLeft = root.hideSettleRetries
-        postHideTimer.restart()
+        hideSelector();
+        postHideTimer.pendingCallback = callback;
+        postHideTimer.attemptsLeft = root.hideSettleRetries;
+        postHideTimer.restart();
     }
 
     // Full-screen semi-transparent overlay
@@ -208,97 +217,98 @@ PanelWindow {
             property bool selecting: false
 
             // Track mouse position for color cursor
-            onPositionChanged: (mouse) => {
+            onPositionChanged: mouse => {
                 if (selectorMode === "color") {
-                    colorCursor.x = mouse.x
-                    colorCursor.y = mouse.y
+                    colorCursor.x = mouse.x;
+                    colorCursor.y = mouse.y;
                 } else if (selecting) {
-                    var x = Math.min(startX, mouse.x)
-                    var y = Math.min(startY, mouse.y)
-                    var w = Math.abs(mouse.x - startX)
-                    var h = Math.abs(mouse.y - startY)
+                    var x = Math.min(startX, mouse.x);
+                    var y = Math.min(startY, mouse.y);
+                    var w = Math.abs(mouse.x - startX);
+                    var h = Math.abs(mouse.y - startY);
 
-                    selectionRect.x = x
-                    selectionRect.y = y
-                    selectionRect.width = w
-                    selectionRect.height = h
+                    selectionRect.x = x;
+                    selectionRect.y = y;
+                    selectionRect.width = w;
+                    selectionRect.height = h;
                 }
             }
 
-            onPressed: (mouse) => {
-                if (mouse.button !== Qt.LeftButton) return
-
+            onPressed: mouse => {
+                if (mouse.button !== Qt.LeftButton)
+                    return;
                 if (selectorMode === "color") {
                     // Single click: capture pixel under cursor
-                    var x = Math.round(mouse.x)
-                    var y = Math.round(mouse.y)
-                    root.captureAfterHide(function() {
-                        capturePixel(x, y)
-                    })
+                    var x = Math.round(mouse.x);
+                    var y = Math.round(mouse.y);
+                    root.captureAfterHide(function () {
+                        capturePixel(x, y);
+                    });
                 } else if (selectorMode === "region" || selectorMode === "qr" || selectorMode === "ocr") {
-                    selecting = true
-                    startX = mouse.x
-                    startY = mouse.y
-                    selectionRect.x = startX
-                    selectionRect.y = startY
-                    selectionRect.width = 0
-                    selectionRect.height = 0
-                    selectionRect.visible = true
+                    selecting = true;
+                    startX = mouse.x;
+                    startY = mouse.y;
+                    selectionRect.x = startX;
+                    selectionRect.y = startY;
+                    selectionRect.width = 0;
+                    selectionRect.height = 0;
+                    selectionRect.visible = true;
                 }
             }
 
-            onReleased: (mouse) => {
-                if ((selectorMode !== "region" && selectorMode !== "qr" && selectorMode !== "ocr") || !selecting || mouse.button !== Qt.LeftButton) return
-                selecting = false
+            onReleased: mouse => {
+                if ((selectorMode !== "region" && selectorMode !== "qr" && selectorMode !== "ocr") || !selecting || mouse.button !== Qt.LeftButton)
+                    return;
+                selecting = false;
 
                 // Get geometry relative to the overlay (full-screen)
-                var x = Math.round(selectionRect.x)
-                var y = Math.round(selectionRect.y)
-                var w = Math.round(selectionRect.width)
-                var h = Math.round(selectionRect.height)
+                var x = Math.round(selectionRect.x);
+                var y = Math.round(selectionRect.y);
+                var w = Math.round(selectionRect.width);
+                var h = Math.round(selectionRect.height);
 
                 if (w < 5 || h < 5) {
                     // Nothing worth capturing - just hide immediately
-                    hideSelector()
-                    root.screenshotFailed("Region too small")
-                    return
+                    hideSelector();
+                    root.screenshotFailed("Region too small");
+                    return;
                 }
 
-                var geometry = x + "," + y + " " + w + "x" + h
+                var geometry = x + "," + y + " " + w + "x" + h;
 
                 if (selectorMode === "qr") {
-                    root.captureAfterHide(function() {
-                        captureQrRegion(geometry)
-                    })
+                    root.captureAfterHide(function () {
+                        captureQrRegion(geometry);
+                    });
                 } else if (selectorMode === "ocr") {
-                    root.captureAfterHide(function() {
-                        captureOcrRegion(geometry)
-                    })
+                    root.captureAfterHide(function () {
+                        captureOcrRegion(geometry);
+                    });
                 } else {
-                    root.captureAfterHide(function() {
-                        captureRegionWithGeometry(geometry)
-                    })
+                    root.captureAfterHide(function () {
+                        captureRegionWithGeometry(geometry);
+                    });
                 }
             }
 
             onCanceled: {
-                selecting = false
-                hideSelector()
+                selecting = false;
+                hideSelector();
             }
         }
 
         Keys.onEscapePressed: {
-            hideSelector()
+            hideSelector();
         }
     }
 
     // --- Region capture (unchanged) ---
     function captureRegionWithGeometry(geometry) {
-        var temp = "/tmp/qs-region-" + Date.now() + ".png"
-        regionGrimProc._tempPath = temp
-        regionGrimProc.command = ["grim", "-g", geometry, temp]
-        regionGrimProc.running = false
-        regionGrimProc.running = true
+        var temp = "/tmp/qs-region-" + Date.now() + ".png";
+        regionGrimProc._tempPath = temp;
+        regionGrimProc.command = ["grim", "-g", geometry, temp];
+        regionGrimProc.running = false;
+        regionGrimProc.running = true;
     }
 
     Process {
@@ -306,20 +316,20 @@ PanelWindow {
         property string _tempPath
         onExited: (code, status) => {
             if (code === 0) {
-                root.finalizeImage(_tempPath)
+                root.finalizeImage(_tempPath);
             } else {
-                root.screenshotFailed("grim region screenshot failed (exit " + code + ")")
+                root.screenshotFailed("grim region screenshot failed (exit " + code + ")");
             }
         }
     }
 
     // --- NEW: QR capture and decode ---
     function captureQrRegion(geometry) {
-        var temp = "/tmp/qs-qr-" + Date.now() + ".png"
-        qrGrimProc._tempPath = temp
-        qrGrimProc.command = ["grim", "-g", geometry, temp]
-        qrGrimProc.running = false
-        qrGrimProc.running = true
+        var temp = "/tmp/qs-qr-" + Date.now() + ".png";
+        qrGrimProc._tempPath = temp;
+        qrGrimProc.command = ["grim", "-g", geometry, temp];
+        qrGrimProc.running = false;
+        qrGrimProc.running = true;
     }
 
     Process {
@@ -328,12 +338,12 @@ PanelWindow {
         onExited: (code, status) => {
             if (code === 0) {
                 // Now decode the QR code from the captured image
-                qrDecodeProc._tempPath = _tempPath
-                qrDecodeProc.command = ["zbarimg", "--quiet", "--raw", _tempPath]
-                qrDecodeProc.running = false
-                qrDecodeProc.running = true
+                qrDecodeProc._tempPath = _tempPath;
+                qrDecodeProc.command = ["zbarimg", "--quiet", "--raw", _tempPath];
+                qrDecodeProc.running = false;
+                qrDecodeProc.running = true;
             } else {
-                root.screenshotFailed("grim QR capture failed (exit " + code + ")")
+                root.screenshotFailed("grim QR capture failed (exit " + code + ")");
             }
         }
     }
@@ -343,25 +353,25 @@ PanelWindow {
         property string _tempPath
         stdout: StdioCollector {
             onStreamFinished: {
-                var decoded = text.trim()
+                var decoded = text.trim();
                 if (decoded) {
-                    root.qrDecoded(decoded)
+                    root.qrDecoded(decoded);
                     // Copy decoded text to clipboard
-                    copyTextProc.command = ["wl-copy", decoded]
-                    copyTextProc.running = false
-                    copyTextProc.running = true
+                    copyTextProc.command = ["wl-copy", decoded];
+                    copyTextProc.running = false;
+                    copyTextProc.running = true;
                     // Show notification
-                    qrNotifyProc.command = ["notify-send", "QR Code Scanned", decoded + " copied to clipboard."]
-                    qrNotifyProc.running = false
-                    qrNotifyProc.running = true
+                    qrNotifyProc.command = ["notify-send", "QR Code Scanned", decoded + " copied to clipboard."];
+                    qrNotifyProc.running = false;
+                    qrNotifyProc.running = true;
                 } else {
-                    root.screenshotFailed("No QR code detected in selection")
+                    root.screenshotFailed("No QR code detected in selection");
                 }
             }
         }
         onExited: (code, status) => {
             if (code !== 0) {
-                root.screenshotFailed("QR decode failed (exit " + code + ")")
+                root.screenshotFailed("QR decode failed (exit " + code + ")");
             }
         }
     }
@@ -370,7 +380,8 @@ PanelWindow {
     Process {
         id: qrNotifyProc
         onExited: (code, status) => {
-            if (code !== 0) console.warn("[QR] Notification failed (exit " + code + ")")
+            if (code !== 0)
+                console.warn("[QR] Notification failed (exit " + code + ")");
         }
     }
 
@@ -379,11 +390,11 @@ PanelWindow {
     property string ocrPsm: "6"      // 6 = single block of text, 3 = auto layout, 7 = single line
 
     function captureOcrRegion(geometry) {
-        var temp = "/tmp/qs-ocr-" + Date.now() + ".png"
-        ocrGrimProc._tempPath = temp
-        ocrGrimProc.command = ["grim", "-g", geometry, temp]
-        ocrGrimProc.running = false
-        ocrGrimProc.running = true
+        var temp = "/tmp/qs-ocr-" + Date.now() + ".png";
+        ocrGrimProc._tempPath = temp;
+        ocrGrimProc.command = ["grim", "-g", geometry, temp];
+        ocrGrimProc.running = false;
+        ocrGrimProc.running = true;
     }
 
     Process {
@@ -391,13 +402,12 @@ PanelWindow {
         property string _tempPath
         onExited: (code, status) => {
             if (code === 0) {
-                ocrProc._tempPath = _tempPath
-                ocrProc.command = ["tesseract", _tempPath, "stdout",
-                                   "-l", root.ocrLang, "--psm", root.ocrPsm]
-                ocrProc.running = false
-                ocrProc.running = true
+                ocrProc._tempPath = _tempPath;
+                ocrProc.command = ["tesseract", _tempPath, "stdout", "-l", root.ocrLang, "--psm", root.ocrPsm];
+                ocrProc.running = false;
+                ocrProc.running = true;
             } else {
-                root.screenshotFailed("grim OCR capture failed (exit " + code + ")")
+                root.screenshotFailed("grim OCR capture failed (exit " + code + ")");
             }
         }
     }
@@ -407,26 +417,26 @@ PanelWindow {
         property string _tempPath
         stdout: StdioCollector {
             onStreamFinished: {
-                var extracted = text.replace(/\f/g, "").trim()
+                var extracted = text.replace(/\f/g, "").trim();
                 if (extracted) {
-                    root.ocrDecoded(extracted)
+                    root.ocrDecoded(extracted);
                     // "--" so text starting with "-" isn't parsed as a wl-copy option
-                    copyTextProc.command = ["wl-copy", "--", extracted]
-                    copyTextProc.running = false
-                    copyTextProc.running = true
+                    copyTextProc.command = ["wl-copy", "--", extracted];
+                    copyTextProc.running = false;
+                    copyTextProc.running = true;
 
-                    var preview = extracted.length > 200 ? extracted.substring(0, 200) + "…" : extracted
-                    ocrNotifyProc.command = ["notify-send", "Text Copied (OCR)", preview]
-                    ocrNotifyProc.running = false
-                    ocrNotifyProc.running = true
+                    var preview = extracted.length > 200 ? extracted.substring(0, 200) + "…" : extracted;
+                    ocrNotifyProc.command = ["notify-send", "Text Copied (OCR)", preview];
+                    ocrNotifyProc.running = false;
+                    ocrNotifyProc.running = true;
                 } else {
-                    root.screenshotFailed("No text detected in selection")
+                    root.screenshotFailed("No text detected in selection");
                 }
             }
         }
         onExited: (code, status) => {
             if (code !== 0) {
-                root.screenshotFailed("OCR failed (exit " + code + ") - is the '" + root.ocrLang + "' language pack installed?")
+                root.screenshotFailed("OCR failed (exit " + code + ") - is the '" + root.ocrLang + "' language pack installed?");
             }
         }
     }
@@ -434,7 +444,8 @@ PanelWindow {
     Process {
         id: ocrNotifyProc
         onExited: (code, status) => {
-            if (code !== 0) console.warn("[OCR] Notification failed (exit " + code + ")")
+            if (code !== 0)
+                console.warn("[OCR] Notification failed (exit " + code + ")");
         }
     }
 
@@ -446,9 +457,9 @@ PanelWindow {
         command: ["sh", "-c", "command -v tesseract >/dev/null 2>&1 && echo yes || echo no"]
         stdout: StdioCollector {
             onStreamFinished: {
-                root.tesseractAvailable = (text.trim() === "yes")
+                root.tesseractAvailable = (text.trim() === "yes");
                 if (!root.tesseractAvailable) {
-                    console.warn("[Screenshot] tesseract not found - OCR will be unavailable")
+                    console.warn("[Screenshot] tesseract not found - OCR will be unavailable");
                 }
             }
         }
@@ -460,15 +471,12 @@ PanelWindow {
     Process {
         id: detectMagickProc
         running: true
-        command: ["sh", "-c",
-            "command -v magick >/dev/null 2>&1 && echo magick || " +
-            "{ command -v convert >/dev/null 2>&1 && echo convert || echo none; }"
-        ]
+        command: ["sh", "-c", "command -v magick >/dev/null 2>&1 && echo magick || " + "{ command -v convert >/dev/null 2>&1 && echo convert || echo none; }"]
         stdout: StdioCollector {
             onStreamFinished: {
-                root.magickBin = text.trim()
+                root.magickBin = text.trim();
                 if (root.magickBin === "none") {
-                    console.warn("[Screenshot] Neither 'magick' nor 'convert' found - color picker will not work")
+                    console.warn("[Screenshot] Neither 'magick' nor 'convert' found - color picker will not work");
                 }
             }
         }
@@ -483,9 +491,9 @@ PanelWindow {
         command: ["sh", "-c", "command -v zbarimg >/dev/null 2>&1 && echo yes || echo no"]
         stdout: StdioCollector {
             onStreamFinished: {
-                root.zbarAvailable = (text.trim() === "yes")
+                root.zbarAvailable = (text.trim() === "yes");
                 if (!root.zbarAvailable) {
-                    console.warn("[Screenshot] zbarimg not found - QR scanning will be unavailable")
+                    console.warn("[Screenshot] zbarimg not found - QR scanning will be unavailable");
                 }
             }
         }
@@ -494,46 +502,43 @@ PanelWindow {
     // --- Capture a single pixel at (x, y) and extract its color ---
     function capturePixel(x, y) {
         if (root.magickBin === "none") {
-            root.screenshotFailed("Color picker requires ImageMagick (magick or convert), which isn't installed")
-            return
+            root.screenshotFailed("Color picker requires ImageMagick (magick or convert), which isn't installed");
+            return;
         }
-        colorPixelProc.command = [
-            "sh", "-c",
-            "grim -g '" + x + "," + y + " 1x1' -t ppm - | " + root.magickBin + " - -format '%[pixel:p{0,0}]' txt:- | grep -E -o '#[0-9A-Fa-f]{6}'"
-        ]
-        colorPixelProc.running = false
-        colorPixelProc.running = true
+        colorPixelProc.command = ["sh", "-c", "grim -g '" + x + "," + y + " 1x1' -t ppm - | " + root.magickBin + " - -format '%[pixel:p{0,0}]' txt:- | grep -E -o '#[0-9A-Fa-f]{6}'"];
+        colorPixelProc.running = false;
+        colorPixelProc.running = true;
     }
 
     Process {
         id: colorPixelProc
         stdout: StdioCollector {
             onStreamFinished: {
-                var hex = text.trim()
+                var hex = text.trim();
                 if (hex) {
-                    root.colorPicked(hex)
-                    copyTextProc.command = ["wl-copy", hex]
-                    copyTextProc.running = false
-                    copyTextProc.running = true
-                    colorNotifyProc.command = ["notify-send", "Color Picked", hex + " copied to clipboard."]
-                    colorNotifyProc.running = false
-                    colorNotifyProc.running = true
+                    root.colorPicked(hex);
+                    copyTextProc.command = ["wl-copy", hex];
+                    copyTextProc.running = false;
+                    copyTextProc.running = true;
+                    colorNotifyProc.command = ["notify-send", "Color Picked", hex + " copied to clipboard."];
+                    colorNotifyProc.running = false;
+                    colorNotifyProc.running = true;
                 } else {
-                    root.screenshotFailed("Color picker: no color captured")
+                    root.screenshotFailed("Color picker: no color captured");
                 }
             }
         }
         onExited: (code, status) => {
             if (code !== 0) {
-                root.screenshotFailed("Color picker failed (exit " + code + ")")
+                root.screenshotFailed("Color picker failed (exit " + code + ")");
             }
         }
     }
 
     // --- Background capture (unchanged) ---
     function captureFullForBackground() {
-        bgMonitorInfoProc.running = false
-        bgMonitorInfoProc.running = true
+        bgMonitorInfoProc.running = false;
+        bgMonitorInfoProc.running = true;
     }
 
     Process {
@@ -541,27 +546,29 @@ PanelWindow {
         command: ["hyprctl", "monitors", "-j"]
         stdout: StdioCollector {
             onStreamFinished: {
-                var outputName = ""
+                var outputName = "";
                 try {
-                    var monitors = JSON.parse(text)
-                    var focused = monitors.find(function(m) { return m.focused })
-                    outputName = focused ? focused.name : (monitors.length ? monitors[0].name : "")
+                    var monitors = JSON.parse(text);
+                    var focused = monitors.find(function (m) {
+                        return m.focused;
+                    });
+                    outputName = focused ? focused.name : (monitors.length ? monitors[0].name : "");
                 } catch (e) {
-                    console.warn("[Screenshot] Failed to parse hyprctl monitors output:", e)
+                    console.warn("[Screenshot] Failed to parse hyprctl monitors output:", e);
                 }
                 if (!outputName) {
-                    root.screenshotFailed("background: could not determine focused output")
-                    return
+                    root.screenshotFailed("background: could not determine focused output");
+                    return;
                 }
-                grimBgProc.command = ["grim", "-o", outputName, "/tmp/qs-bg.png"]
-                grimBgProc.running = false
-                grimBgProc.running = true
+                grimBgProc.command = ["grim", "-o", outputName, "/tmp/qs-bg.png"];
+                grimBgProc.running = false;
+                grimBgProc.running = true;
             }
         }
         onExited: (code, status) => {
             if (code !== 0) {
-                console.warn("[Screenshot] hyprctl monitors failed (exit code " + code + ")")
-                root.screenshotFailed("background: hyprctl monitors failed (exit " + code + ")")
+                console.warn("[Screenshot] hyprctl monitors failed (exit code " + code + ")");
+                root.screenshotFailed("background: hyprctl monitors failed (exit " + code + ")");
             }
         }
     }
@@ -570,21 +577,21 @@ PanelWindow {
         id: grimBgProc
         onExited: (code, status) => {
             if (code === 0) {
-                root.backgroundCaptured("/tmp/qs-bg.png")
+                root.backgroundCaptured("/tmp/qs-bg.png");
             } else {
-                console.warn("[Screenshot] grim background capture failed (exit code " + code + ")")
-                root.screenshotFailed("grim background capture failed (exit " + code + ")")
+                console.warn("[Screenshot] grim background capture failed (exit code " + code + ")");
+                root.screenshotFailed("grim background capture failed (exit " + code + ")");
             }
         }
     }
 
     // --- Full screenshot ---
     function captureFull() {
-        var temp = "/tmp/qs-full-" + Date.now() + ".png"
-        grimFullProc._tempPath = temp
-        grimFullProc.command = ["grim", temp]
-        grimFullProc.running = false
-        grimFullProc.running = true
+        var temp = "/tmp/qs-full-" + Date.now() + ".png";
+        grimFullProc._tempPath = temp;
+        grimFullProc.command = ["grim", temp];
+        grimFullProc.running = false;
+        grimFullProc.running = true;
     }
 
     Process {
@@ -592,17 +599,17 @@ PanelWindow {
         property string _tempPath
         onExited: (code, status) => {
             if (code === 0) {
-                root.finalizeImage(_tempPath)
+                root.finalizeImage(_tempPath);
             } else {
-                root.screenshotFailed("grim full screenshot failed (exit " + code + ")")
+                root.screenshotFailed("grim full screenshot failed (exit " + code + ")");
             }
         }
     }
 
     // --- Monitor screenshot ---
     function captureMonitor() {
-        monitorShotInfoProc.running = false
-        monitorShotInfoProc.running = true
+        monitorShotInfoProc.running = false;
+        monitorShotInfoProc.running = true;
     }
 
     Process {
@@ -610,28 +617,30 @@ PanelWindow {
         command: ["hyprctl", "monitors", "-j"]
         stdout: StdioCollector {
             onStreamFinished: {
-                var outputName = ""
+                var outputName = "";
                 try {
-                    var monitors = JSON.parse(text)
-                    var focused = monitors.find(function(m) { return m.focused })
-                    outputName = focused ? focused.name : (monitors.length ? monitors[0].name : "")
+                    var monitors = JSON.parse(text);
+                    var focused = monitors.find(function (m) {
+                        return m.focused;
+                    });
+                    outputName = focused ? focused.name : (monitors.length ? monitors[0].name : "");
                 } catch (e) {
-                    console.warn("[Screenshot] Failed to parse hyprctl monitors output:", e)
+                    console.warn("[Screenshot] Failed to parse hyprctl monitors output:", e);
                 }
                 if (!outputName) {
-                    root.screenshotFailed("monitor: could not determine focused output")
-                    return
+                    root.screenshotFailed("monitor: could not determine focused output");
+                    return;
                 }
-                var temp = "/tmp/qs-monitor-" + Date.now() + ".png"
-                grimMonitorProc._tempPath = temp
-                grimMonitorProc.command = ["grim", "-o", outputName, temp]
-                grimMonitorProc.running = false
-                grimMonitorProc.running = true
+                var temp = "/tmp/qs-monitor-" + Date.now() + ".png";
+                grimMonitorProc._tempPath = temp;
+                grimMonitorProc.command = ["grim", "-o", outputName, temp];
+                grimMonitorProc.running = false;
+                grimMonitorProc.running = true;
             }
         }
         onExited: (code, status) => {
             if (code !== 0) {
-                root.screenshotFailed("monitor: hyprctl monitors failed (exit " + code + ")")
+                root.screenshotFailed("monitor: hyprctl monitors failed (exit " + code + ")");
             }
         }
     }
@@ -641,17 +650,17 @@ PanelWindow {
         property string _tempPath
         onExited: (code, status) => {
             if (code === 0) {
-                root.finalizeImage(_tempPath)
+                root.finalizeImage(_tempPath);
             } else {
-                root.screenshotFailed("grim monitor screenshot failed (exit " + code + ")")
+                root.screenshotFailed("grim monitor screenshot failed (exit " + code + ")");
             }
         }
     }
 
     // --- Window screenshot ---
     function captureWindow() {
-        windowInfoProc.running = false
-        windowInfoProc.running = true
+        windowInfoProc.running = false;
+        windowInfoProc.running = true;
     }
 
     Process {
@@ -659,29 +668,29 @@ PanelWindow {
         command: ["hyprctl", "activewindow", "-j"]
         stdout: StdioCollector {
             onStreamFinished: {
-                var geom = ""
+                var geom = "";
                 try {
-                    var win = JSON.parse(text)
+                    var win = JSON.parse(text);
                     if (win && win.at && win.size) {
-                        geom = win.at[0] + "," + win.at[1] + " " + win.size[0] + "x" + win.size[1]
+                        geom = win.at[0] + "," + win.at[1] + " " + win.size[0] + "x" + win.size[1];
                     }
                 } catch (e) {
-                    console.warn("[Screenshot] Failed to parse active window info:", e)
+                    console.warn("[Screenshot] Failed to parse active window info:", e);
                 }
                 if (!geom || geom === "0,0 0x0") {
-                    root.screenshotFailed("No active window detected")
-                    return
+                    root.screenshotFailed("No active window detected");
+                    return;
                 }
-                var temp = "/tmp/qs-window-" + Date.now() + ".png"
-                grimWindowProc._tempPath = temp
-                grimWindowProc.command = ["grim", "-g", geom, temp]
-                grimWindowProc.running = false
-                grimWindowProc.running = true
+                var temp = "/tmp/qs-window-" + Date.now() + ".png";
+                grimWindowProc._tempPath = temp;
+                grimWindowProc.command = ["grim", "-g", geom, temp];
+                grimWindowProc.running = false;
+                grimWindowProc.running = true;
             }
         }
         onExited: (code, status) => {
             if (code !== 0) {
-                root.screenshotFailed("hyprctl activewindow failed (exit " + code + ")")
+                root.screenshotFailed("hyprctl activewindow failed (exit " + code + ")");
             }
         }
     }
@@ -691,9 +700,9 @@ PanelWindow {
         property string _tempPath
         onExited: (code, status) => {
             if (code === 0) {
-                root.finalizeImage(_tempPath)
+                root.finalizeImage(_tempPath);
             } else {
-                root.screenshotFailed("grim window screenshot failed (exit " + code + ")")
+                root.screenshotFailed("grim window screenshot failed (exit " + code + ")");
             }
         }
     }
@@ -702,15 +711,18 @@ PanelWindow {
     Process {
         id: copyImageProc
         onExited: (code, status) => {
-            if (code === 0) console.log("[Screenshot] Image copied to clipboard")
-            else console.warn("[Screenshot] Clipboard copy failed (exit " + code + ")")
+            if (code === 0)
+                console.log("[Screenshot] Image copied to clipboard");
+            else
+                console.warn("[Screenshot] Clipboard copy failed (exit " + code + ")");
         }
     }
 
     Process {
         id: copyTextProc
         onExited: (code, status) => {
-            if (code === 0) console.log("[Clipboard] Text copied to clipboard")
+            if (code === 0)
+                console.log("[Clipboard] Text copied to clipboard");
         }
     }
 
@@ -720,18 +732,13 @@ PanelWindow {
         property string _saveDir: ""
         onExited: (code, status) => {
             if (code === 0) {
-                console.log("[Screenshot] Saved to", saveImageProc._saveDir + "/" + saveImageProc._filename)
-                saveNotifyProc.command = [
-                    "sh", "-c",
-                    "notify-send 'Screenshot Captured' \"Saved to: $1\" -i \"" + saveImageProc._saveDir + "/$1\"",
-                    "sh",
-                    saveImageProc._filename
-                ]
-                saveNotifyProc.running = false
-                saveNotifyProc.running = true
+                console.log("[Screenshot] Saved to", saveImageProc._saveDir + "/" + saveImageProc._filename);
+                saveNotifyProc.command = ["sh", "-c", "notify-send 'Screenshot Captured' \"Saved to: $1\" -i \"" + saveImageProc._saveDir + "/$1\"", "sh", saveImageProc._filename];
+                saveNotifyProc.running = false;
+                saveNotifyProc.running = true;
             } else {
-                console.warn("[Screenshot] Save failed (exit " + code + ")")
-                root.screenshotFailed("failed to save screenshot (exit " + code + ")")
+                console.warn("[Screenshot] Save failed (exit " + code + ")");
+                root.screenshotFailed("failed to save screenshot (exit " + code + ")");
             }
         }
     }
@@ -739,15 +746,18 @@ PanelWindow {
     Process {
         id: saveNotifyProc
         onExited: (code, status) => {
-            if (code !== 0) console.warn("[Screenshot] notify-send failed or is not installed (exit " + code + "); the screenshot was still saved")
+            if (code !== 0)
+                console.warn("[Screenshot] notify-send failed or is not installed (exit " + code + "); the screenshot was still saved");
         }
     }
 
     Process {
         id: colorNotifyProc
         onExited: (code, status) => {
-            if (code === 0) console.log("[ColorPicker] Notification sent")
-            else console.warn("[ColorPicker] Notification failed (exit " + code + ")")
+            if (code === 0)
+                console.log("[ColorPicker] Notification sent");
+            else
+                console.warn("[ColorPicker] Notification failed (exit " + code + ")");
         }
     }
 }

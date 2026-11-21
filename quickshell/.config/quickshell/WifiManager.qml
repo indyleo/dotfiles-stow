@@ -47,11 +47,11 @@ Item {
 
     onActiveChanged: {
         if (active) {
-            root.hasScanned = false
-            scanNetworks()
+            root.hasScanned = false;
+            scanNetworks();
         } else {
-            root.cancelDialog()
-            root.pendingForgetSsid = ""
+            root.cancelDialog();
+            root.pendingForgetSsid = "";
         }
     }
 
@@ -71,18 +71,22 @@ Item {
         readonly property bool busy: proc.running || settle.running
 
         function run(args) {
-            proc.command = args
-            proc.running = false
-            proc.running = true
+            proc.command = args;
+            proc.running = false;
+            proc.running = true;
         }
 
         Process {
             id: proc
-            stdout: StdioCollector { id: outText }
-            stderr: StdioCollector { id: errText }
+            stdout: StdioCollector {
+                id: outText
+            }
+            stderr: StdioCollector {
+                id: errText
+            }
             onExited: (exitCode, exitStatus) => {
-                cmd.lastCode = exitCode
-                settle.restart()
+                cmd.lastCode = exitCode;
+                settle.restart();
             }
         }
 
@@ -92,9 +96,10 @@ Item {
             id: settle
             interval: 20
             onTriggered: {
-                var cb = cmd.callback
-                cmd.callback = null
-                if (cb) cb(cmd.lastCode, outText.text, errText.text)
+                var cb = cmd.callback;
+                cmd.callback = null;
+                if (cb)
+                    cb(cmd.lastCode, outText.text, errText.text);
             }
         }
     }
@@ -102,8 +107,12 @@ Item {
     // Dedicated processes for periodic scanning and for user-initiated
     // actions, so an action can never drop an in-flight scan callback or
     // vice versa.
-    Cmd { id: scanCmd }
-    Cmd { id: actionCmd }
+    Cmd {
+        id: scanCmd
+    }
+    Cmd {
+        id: actionCmd
+    }
 
     Timer {
         interval: 3000
@@ -137,92 +146,110 @@ Item {
     // (radio state, wifi device, saved profiles, scan list).
     // ------------------------------------------------------------
 
-    readonly property string scanScript:
-        "echo @@radio; nmcli radio wifi;" +
-        "echo @@dev; nmcli -t -f DEVICE,TYPE device;" +
-        "echo @@saved; nmcli -t -f NAME,TYPE connection show;" +
-        "echo @@scan; nmcli -t -f IN-USE,SSID,SECURITY,SIGNAL device wifi list 2>/dev/null"
+    readonly property string scanScript: "echo @@radio; nmcli radio wifi;" + "echo @@dev; nmcli -t -f DEVICE,TYPE device;" + "echo @@saved; nmcli -t -f NAME,TYPE connection show;" + "echo @@scan; nmcli -t -f IN-USE,SSID,SECURITY,SIGNAL device wifi list 2>/dev/null"
 
     function scanNetworks() {
-        if (root.connecting || scanCmd.busy) return
-        scanCmd.callback = function(code, out, err) {
+        if (root.connecting || scanCmd.busy)
+            return;
+        scanCmd.callback = function (code, out, err) {
             // An action started while this scan was running; its own
             // completion triggers a fresh scan.
-            if (root.connecting) return
-            root.applyScan(out)
-        }
-        scanCmd.run(["sh", "-c", root.scanScript, "wifi-scan"])
+            if (root.connecting)
+                return;
+            root.applyScan(out);
+        };
+        scanCmd.run(["sh", "-c", root.scanScript, "wifi-scan"]);
     }
 
     function applyScan(text) {
-        var section = ""
-        var radio = ""
-        var dev = ""
-        var saved = {}
-        var byName = {}
-        var connected = ""
-        var f
-        var lines = text.split("\n")
+        var section = "";
+        var radio = "";
+        var dev = "";
+        var saved = {};
+        var byName = {};
+        var connected = "";
+        var f;
+        var lines = text.split("\n");
 
         for (var i = 0; i < lines.length; i++) {
-            var line = lines[i]
-            if (line.indexOf("@@") === 0) { section = line.substring(2); continue }
-            if (line === "") continue
-
+            var line = lines[i];
+            if (line.indexOf("@@") === 0) {
+                section = line.substring(2);
+                continue;
+            }
+            if (line === "")
+                continue;
             if (section === "radio") {
-                radio = line.trim()
+                radio = line.trim();
             } else if (section === "dev") {
-                f = splitNmcliFields(line)
-                if (dev === "" && f.length >= 2 && f[1] === "wifi") dev = f[0]
+                f = splitNmcliFields(line);
+                if (dev === "" && f.length >= 2 && f[1] === "wifi")
+                    dev = f[0];
             } else if (section === "saved") {
-                f = splitNmcliFields(line)
-                if (f.length >= 2 && f[1] === "802-11-wireless") saved["s:" + f[0]] = true
+                f = splitNmcliFields(line);
+                if (f.length >= 2 && f[1] === "802-11-wireless")
+                    saved["s:" + f[0]] = true;
             } else if (section === "scan") {
                 // IN-USE:SSID:SECURITY:SIGNAL. Don't trim the line: IN-USE is
                 // a blank for networks we're not on.
-                f = splitNmcliFields(line)
-                if (f.length < 4 || f[1] === "") continue
-                var ssid = f[1]
-                var sig = parseInt(f[3])
-                if (isNaN(sig)) sig = 0
-                var inUse = f[0] === "*"
-                if (inUse) connected = ssid
+                f = splitNmcliFields(line);
+                if (f.length < 4 || f[1] === "")
+                    continue;
+                var ssid = f[1];
+                var sig = parseInt(f[3]);
+                if (isNaN(sig))
+                    sig = 0;
+                var inUse = f[0] === "*";
+                if (inUse)
+                    connected = ssid;
 
-                var key = "s:" + ssid
-                var cur = byName[key]
+                var key = "s:" + ssid;
+                var cur = byName[key];
                 if (!cur) {
-                    byName[key] = { ssid: ssid, security: f[2], signal: sig, inUse: inUse }
+                    byName[key] = {
+                        ssid: ssid,
+                        security: f[2],
+                        signal: sig,
+                        inUse: inUse
+                    };
                 } else {
-                    if (inUse) cur.inUse = true
-                    if (sig > cur.signal) { cur.signal = sig; cur.security = f[2] }
+                    if (inUse)
+                        cur.inUse = true;
+                    if (sig > cur.signal) {
+                        cur.signal = sig;
+                        cur.security = f[2];
+                    }
                 }
             }
         }
 
-        var list = []
-        var keys = Object.keys(byName)
+        var list = [];
+        var keys = Object.keys(byName);
         for (var k = 0; k < keys.length; k++) {
-            var n = byName[keys[k]]
-            n.saved = !!saved[keys[k]]
-            list.push(n)
+            var n = byName[keys[k]];
+            n.saved = !!saved[keys[k]];
+            list.push(n);
         }
         // Connected network first, then strongest signal.
-        list.sort(function(a, b) {
-            if (a.inUse !== b.inUse) return a.inUse ? -1 : 1
-            if (a.signal !== b.signal) return b.signal - a.signal
-            return a.ssid < b.ssid ? -1 : (a.ssid > b.ssid ? 1 : 0)
-        })
+        list.sort(function (a, b) {
+            if (a.inUse !== b.inUse)
+                return a.inUse ? -1 : 1;
+            if (a.signal !== b.signal)
+                return b.signal - a.signal;
+            return a.ssid < b.ssid ? -1 : (a.ssid > b.ssid ? 1 : 0);
+        });
 
-        root.wifiEnabled = radio !== "disabled"
-        root.wifiDevice = dev
-        root.connectedSsid = root.wifiEnabled ? connected : ""
-        if (!root.wifiEnabled) list = []
-        root.hasScanned = true
+        root.wifiEnabled = radio !== "disabled";
+        root.wifiDevice = dev;
+        root.connectedSsid = root.wifiEnabled ? connected : "";
+        if (!root.wifiEnabled)
+            list = [];
+        root.hasScanned = true;
 
-        var listKey = JSON.stringify(list)
+        var listKey = JSON.stringify(list);
         if (listKey !== root.lastNetworksKey) {
-            root.lastNetworksKey = listKey
-            root.networks = list
+            root.lastNetworksKey = listKey;
+            root.networks = list;
         }
     }
 
@@ -232,22 +259,22 @@ Item {
     // field after it by one. This splits only on *unescaped* colons and
     // un-escapes the result.
     function splitNmcliFields(line) {
-        var fields = []
-        var current = ""
+        var fields = [];
+        var current = "";
         for (var i = 0; i < line.length; i++) {
-            var ch = line[i]
+            var ch = line[i];
             if (ch === '\\' && i + 1 < line.length) {
-                current += line[i + 1]
-                i++
+                current += line[i + 1];
+                i++;
             } else if (ch === ':') {
-                fields.push(current)
-                current = ""
+                fields.push(current);
+                current = "";
             } else {
-                current += ch
+                current += ch;
             }
         }
-        fields.push(current)
-        return fields
+        fields.push(current);
+        return fields;
     }
 
     // ------------------------------------------------------------
@@ -255,156 +282,163 @@ Item {
     // ------------------------------------------------------------
 
     function showStatus(message, autoClear) {
-        root.statusMessage = message
-        statusClearTimer.stop()
-        if (autoClear !== false) statusClearTimer.start()
+        root.statusMessage = message;
+        statusClearTimer.stop();
+        if (autoClear !== false)
+            statusClearTimer.start();
     }
 
     function toggleWifi() {
-        if (root.connecting) return
-        var turningOn = !root.wifiEnabled
-        root.connecting = true
+        if (root.connecting)
+            return;
+        var turningOn = !root.wifiEnabled;
+        root.connecting = true;
         // Optimistic flip, reverted below if nmcli fails.
-        root.wifiEnabled = turningOn
+        root.wifiEnabled = turningOn;
         if (!turningOn) {
-            root.networks = []
-            root.lastNetworksKey = ""
-            root.connectedSsid = ""
+            root.networks = [];
+            root.lastNetworksKey = "";
+            root.connectedSsid = "";
         }
-        actionCmd.callback = function(code, out, err) {
-            root.connecting = false
+        actionCmd.callback = function (code, out, err) {
+            root.connecting = false;
             if (code === 0) {
-                showStatus("WiFi turned " + (turningOn ? "on" : "off"))
+                showStatus("WiFi turned " + (turningOn ? "on" : "off"));
             } else {
-                root.wifiEnabled = !turningOn
-                showStatus("Failed to turn WiFi " + (turningOn ? "on" : "off"))
+                root.wifiEnabled = !turningOn;
+                showStatus("Failed to turn WiFi " + (turningOn ? "on" : "off"));
             }
-            scanNetworks()
-        }
-        actionCmd.run(["nmcli", "radio", "wifi", turningOn ? "on" : "off"])
+            scanNetworks();
+        };
+        actionCmd.run(["nmcli", "radio", "wifi", turningOn ? "on" : "off"]);
     }
 
     // Entry point used by the network list, same decision tree as the script.
     function activate(net) {
-        if (root.connecting) return
+        if (root.connecting)
+            return;
         if (net.inUse) {
-            disconnectCurrent()
+            disconnectCurrent();
         } else if (net.saved) {
-            connectSaved(net.ssid)
+            connectSaved(net.ssid);
         } else if (!net.security || net.security === "--") {
-            connectNew(net.ssid, "", false)
+            connectNew(net.ssid, "", false);
         } else {
-            openDialog("password", net.ssid)
+            openDialog("password", net.ssid);
         }
     }
 
     function finishConnect(ssid, ok, failMessage) {
-        root.connecting = false
+        root.connecting = false;
         if (ok) {
-            showStatus("Connected to " + ssid)
-            root.connectedSsid = ssid
+            showStatus("Connected to " + ssid);
+            root.connectedSsid = ssid;
         } else {
-            showStatus(failMessage)
+            showStatus(failMessage);
         }
-        scanNetworks()
+        scanNetworks();
     }
 
     // Saved profile: connect immediately, no password prompt.
     function connectSaved(ssid) {
-        root.connecting = true
-        showStatus("Connecting to " + ssid + "\u2026", false)
+        root.connecting = true;
+        showStatus("Connecting to " + ssid + "\u2026", false);
 
-        var up = ["nmcli", "connection", "up", "id", ssid]
-        if (root.wifiDevice !== "") up = up.concat(["ifname", root.wifiDevice])
-        var failMessage = "Failed to connect to " + ssid
+        var up = ["nmcli", "connection", "up", "id", ssid];
+        if (root.wifiDevice !== "")
+            up = up.concat(["ifname", root.wifiDevice]);
+        var failMessage = "Failed to connect to " + ssid;
 
-        actionCmd.callback = function(code, out, err) {
-            var msg = (out + err).toLowerCase()
+        actionCmd.callback = function (code, out, err) {
+            var msg = (out + err).toLowerCase();
             if (code !== 0 && msg.indexOf("interface name") !== -1) {
                 // Stale connection.interface-name binding on the saved
                 // profile: clear it and retry once.
-                actionCmd.callback = function() {
-                    actionCmd.callback = function(code2) {
-                        root.finishConnect(ssid, code2 === 0, failMessage)
-                    }
-                    actionCmd.run(up)
-                }
-                actionCmd.run(["nmcli", "connection", "modify", "id", ssid, "connection.interface-name", ""])
-                return
+                actionCmd.callback = function () {
+                    actionCmd.callback = function (code2) {
+                        root.finishConnect(ssid, code2 === 0, failMessage);
+                    };
+                    actionCmd.run(up);
+                };
+                actionCmd.run(["nmcli", "connection", "modify", "id", ssid, "connection.interface-name", ""]);
+                return;
             }
-            root.finishConnect(ssid, code === 0, failMessage)
-        }
-        actionCmd.run(up)
+            root.finishConnect(ssid, code === 0, failMessage);
+        };
+        actionCmd.run(up);
     }
 
     // No saved profile. "hidden" is for SSIDs that don't broadcast; without
     // it nmcli only looks in the scan list and gives up.
     function connectNew(ssid, password, hidden) {
-        root.connecting = true
-        showStatus("Connecting to " + ssid + "\u2026", false)
+        root.connecting = true;
+        showStatus("Connecting to " + ssid + "\u2026", false);
 
-        var args = ["nmcli", "device", "wifi", "connect", ssid]
-        if (password) args = args.concat(["password", password])
-        if (hidden) args = args.concat(["hidden", "yes"])
+        var args = ["nmcli", "device", "wifi", "connect", ssid];
+        if (password)
+            args = args.concat(["password", password]);
+        if (hidden)
+            args = args.concat(["hidden", "yes"]);
 
-        actionCmd.callback = function(code, out, err) {
+        actionCmd.callback = function (code, out, err) {
             // Most common cause is a wrong password; keep the message simple.
-            root.finishConnect(ssid, code === 0, "Couldn't connect to " + ssid + " (check password?)")
-        }
-        actionCmd.run(args)
+            root.finishConnect(ssid, code === 0, "Couldn't connect to " + ssid + " (check password?)");
+        };
+        actionCmd.run(args);
     }
 
     function disconnectCurrent() {
-        if (root.connecting || root.connectedSsid === "") return
-        var ssid = root.connectedSsid
-        root.connecting = true
-        showStatus("Disconnecting\u2026", false)
+        if (root.connecting || root.connectedSsid === "")
+            return;
+        var ssid = root.connectedSsid;
+        root.connecting = true;
+        showStatus("Disconnecting\u2026", false);
 
         // Same as the script: disconnect the wifi device rather than looking
         // a profile up by SSID (profile names don't always match).
-        var args = root.wifiDevice !== ""
-            ? ["nmcli", "device", "disconnect", root.wifiDevice]
-            : ["nmcli", "connection", "down", "id", ssid]
+        var args = root.wifiDevice !== "" ? ["nmcli", "device", "disconnect", root.wifiDevice] : ["nmcli", "connection", "down", "id", ssid];
 
-        actionCmd.callback = function(code, out, err) {
-            root.connecting = false
+        actionCmd.callback = function (code, out, err) {
+            root.connecting = false;
             if (code === 0) {
-                showStatus(ssid === "" ? "Disconnected" : "Disconnected from " + ssid)
-                root.connectedSsid = ""
+                showStatus(ssid === "" ? "Disconnected" : "Disconnected from " + ssid);
+                root.connectedSsid = "";
             } else {
-                showStatus("Failed to disconnect")
+                showStatus("Failed to disconnect");
             }
-            scanNetworks()
-        }
-        actionCmd.run(args)
+            scanNetworks();
+        };
+        actionCmd.run(args);
     }
 
     function requestForget(ssid) {
-        if (root.connecting) return
+        if (root.connecting)
+            return;
         if (root.pendingForgetSsid === ssid) {
-            forgetConfirmTimer.stop()
-            root.pendingForgetSsid = ""
-            doForget(ssid)
+            forgetConfirmTimer.stop();
+            root.pendingForgetSsid = "";
+            doForget(ssid);
         } else {
-            root.pendingForgetSsid = ssid
-            forgetConfirmTimer.restart()
+            root.pendingForgetSsid = ssid;
+            forgetConfirmTimer.restart();
         }
     }
 
     function doForget(ssid) {
-        root.connecting = true
-        showStatus("Forgetting " + ssid + "\u2026", false)
-        actionCmd.callback = function(code, out, err) {
-            root.connecting = false
+        root.connecting = true;
+        showStatus("Forgetting " + ssid + "\u2026", false);
+        actionCmd.callback = function (code, out, err) {
+            root.connecting = false;
             if (code === 0) {
-                showStatus("Forgot " + ssid)
-                if (root.connectedSsid === ssid) root.connectedSsid = ""
+                showStatus("Forgot " + ssid);
+                if (root.connectedSsid === ssid)
+                    root.connectedSsid = "";
             } else {
-                showStatus("Failed to forget " + ssid)
+                showStatus("Failed to forget " + ssid);
             }
-            scanNetworks()
-        }
-        actionCmd.run(["nmcli", "connection", "delete", "id", ssid])
+            scanNetworks();
+        };
+        actionCmd.run(["nmcli", "connection", "delete", "id", ssid]);
     }
 
     // ------------------------------------------------------------
@@ -412,39 +446,43 @@ Item {
     // ------------------------------------------------------------
 
     function openDialog(mode, ssid) {
-        ssidField.input.text = ""
-        passwordField.input.text = ""
-        root.pendingSsid = ssid || ""
-        root.dialogMode = mode
-        focusTimer.restart()
+        ssidField.input.text = "";
+        passwordField.input.text = "";
+        root.pendingSsid = ssid || "";
+        root.dialogMode = mode;
+        focusTimer.restart();
     }
 
     function focusDialog() {
-        if (root.dialogMode === "manual") ssidField.input.forceActiveFocus()
-        else if (root.dialogMode === "password") passwordField.input.forceActiveFocus()
+        if (root.dialogMode === "manual")
+            ssidField.input.forceActiveFocus();
+        else if (root.dialogMode === "password")
+            passwordField.input.forceActiveFocus();
     }
 
     function cancelDialog() {
-        root.dialogMode = ""
-        root.pendingSsid = ""
-        ssidField.input.text = ""
-        passwordField.input.text = ""
+        root.dialogMode = "";
+        root.pendingSsid = "";
+        ssidField.input.text = "";
+        passwordField.input.text = "";
     }
 
     function submitDialog() {
-        var password = passwordField.input.text
+        var password = passwordField.input.text;
         if (root.dialogMode === "manual") {
-            var ssid = ssidField.input.text.trim()
-            if (ssid === "") return
-            cancelDialog()
+            var ssid = ssidField.input.text.trim();
+            if (ssid === "")
+                return;
+            cancelDialog();
             // Blank password = open network. Always "hidden": the SSID was typed by hand.
-            connectNew(ssid, password, true)
+            connectNew(ssid, password, true);
         } else if (root.dialogMode === "password") {
             // Same as the script: an empty password is a cancel.
-            if (password === "") return
-            var target = root.pendingSsid
-            cancelDialog()
-            connectNew(target, password, false)
+            if (password === "")
+                return;
+            var target = root.pendingSsid;
+            cancelDialog();
+            connectNew(target, password, false);
         }
     }
 
@@ -460,7 +498,7 @@ Item {
         property color textColor: "#ebdbb2"
         property bool bold: false
         property bool dimmed: false
-        signal clicked()
+        signal clicked
 
         Layout.preferredHeight: 30
         radius: 15
@@ -483,7 +521,8 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: btn.dimmed ? Qt.ArrowCursor : Qt.PointingHandCursor
-            onClicked: if (!btn.dimmed) btn.clicked()
+            onClicked: if (!btn.dimmed)
+                btn.clicked()
         }
     }
 
@@ -492,9 +531,9 @@ Item {
         property alias input: textInput
         property string placeholder: ""
         property bool secret: false
-        signal accepted()
-        signal tabbed()
-        signal escaped()
+        signal accepted
+        signal tabbed
+        signal escaped
 
         Layout.fillWidth: true
         Layout.preferredHeight: 34
@@ -543,7 +582,12 @@ Item {
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
-        anchors { top: true; bottom: true; left: true; right: true }
+        anchors {
+            top: true
+            bottom: true
+            left: true
+            right: true
+        }
 
         Rectangle {
             width: 400
@@ -568,7 +612,9 @@ Item {
                         font.pixelSize: root.fontSize + 4
                         font.bold: true
                     }
-                    Item { Layout.fillWidth: true }
+                    Item {
+                        Layout.fillWidth: true
+                    }
 
                     Rectangle {
                         id: wifiToggle
@@ -617,8 +663,7 @@ Item {
                             radius: 8
                             color: modelData.inUse ? "#3c3836" : "#504945"
                             border.width: 1
-                            border.color: rowMouse.containsMouse ? "#ebdbb2"
-                                        : (modelData.inUse ? "#7c6f64" : "#504945")
+                            border.color: rowMouse.containsMouse ? "#ebdbb2" : (modelData.inUse ? "#7c6f64" : "#504945")
 
                             MouseArea {
                                 id: rowMouse
@@ -693,8 +738,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         visible: !root.wifiEnabled || root.networks.length === 0
-                        text: !root.wifiEnabled ? "WiFi is disabled"
-                            : (root.hasScanned ? "No networks found" : "Scanning\u2026")
+                        text: !root.wifiEnabled ? "WiFi is disabled" : (root.hasScanned ? "No networks found" : "Scanning\u2026")
                         color: "#928374"
                         font.family: root.fontFamily
                         font.pixelSize: root.fontSize
@@ -765,9 +809,7 @@ Item {
                     spacing: 10
 
                     Text {
-                        text: root.dialogMode === "manual"
-                            ? "Manual / Hidden SSID"
-                            : "Password for \"" + root.pendingSsid + "\""
+                        text: root.dialogMode === "manual" ? "Manual / Hidden SSID" : "Password for \"" + root.pendingSsid + "\""
                         color: "#ebdbb2"
                         font.family: root.fontFamily
                         font.pixelSize: root.fontSize
@@ -793,7 +835,9 @@ Item {
                         onEscaped: root.cancelDialog()
                     }
 
-                    Item { Layout.fillHeight: true }
+                    Item {
+                        Layout.fillHeight: true
+                    }
 
                     RowLayout {
                         Layout.fillWidth: true

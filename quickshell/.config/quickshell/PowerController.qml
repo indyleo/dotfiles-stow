@@ -18,26 +18,27 @@ Item {
         stderr: StdioCollector {}
         onExited: (code, status) => {
             if (code !== 0) {
-                console.warn("[PowerController]", pwrProc.actionLabel, "failed with exit code", code, pwrProc.stderr.text)
-                root.notifyFailure(pwrProc.actionLabel)
+                console.warn("[PowerController]", pwrProc.actionLabel, "failed with exit code", code, pwrProc.stderr.text);
+                root.notifyFailure(pwrProc.actionLabel);
             }
         }
     }
 
-    Process { id: notifyProc }
+    Process {
+        id: notifyProc
+    }
 
     function notifyFailure(action) {
-        notifyProc.command = ["notify-send", "-u", "critical", "-a", "Power Menu",
-            action + " failed", "Check the logs for details."]
-        notifyProc.running = false
-        notifyProc.running = true
+        notifyProc.command = ["notify-send", "-u", "critical", "-a", "Power Menu", action + " failed", "Check the logs for details."];
+        notifyProc.running = false;
+        notifyProc.running = true;
     }
 
     function run(cmd, label) {
-        pwrProc.actionLabel = label
-        pwrProc.command = cmd
-        pwrProc.running = false
-        pwrProc.running = true
+        pwrProc.actionLabel = label;
+        pwrProc.command = cmd;
+        pwrProc.running = false;
+        pwrProc.running = true;
     }
 
     // loginctl lock-session depends on logind session tracking, which isn't
@@ -50,21 +51,33 @@ Item {
         stderr: StdioCollector {}
         onExited: (code, status) => {
             if (code !== 0) {
-                console.warn("[PowerController] loginctl lock-session failed, trying hyprlock fallback:", code, lockProc.stderr.text)
-                Quickshell.execDetached({ command: ["hyprlock"] })
+                console.warn("[PowerController] loginctl lock-session failed, trying hyprlock fallback:", code, lockProc.stderr.text);
+                Quickshell.execDetached({
+                    command: ["hyprlock"]
+                });
             }
         }
     }
 
     function lock() {
-        lockProc.command = ["loginctl", "lock-session"]
-        lockProc.running = false
-        lockProc.running = true
+        lockProc.command = ["loginctl", "lock-session"];
+        lockProc.running = false;
+        lockProc.running = true;
     }
 
-    function suspend()   { run(["systemctl", "suspend"], "Suspend") }
-    function hibernate() { run(["systemctl", "hibernate"], "Hibernate") }
-    function reboot()    { run(["systemctl", "reboot"], "Reboot") }
-    function shutdown()  { run(["systemctl", "poweroff"], "Shutdown") }
-    function logout()    { run(["hyprctl", "dispatch", "hl.dsp.exit()"], "Logout") }
+    function suspend() {
+        run(["systemctl", "suspend"], "Suspend");
+    }
+    function hibernate() {
+        run(["systemctl", "hibernate"], "Hibernate");
+    }
+    function reboot() {
+        run(["systemctl", "reboot"], "Reboot");
+    }
+    function shutdown() {
+        run(["systemctl", "poweroff"], "Shutdown");
+    }
+    function logout() {
+        run(["hyprctl", "dispatch", "hl.dsp.exit()"], "Logout");
+    }
 }
