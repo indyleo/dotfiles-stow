@@ -324,7 +324,7 @@ Item {
                     return;
                 }
 
-                proc.command = ["linux-wallpaperengine", "--screen-root", screenName, "--bg", engineId, "--fps", fpsWall, "--scaling", "fill", "--disable-mouse", "--silent"];
+                proc.command = ["linux-wallpaperengine", "--screen-root", screenName, "--bg", engineId, "--fps", fpsWall, "--scaling", "stretch", "--disable-mouse", "--silent"];
 
                 // Force a restart even if it's already running the
                 // previous id, same pattern as pickProc above.
@@ -518,7 +518,7 @@ Item {
             Image {
                 id: imgA
                 anchors.fill: parent
-                fillMode: Image.PreserveAspectCrop
+                fillMode: Image.Stretch
                 asynchronous: true
                 cache: true
                 opacity: picRoot.activeIsA ? 1 : 0
@@ -539,7 +539,7 @@ Item {
             Image {
                 id: imgB
                 anchors.fill: parent
-                fillMode: Image.PreserveAspectCrop
+                fillMode: Image.Stretch
                 asynchronous: true
                 cache: true
                 opacity: picRoot.activeIsA ? 0 : 1
