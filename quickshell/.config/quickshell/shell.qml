@@ -154,9 +154,9 @@ ShellRoot {
     }
     WallPaper {
         id: wallPaper
-        wallpaperMode: "wallpaper-engine"     // "pictures" | "videos" | "wallpaper-engine" | "life-wallpaper"
+        wallpaperMode: "life-wallpaper"     // "pictures" | "videos" | "wallpaper-engine" | "life-wallpaper"
         baseDir: "~/Pictures/Wallpapers"
-        subDir: ""
+        subDir: "gruvbox"
         intervalSeconds: 900
         fpsWall: "60"
         lifePreset: ""          // or "" to use ~/.config/life-wallpaper/config.toml
