@@ -153,6 +153,9 @@ place("vesktop-workspace", "^vesktop$", 7, MON_MAIN)
 -- Steam client -> Workspace 9, main monitor
 place("steam-workspace", "^steam$", 9, MON_MAIN)
 
+-- Mocktail Multi -> Workspace 10, main monitor
+place("mocktail-multi", "^mocktail-multi", 10, MON_MAIN)
+
 -- LibreWolf -> Workspace 6, main monitor
 place("librewolf-workspace", "^librewolf$", 6, MON_MAIN)
 
