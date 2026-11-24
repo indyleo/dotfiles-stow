@@ -111,15 +111,23 @@ PanelWindow {
     }
 
     // NEW: show overlay for OCR (same drag-to-select as region, mode = "ocr")
-    function showOcrScanner() {
-        if (!root.tesseractAvailable) {
-            root.screenshotFailed("OCR requires tesseract (install tesseract + a language pack, e.g. tesseract-data-eng)");
-            return;
-        }
+    property bool ocrLanguageCheckRequested: false
+
+    function beginOcrSelection() {
         selectorMode = "ocr";
         root.visible = true;
         selectionRect.visible = false;
         regionMouseArea.selecting = false;
+    }
+
+    function showOcrScanner() {
+        if (!root.tesseractAvailable) {
+            root.screenshotFailed("OCR requires Tesseract (install tesseract and its language data)");
+            return;
+        }
+        ocrLanguageCheckRequested = true;
+        detectOcrLanguageProc.running = false;
+        detectOcrLanguageProc.running = true;
     }
 
     function hideSelector() {
@@ -387,7 +395,11 @@ PanelWindow {
 
     // --- NEW: OCR (extract text from a selected region) ---
     property string ocrLang: "eng"   // e.g. "eng+deu" for several languages
-    property string ocrPsm: "6"      // 6 = single block of text, 3 = auto layout, 7 = single line
+    // These properties can be bound to your settings UI/configuration.
+    property int ocrPsm: 6           // 3 = auto layout, 6 = block, 7 = line
+    property bool ocrPreprocess: false
+    property int ocrScale: 2         // enlargement factor when preprocessing
+    property int ocrThreshold: 0     // 0 disables thresholding; otherwise 1-255
 
     function captureOcrRegion(geometry) {
         var temp = "/tmp/qs-ocr-" + Date.now() + ".png";
@@ -403,28 +415,69 @@ PanelWindow {
         onExited: (code, status) => {
             if (code === 0) {
                 ocrProc._tempPath = _tempPath;
-                ocrProc.command = ["tesseract", _tempPath, "stdout", "-l", root.ocrLang, "--psm", root.ocrPsm];
-                ocrProc.running = false;
-                ocrProc.running = true;
+                ocrProc._output = "";
+                if (root.ocrPreprocess) {
+                    if (root.magickBin === "none") {
+                        root.screenshotFailed("OCR preprocessing requires ImageMagick (magick or convert)");
+                        cleanupOcrProc.removeFiles(_tempPath, "");
+                        return;
+                    }
+                    var processed = "/tmp/qs-ocr-processed-" + Date.now() + ".png";
+                    ocrProc._processedPath = processed;
+                    var args = [];
+                    if (root.magickBin === "magick")
+                        args.push("convert");
+                    args.push(_tempPath, "-resize", (Math.max(1, root.ocrScale) * 100) + "%", "-colorspace", "Gray", "-contrast");
+                    if (root.ocrThreshold > 0)
+                        args.push("-threshold", Math.max(1, Math.min(255, root.ocrThreshold)) + "/255");
+                    args.push(processed);
+                    preprocessOcrProc.command = [root.magickBin].concat(args);
+                    preprocessOcrProc.running = false;
+                    preprocessOcrProc.running = true;
+                } else {
+                    ocrProc.command = ["tesseract", _tempPath, "stdout", "-l", root.ocrLang, "--psm", String(root.ocrPsm)];
+                    ocrProc.running = false;
+                    ocrProc.running = true;
+                }
             } else {
+                cleanupOcrProc.removeFiles(_tempPath, "");
                 root.screenshotFailed("grim OCR capture failed (exit " + code + ")");
             }
         }
     }
 
     Process {
+        id: preprocessOcrProc
+        onExited: (code, status) => {
+            if (code === 0) {
+                ocrProc.command = ["tesseract", ocrProc._processedPath, "stdout", "-l", root.ocrLang, "--psm", String(root.ocrPsm)];
+                ocrProc.running = false;
+                ocrProc.running = true;
+            } else {
+                cleanupOcrProc.removeFiles(ocrProc._tempPath, ocrProc._processedPath);
+                root.screenshotFailed("ImageMagick OCR preprocessing failed (exit " + code + ")");
+            }
+        }
+    }
+
+    Process {
         id: ocrProc
-        property string _tempPath
+        property string _tempPath: ""
+        property string _processedPath: ""
+        property string _output: ""
         stdout: StdioCollector {
-            onStreamFinished: {
-                var extracted = text.replace(/\f/g, "").trim();
+            onStreamFinished: ocrProc._output = text
+        }
+        onExited: (code, status) => {
+            // Handle success/failure here only: avoids duplicate signals from
+            // stdout completion and process completion callbacks.
+            if (code === 0) {
+                var extracted = ocrProc._output.replace(/\f/g, "").trim();
                 if (extracted) {
                     root.ocrDecoded(extracted);
-                    // "--" so text starting with "-" isn't parsed as a wl-copy option
                     copyTextProc.command = ["wl-copy", "--", extracted];
                     copyTextProc.running = false;
                     copyTextProc.running = true;
-
                     var preview = extracted.length > 200 ? extracted.substring(0, 200) + "…" : extracted;
                     ocrNotifyProc.command = ["notify-send", "Text Copied (OCR)", preview];
                     ocrNotifyProc.running = false;
@@ -432,12 +485,53 @@ PanelWindow {
                 } else {
                     root.screenshotFailed("No text detected in selection");
                 }
+            } else {
+                root.screenshotFailed("OCR failed (exit " + code + ") - check that the selected language pack is installed");
+            }
+            cleanupOcrProc.removeFiles(_tempPath, _processedPath);
+            _tempPath = "";
+            _processedPath = "";
+        }
+    }
+
+    // Verify both the Tesseract executable and requested traineddata files.
+    property bool ocrLanguageAvailable: false
+    Process {
+        id: detectOcrLanguageProc
+        command: ["tesseract", "--list-langs"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var langs = text.split(/\r?\n/).map(function (v) { return v.trim(); });
+                var requested = root.ocrLang.split("+");
+                root.ocrLanguageAvailable = requested.length > 0 && requested.every(function (lang) {
+                    return langs.indexOf(lang.trim()) >= 0;
+                });
             }
         }
         onExited: (code, status) => {
-            if (code !== 0) {
-                root.screenshotFailed("OCR failed (exit " + code + ") - is the '" + root.ocrLang + "' language pack installed?");
+            if (code !== 0)
+                root.ocrLanguageAvailable = false;
+            if (root.ocrLanguageCheckRequested) {
+                root.ocrLanguageCheckRequested = false;
+                if (root.ocrLanguageAvailable)
+                    root.beginOcrSelection();
+                else
+                    root.screenshotFailed("OCR language pack not detected: " + root.ocrLang + " (install the matching Tesseract traineddata)");
             }
+        }
+    }
+
+    // Remove generated captures even when OCR or preprocessing fails.
+    Process {
+        id: cleanupOcrProc
+        function removeFiles(path1, path2) {
+            var paths = [];
+            if (path1) paths.push(path1);
+            if (path2) paths.push(path2);
+            if (!paths.length) return;
+            command = ["rm", "-f"].concat(paths);
+            running = false;
+            running = true;
         }
     }
 
