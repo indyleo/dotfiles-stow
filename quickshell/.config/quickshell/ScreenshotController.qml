@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -7,7 +8,6 @@ import Quickshell.Widgets
 PanelWindow {
     id: root
 
-    // Keep the window hidden normally; it only appears for selection
     visible: false
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
@@ -24,8 +24,8 @@ PanelWindow {
     signal screenshotCaptured(string filePath)
     signal colorPicked(string hexColor)
     signal screenshotFailed(string reason)
-    signal qrDecoded(string text)   // NEW: emitted when a QR code is decoded
-    signal ocrDecoded(string text)  // NEW: emitted when text is extracted from an image
+    signal qrDecoded(string text)
+    signal ocrDecoded(string text)
 
     // Public API
     function screenshotFull() {
@@ -45,12 +45,11 @@ PanelWindow {
     }
     function qrScanner() {
         showQrScanner();
-    }  // NEW
+    }
     function ocrScanner() {
         showOcrScanner();
-    } // NEW: grab text from a region
+    }
 
-    // Timestamp helper
     function getTimestamp() {
         var now = new Date();
         var y = now.getFullYear();
@@ -62,7 +61,6 @@ PanelWindow {
         return y + "-" + mo + "-" + d + "_" + h + "-" + mi + "-" + s;
     }
 
-    // Save, copy, notify after successful capture
     function finalizeImage(filePath) {
         root.screenshotCaptured(filePath);
 
@@ -81,8 +79,9 @@ PanelWindow {
         saveImageProc.running = true;
     }
 
-    // --- Selection overlay (region, color, and now qr) ---
-    property string selectorMode: ""   // "region", "color", "qr", or "ocr"
+    // --- Selection overlay modes ---
+    property string selectorMode: ""   // "region", "color", "qr", "ocr", "ocr-result"
+    property string pendingOcrText: ""
 
     function showRegionSelector() {
         selectorMode = "region";
@@ -98,7 +97,6 @@ PanelWindow {
         regionMouseArea.selecting = false;
     }
 
-    // NEW: show overlay for QR scanning (same as region but mode = "qr")
     function showQrScanner() {
         if (!root.zbarAvailable) {
             root.screenshotFailed("QR scanning requires zbarimg (install zbar-tools)");
@@ -110,7 +108,6 @@ PanelWindow {
         regionMouseArea.selecting = false;
     }
 
-    // NEW: show overlay for OCR (same drag-to-select as region, mode = "ocr")
     property bool ocrLanguageCheckRequested: false
 
     function beginOcrSelection() {
@@ -130,21 +127,25 @@ PanelWindow {
         detectOcrLanguageProc.running = true;
     }
 
+    // NEW: show the editable OCR result popup
+    function showOcrResult(text) {
+        pendingOcrText = text;
+        selectorMode = "ocr-result";
+        root.visible = true;
+        ocrResultText.text = text;
+        ocrResultOverlay.forceActiveFocus();
+    }
+
     function hideSelector() {
         selectorMode = "";
         root.visible = false;
         selectionRect.visible = false;
+        pendingOcrText = "";
     }
 
-    // Wayland layer-shell surfaces don't unmap synchronously when you flip
-    // `visible` - the compositor needs to process that and actually
-    // recomposite a frame without us in it. Firing grim right after
-    // hideSelector() races that, so the overlay (dimming + white selection
-    // rect) can still be in the buffer grim reads, producing a white tint
-    // on the captured region. This delays the actual capture call until
-    // after that unmap has had time to land.
+    // Wayland layer-shell surfaces don't unmap synchronously.
     property int hideSettleMs: 60
-    property int hideSettleRetries: 3   // extra safety re-arms if a frame is dropped/delayed
+    property int hideSettleRetries: 3
 
     Timer {
         id: postHideTimer
@@ -156,10 +157,6 @@ PanelWindow {
             if (!pendingCallback)
                 return;
             var cb = pendingCallback;
-            // Give the compositor a couple of extra idle passes to actually
-            // commit the unmap before we trust it and fire. Cheap insurance
-            // against a single dropped/delayed frame; doesn't add real
-            // latency since animationFrame ticks are ~16ms.
             if (attemptsLeft > 0) {
                 attemptsLeft--;
                 Qt.callLater(function () {
@@ -175,9 +172,6 @@ PanelWindow {
         }
     }
 
-    // Hides the selector overlay, then invokes callback once the compositor
-    // has had a chance to actually remove it from the screen. Use this
-    // instead of calling hideSelector() immediately followed by a capture.
     function captureAfterHide(callback) {
         hideSelector();
         postHideTimer.pendingCallback = callback;
@@ -185,15 +179,14 @@ PanelWindow {
         postHideTimer.restart();
     }
 
-    // Full-screen semi-transparent overlay
+    // --- Region overlay (hidden while the OCR result popup is showing) ---
     Rectangle {
         id: regionOverlay
         anchors.fill: parent
-        visible: root.visible
+        visible: root.visible && selectorMode !== "ocr-result"
         color: Qt.rgba(0, 0, 0, 0.3)
         focus: true
 
-        // Rectangle showing the selection (used in region and QR modes)
         Rectangle {
             id: selectionRect
             color: Qt.rgba(1, 1, 1, 0.2)
@@ -202,7 +195,6 @@ PanelWindow {
             visible: false
         }
 
-        // Crosshair cursor indicator (for color mode)
         Rectangle {
             id: colorCursor
             width: 2
@@ -218,13 +210,12 @@ PanelWindow {
             anchors.fill: parent
             hoverEnabled: true
             acceptedButtons: Qt.LeftButton
-            cursorShape: selectorMode === "color" ? Qt.CrossCursor : Qt.CrossCursor
+            cursorShape: Qt.CrossCursor
 
             property real startX: 0
             property real startY: 0
             property bool selecting: false
 
-            // Track mouse position for color cursor
             onPositionChanged: mouse => {
                 if (selectorMode === "color") {
                     colorCursor.x = mouse.x;
@@ -234,7 +225,6 @@ PanelWindow {
                     var y = Math.min(startY, mouse.y);
                     var w = Math.abs(mouse.x - startX);
                     var h = Math.abs(mouse.y - startY);
-
                     selectionRect.x = x;
                     selectionRect.y = y;
                     selectionRect.width = w;
@@ -246,7 +236,6 @@ PanelWindow {
                 if (mouse.button !== Qt.LeftButton)
                     return;
                 if (selectorMode === "color") {
-                    // Single click: capture pixel under cursor
                     var x = Math.round(mouse.x);
                     var y = Math.round(mouse.y);
                     root.captureAfterHide(function () {
@@ -269,14 +258,12 @@ PanelWindow {
                     return;
                 selecting = false;
 
-                // Get geometry relative to the overlay (full-screen)
                 var x = Math.round(selectionRect.x);
                 var y = Math.round(selectionRect.y);
                 var w = Math.round(selectionRect.width);
                 var h = Math.round(selectionRect.height);
 
                 if (w < 5 || h < 5) {
-                    // Nothing worth capturing - just hide immediately
                     hideSelector();
                     root.screenshotFailed("Region too small");
                     return;
@@ -305,12 +292,147 @@ PanelWindow {
             }
         }
 
-        Keys.onEscapePressed: {
-            hideSelector();
+        Keys.onEscapePressed: hideSelector()
+    }
+
+    // --- OCR result popup (editable, selectable) ---
+    // --- OCR result popup (editable, selectable) ---
+    Rectangle {
+        id: ocrResultOverlay
+        anchors.fill: parent
+        visible: root.visible && selectorMode === "ocr-result"
+        color: Theme.overlayDim
+        focus: true
+
+        Keys.onEscapePressed: root.hideSelector()
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: root.hideSelector()
+        }
+
+        Rectangle {
+            id: ocrDialog
+            anchors.centerIn: parent
+            width: Math.min(parent.width * 0.8, 800)
+            height: Math.min(parent.height * 0.8, 600)
+            color: Theme.surface
+            border.color: Theme.accent
+            border.width: 2
+            radius: 8
+
+            MouseArea {
+                anchors.fill: parent
+            }
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 16
+                spacing: 12
+
+                Text {
+                    Layout.fillWidth: true
+                    text: "Extracted Text (editable)"
+                    color: Theme.text
+                    font.family: Theme.fontFamily
+                    font.bold: true
+                    font.pixelSize: 16
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    color: Theme.background
+                    border.color: Theme.border
+                    border.width: 1
+                    radius: 4
+                    clip: true
+
+                    Flickable {
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        contentWidth: width
+                        contentHeight: ocrResultText.contentHeight
+                        clip: true
+
+                        TextEdit {
+                            id: ocrResultText
+                            width: parent.width
+                            color: Theme.text
+                            selectByMouse: true
+                            wrapMode: TextEdit.Wrap
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSize
+                        }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    Rectangle {
+                        Layout.preferredWidth: 90
+                        Layout.preferredHeight: 34
+                        color: copyMouse.containsMouse ? Theme.buttonHoverBg : Theme.buttonBg
+                        radius: 4
+                        border.color: Theme.buttonIcon
+                        border.width: 1
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Copy"
+                            color: Theme.buttonText
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSize
+                        }
+                        MouseArea {
+                            id: copyMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                copyTextProc.command = ["wl-copy", "--", ocrResultText.text];
+                                copyTextProc.running = false;
+                                copyTextProc.running = true;
+                                root.hideSelector();
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.preferredWidth: 90
+                        Layout.preferredHeight: 34
+                        color: closeMouse.containsMouse ? Theme.buttonHoverBg : Theme.buttonBg
+                        radius: 4
+                        border.color: Theme.border
+                        border.width: 1
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Close"
+                            color: Theme.buttonText
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSize
+                        }
+                        MouseArea {
+                            id: closeMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.hideSelector()
+                        }
+                    }
+                }
+            }
         }
     }
 
-    // --- Region capture (unchanged) ---
+    // --- Region capture ---
     function captureRegionWithGeometry(geometry) {
         var temp = "/tmp/qs-region-" + Date.now() + ".png";
         regionGrimProc._tempPath = temp;
@@ -323,15 +445,14 @@ PanelWindow {
         id: regionGrimProc
         property string _tempPath
         onExited: (code, status) => {
-            if (code === 0) {
+            if (code === 0)
                 root.finalizeImage(_tempPath);
-            } else {
+            else
                 root.screenshotFailed("grim region screenshot failed (exit " + code + ")");
-            }
         }
     }
 
-    // --- NEW: QR capture and decode ---
+    // --- QR capture and decode ---
     function captureQrRegion(geometry) {
         var temp = "/tmp/qs-qr-" + Date.now() + ".png";
         qrGrimProc._tempPath = temp;
@@ -345,7 +466,6 @@ PanelWindow {
         property string _tempPath
         onExited: (code, status) => {
             if (code === 0) {
-                // Now decode the QR code from the captured image
                 qrDecodeProc._tempPath = _tempPath;
                 qrDecodeProc.command = ["zbarimg", "--quiet", "--raw", _tempPath];
                 qrDecodeProc.running = false;
@@ -364,11 +484,9 @@ PanelWindow {
                 var decoded = text.trim();
                 if (decoded) {
                     root.qrDecoded(decoded);
-                    // Copy decoded text to clipboard
                     copyTextProc.command = ["wl-copy", decoded];
                     copyTextProc.running = false;
                     copyTextProc.running = true;
-                    // Show notification
                     qrNotifyProc.command = ["notify-send", "QR Code Scanned", decoded + " copied to clipboard."];
                     qrNotifyProc.running = false;
                     qrNotifyProc.running = true;
@@ -378,13 +496,11 @@ PanelWindow {
             }
         }
         onExited: (code, status) => {
-            if (code !== 0) {
+            if (code !== 0)
                 root.screenshotFailed("QR decode failed (exit " + code + ")");
-            }
         }
     }
 
-    // Notification for QR success
     Process {
         id: qrNotifyProc
         onExited: (code, status) => {
@@ -393,69 +509,150 @@ PanelWindow {
         }
     }
 
-    // --- NEW: OCR (extract text from a selected region) ---
-    property string ocrLang: "eng"   // e.g. "eng+deu" for several languages
-    // These properties can be bound to your settings UI/configuration.
-    property int ocrPsm: 6           // 3 = auto layout, 6 = block, 7 = line
+    // --- OCR ---
+    property string ocrLang: "eng"
+
+    // PSM control:
+    //   "auto"   – infer from selection geometry (default)
+    //   "line"   – single line      (PSM 7)
+    //   "block"  – uniform block    (PSM 6)
+    //   "sparse" – sparse text      (PSM 11)
+    property string ocrPsmMode: "auto"
+    property int ocrPsm: 6           // fallback used only if inference fails
+
     property bool ocrPreprocess: false
-    property int ocrScale: 2         // enlargement factor when preprocessing
-    property int ocrThreshold: 0     // 0 disables thresholding; otherwise 1-255
+    property int ocrScale: 2
+    property int ocrThreshold: 0
+
+    // Infer the appropriate Tesseract PSM for a given selection geometry.
+    function inferPsm(geometry) {
+        if (root.ocrPsmMode === "line")
+            return 7;
+        if (root.ocrPsmMode === "block")
+            return 6;
+        if (root.ocrPsmMode === "sparse")
+            return 11;
+
+        if (!geometry)
+            return root.ocrPsm;
+        var m = geometry.match(/(\d+)x(\d+)/);
+        if (!m)
+            return root.ocrPsm;
+
+        var w = parseInt(m[1]);
+        var h = parseInt(m[2]);
+
+        // Very short selections are almost always a single line.
+        if (h <= 40)
+            return 7;
+
+        // Wide-and-short rectangles (e.g. code lines, UI labels).
+        if (h <= 80 && w > 0 && (w / h) >= 5)
+            return 7;
+
+        // Everything else: treat as a block of text.
+        return 6;
+    }
+
+    // Preprocessing helper. Always runs when ImageMagick is available:
+    //   - detects dark backgrounds and negates them (Tesseract needs dark-on-light)
+    //   - upscales small text (H < 60 px) so character height is ≥ ~20 px
+    // The user's `ocrPreprocess` toggle additionally enables contrast and
+    // optional thresholding, and `ocrScale` can override the auto-scale.
+    readonly property string ocrPrepScript: `in="$1"; out="$2"; H="$3"; threshold="$4"; uscale="$5"; force_pre="$6"; MBIN="$7"
+case "$H" in ''|*[!0-9]*) H=0 ;; esac
+SCALE=1
+if [ "$H" -gt 0 ] && [ "$H" -lt 60 ]; then
+  SCALE=$(( (60 + H - 1) / H ))
+  [ "$SCALE" -gt 3 ] && SCALE=3
+fi
+if [ "$force_pre" = "1" ] && [ "$uscale" -gt "$SCALE" ]; then
+  SCALE="$uscale"
+fi
+MEAN=$("$MBIN" "$in" -colorspace Gray -format "%[fx:mean]" info: 2>/dev/null || echo "0.5")
+case "$MEAN" in ''|*[!0-9.]*) MEAN=0.5 ;; esac
+ARGS=""
+if [ "$SCALE" -gt 1 ]; then
+  ARGS="$ARGS -resize $((SCALE * 100))%"
+fi
+if awk "BEGIN{exit !($MEAN < 0.5)}"; then
+  ARGS="$ARGS -negate"
+fi
+if [ "$force_pre" = "1" ]; then
+  ARGS="$ARGS -contrast"
+  if [ "$threshold" -gt 0 ]; then
+    ARGS="$ARGS -threshold $threshold/255"
+  fi
+fi
+"$MBIN" "$in" -colorspace Gray $ARGS "$out"
+`
 
     function captureOcrRegion(geometry) {
         var temp = "/tmp/qs-ocr-" + Date.now() + ".png";
         ocrGrimProc._tempPath = temp;
+        ocrGrimProc._geometry = geometry;
         ocrGrimProc.command = ["grim", "-g", geometry, temp];
         ocrGrimProc.running = false;
         ocrGrimProc.running = true;
     }
 
+    function runOcrOn(path, geometry) {
+        var psm = root.inferPsm(geometry);
+        ocrProc._output = "";
+        ocrProc.command = ["tesseract", path, "stdout", "-l", root.ocrLang, "--psm", String(psm), "--oem", "1", "-c", "preserve_interword_spaces=1"];
+        ocrProc.running = false;
+        ocrProc.running = true;
+    }
+
     Process {
         id: ocrGrimProc
-        property string _tempPath
+        property string _tempPath: ""
+        property string _geometry: ""
         onExited: (code, status) => {
-            if (code === 0) {
-                ocrProc._tempPath = _tempPath;
-                ocrProc._output = "";
-                if (root.ocrPreprocess) {
-                    if (root.magickBin === "none") {
-                        root.screenshotFailed("OCR preprocessing requires ImageMagick (magick or convert)");
-                        cleanupOcrProc.removeFiles(_tempPath, "");
-                        return;
-                    }
-                    var processed = "/tmp/qs-ocr-processed-" + Date.now() + ".png";
-                    ocrProc._processedPath = processed;
-                    var args = [];
-                    if (root.magickBin === "magick")
-                        args.push("convert");
-                    args.push(_tempPath, "-resize", (Math.max(1, root.ocrScale) * 100) + "%", "-colorspace", "Gray", "-contrast");
-                    if (root.ocrThreshold > 0)
-                        args.push("-threshold", Math.max(1, Math.min(255, root.ocrThreshold)) + "/255");
-                    args.push(processed);
-                    preprocessOcrProc.command = [root.magickBin].concat(args);
-                    preprocessOcrProc.running = false;
-                    preprocessOcrProc.running = true;
-                } else {
-                    ocrProc.command = ["tesseract", _tempPath, "stdout", "-l", root.ocrLang, "--psm", String(root.ocrPsm)];
-                    ocrProc.running = false;
-                    ocrProc.running = true;
-                }
-            } else {
-                cleanupOcrProc.removeFiles(_tempPath, "");
+            if (code !== 0) {
                 root.screenshotFailed("grim OCR capture failed (exit " + code + ")");
+                return;
             }
+
+            if (root.magickBin === "none") {
+                // No ImageMagick available: skip preprocessing, accept lower accuracy.
+                ocrProc._tempPath = _tempPath;
+                ocrProc._processedPath = "";
+                root.runOcrOn(_tempPath, _geometry);
+                return;
+            }
+
+            var processed = "/tmp/qs-ocr-processed-" + Date.now() + ".png";
+            var h = 0;
+            var m = _geometry.match(/x(\d+)/);
+            if (m)
+                h = parseInt(m[1]);
+
+            ocrPrepProc._tempPath = _tempPath;
+            ocrPrepProc._processedPath = processed;
+            ocrPrepProc._geometry = _geometry;
+            ocrPrepProc.command = ["sh", "-c", root.ocrPrepScript, "sh", _tempPath, processed, String(h), String(root.ocrThreshold), String(root.ocrScale), root.ocrPreprocess ? "1" : "0", root.magickBin];
+            ocrPrepProc.running = false;
+            ocrPrepProc.running = true;
         }
     }
 
     Process {
-        id: preprocessOcrProc
+        id: ocrPrepProc
+        property string _tempPath: ""
+        property string _processedPath: ""
+        property string _geometry: ""
         onExited: (code, status) => {
             if (code === 0) {
-                ocrProc.command = ["tesseract", ocrProc._processedPath, "stdout", "-l", root.ocrLang, "--psm", String(root.ocrPsm)];
-                ocrProc.running = false;
-                ocrProc.running = true;
+                ocrProc._tempPath = _tempPath;
+                ocrProc._processedPath = _processedPath;
+                root.runOcrOn(_processedPath, _geometry);
             } else {
-                cleanupOcrProc.removeFiles(ocrProc._tempPath, ocrProc._processedPath);
-                root.screenshotFailed("ImageMagick OCR preprocessing failed (exit " + code + ")");
+                console.warn("[OCR] Preprocessing failed, using raw image");
+                cleanupOcrProc.removeFiles(_processedPath, "");
+                ocrProc._tempPath = _tempPath;
+                ocrProc._processedPath = "";
+                root.runOcrOn(_tempPath, _geometry);
             }
         }
     }
@@ -469,19 +666,16 @@ PanelWindow {
             onStreamFinished: ocrProc._output = text
         }
         onExited: (code, status) => {
-            // Handle success/failure here only: avoids duplicate signals from
-            // stdout completion and process completion callbacks.
             if (code === 0) {
                 var extracted = ocrProc._output.replace(/\f/g, "").trim();
                 if (extracted) {
                     root.ocrDecoded(extracted);
+                    // Convenience: seed the clipboard with the raw text.
+                    // The popup lets the user review/edit and re-copy.
                     copyTextProc.command = ["wl-copy", "--", extracted];
                     copyTextProc.running = false;
                     copyTextProc.running = true;
-                    var preview = extracted.length > 200 ? extracted.substring(0, 200) + "…" : extracted;
-                    ocrNotifyProc.command = ["notify-send", "Text Copied (OCR)", preview];
-                    ocrNotifyProc.running = false;
-                    ocrNotifyProc.running = true;
+                    root.showOcrResult(extracted);
                 } else {
                     root.screenshotFailed("No text detected in selection");
                 }
@@ -494,14 +688,15 @@ PanelWindow {
         }
     }
 
-    // Verify both the Tesseract executable and requested traineddata files.
     property bool ocrLanguageAvailable: false
     Process {
         id: detectOcrLanguageProc
         command: ["tesseract", "--list-langs"]
         stdout: StdioCollector {
             onStreamFinished: {
-                var langs = text.split(/\r?\n/).map(function (v) { return v.trim(); });
+                var langs = text.split(/\r?\n/).map(function (v) {
+                    return v.trim();
+                });
                 var requested = root.ocrLang.split("+");
                 root.ocrLanguageAvailable = requested.length > 0 && requested.every(function (lang) {
                     return langs.indexOf(lang.trim()) >= 0;
@@ -521,30 +716,23 @@ PanelWindow {
         }
     }
 
-    // Remove generated captures even when OCR or preprocessing fails.
     Process {
         id: cleanupOcrProc
         function removeFiles(path1, path2) {
             var paths = [];
-            if (path1) paths.push(path1);
-            if (path2) paths.push(path2);
-            if (!paths.length) return;
+            if (path1)
+                paths.push(path1);
+            if (path2)
+                paths.push(path2);
+            if (!paths.length)
+                return;
             command = ["rm", "-f"].concat(paths);
             running = false;
             running = true;
         }
     }
 
-    Process {
-        id: ocrNotifyProc
-        onExited: (code, status) => {
-            if (code !== 0)
-                console.warn("[OCR] Notification failed (exit " + code + ")");
-        }
-    }
-
     property bool tesseractAvailable: false
-
     Process {
         id: detectTesseractProc
         running: true
@@ -552,33 +740,29 @@ PanelWindow {
         stdout: StdioCollector {
             onStreamFinished: {
                 root.tesseractAvailable = (text.trim() === "yes");
-                if (!root.tesseractAvailable) {
+                if (!root.tesseractAvailable)
                     console.warn("[Screenshot] tesseract not found - OCR will be unavailable");
-                }
             }
         }
     }
 
-    // --- ImageMagick detection (unchanged) ---
+    // --- ImageMagick detection ---
     property string magickBin: "magick"
-
     Process {
         id: detectMagickProc
         running: true
-        command: ["sh", "-c", "command -v magick >/dev/null 2>&1 && echo magick || " + "{ command -v convert >/dev/null 2>&1 && echo convert || echo none; }"]
+        command: ["sh", "-c", "command -v magick >/dev/null 2>&1 && echo magick || { command -v convert >/dev/null 2>&1 && echo convert || echo none; }"]
         stdout: StdioCollector {
             onStreamFinished: {
                 root.magickBin = text.trim();
-                if (root.magickBin === "none") {
-                    console.warn("[Screenshot] Neither 'magick' nor 'convert' found - color picker will not work");
-                }
+                if (root.magickBin === "none")
+                    console.warn("[Screenshot] Neither 'magick' nor 'convert' found - color picker and OCR preprocessing will be unavailable");
             }
         }
     }
 
-    // --- NEW: zbarimg detection ---
+    // --- zbarimg detection ---
     property bool zbarAvailable: false
-
     Process {
         id: detectZbarProc
         running: true
@@ -586,14 +770,13 @@ PanelWindow {
         stdout: StdioCollector {
             onStreamFinished: {
                 root.zbarAvailable = (text.trim() === "yes");
-                if (!root.zbarAvailable) {
+                if (!root.zbarAvailable)
                     console.warn("[Screenshot] zbarimg not found - QR scanning will be unavailable");
-                }
             }
         }
     }
 
-    // --- Capture a single pixel at (x, y) and extract its color ---
+    // --- Color picker ---
     function capturePixel(x, y) {
         if (root.magickBin === "none") {
             root.screenshotFailed("Color picker requires ImageMagick (magick or convert), which isn't installed");
@@ -623,13 +806,12 @@ PanelWindow {
             }
         }
         onExited: (code, status) => {
-            if (code !== 0) {
+            if (code !== 0)
                 root.screenshotFailed("Color picker failed (exit " + code + ")");
-            }
         }
     }
 
-    // --- Background capture (unchanged) ---
+    // --- Background capture ---
     function captureFullForBackground() {
         bgMonitorInfoProc.running = false;
         bgMonitorInfoProc.running = true;
@@ -670,9 +852,9 @@ PanelWindow {
     Process {
         id: grimBgProc
         onExited: (code, status) => {
-            if (code === 0) {
+            if (code === 0)
                 root.backgroundCaptured("/tmp/qs-bg.png");
-            } else {
+            else {
                 console.warn("[Screenshot] grim background capture failed (exit code " + code + ")");
                 root.screenshotFailed("grim background capture failed (exit " + code + ")");
             }
@@ -692,11 +874,10 @@ PanelWindow {
         id: grimFullProc
         property string _tempPath
         onExited: (code, status) => {
-            if (code === 0) {
+            if (code === 0)
                 root.finalizeImage(_tempPath);
-            } else {
+            else
                 root.screenshotFailed("grim full screenshot failed (exit " + code + ")");
-            }
         }
     }
 
@@ -733,9 +914,8 @@ PanelWindow {
             }
         }
         onExited: (code, status) => {
-            if (code !== 0) {
+            if (code !== 0)
                 root.screenshotFailed("monitor: hyprctl monitors failed (exit " + code + ")");
-            }
         }
     }
 
@@ -743,11 +923,10 @@ PanelWindow {
         id: grimMonitorProc
         property string _tempPath
         onExited: (code, status) => {
-            if (code === 0) {
+            if (code === 0)
                 root.finalizeImage(_tempPath);
-            } else {
+            else
                 root.screenshotFailed("grim monitor screenshot failed (exit " + code + ")");
-            }
         }
     }
 
@@ -783,9 +962,8 @@ PanelWindow {
             }
         }
         onExited: (code, status) => {
-            if (code !== 0) {
+            if (code !== 0)
                 root.screenshotFailed("hyprctl activewindow failed (exit " + code + ")");
-            }
         }
     }
 
@@ -793,11 +971,10 @@ PanelWindow {
         id: grimWindowProc
         property string _tempPath
         onExited: (code, status) => {
-            if (code === 0) {
+            if (code === 0)
                 root.finalizeImage(_tempPath);
-            } else {
+            else
                 root.screenshotFailed("grim window screenshot failed (exit " + code + ")");
-            }
         }
     }
 
