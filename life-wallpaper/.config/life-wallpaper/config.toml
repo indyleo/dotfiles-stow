@@ -35,8 +35,12 @@ render_fps = 30     # frames per second while crossfading (idle boards draw noth
 pause_hidden = true # stop simulating/drawing while a fullscreen window or lock screen covers it
 
 # Look of each cell
-cell_gap = 1       # empty px between cells (logical px, 0-8); 0 = solid blocks
-cell_round = false # round the corners of each cell
+cell_gap = 1          # empty px between cells (logical px, 0-8); 0 = solid blocks
+cell_shape = "square" # square | circle | hex | rounded (old key cell_round: true = rounded, false = square)
+
+# Colour by age: "steps" = four flat classes, "smooth" = a continuous gradient through the same colours
+color_mode = "steps"
+color_smooth_stops = "newborn,mature,old,ancient" # smooth only: the palette entries the gradient runs through (at least two)
 
 # Keep the board across restarts (saved to ~/.local/state/life-wallpaper/<output>.board)
 persist = true
@@ -83,9 +87,29 @@ hypr_events = true     # Hyprland: workspace switch = gliders, window open / clo
 hypr_locate = true     # ask Hyprland where the window is: bloom where a closed one was, halo around a new one
 clock_stamp_secs = 600 # every ~N seconds a stamp spells the time, HH:MM (0 = off; needs stamps = true)
 
-# ---- Audio (off by default; needs PipeWire's pw-cat; read at start-up, restart to change) ----
-audio = false           # gliders on beats of whatever is playing
-audio_sensitivity = 1.0 # 0.2 to 5, higher reacts to softer beats
+# ---- Audio (off by default; pw-cat, falling back to parec / pacat; audio, audio_command and the sensitivities are read at start-up) ----
+audio = true            # react to whatever is playing
+audio_sensitivity = 1.0 # 0.2 to 5, higher reacts to softer beats (the master for the bands below)
+audio_gliders = true    # a beat sends a glider (needs audio)
+audio_react = true      # the board lights up with the music; no cells are added (needs audio)
+audio_gain = 2.0        # how loud the signal is taken to be before it drives the light
+audio_brighten = 0.35   # live cells lift towards white at full mid level
+audio_glow = 0.35       # extra halo at full bass level
+audio_bg = 0.08         # faint background pulse at full treble level
+audio_flash = 0.5       # strength of the short flash on each beat
+audio_flash_ms = 150    # how long that flash lasts
+audio_attack_ms = 30    # light rises this fast ...
+audio_release_ms = 300  # ... and falls this slowly (frame-rate independent)
+audio_floor = 0.02      # levels below this light nothing
+# Per-band beat sensitivity ("master" = follow audio_sensitivity), and what a band's beats do:
+audio_band_bass_sensitivity = "master"
+audio_band_mid_sensitivity = "master"
+audio_band_treble_sensitivity = "master"
+audio_band_bass_gliders = false          # gliders follow the bass band instead of the full-range detector
+audio_band_mid_sparks = false            # mid-band beats drop sparks (now and then a methuselah)
+audio_band_treble_noise = false          # treble beats add cosmic rays
+audio_restart_backoff = true             # restart the helper if it exits (0.5 s, 1 s, 2 s ... up to audio_restart_max_secs)
+audio_restart_max_secs = 30
 # audio_command = "pw-cat --record --format s16 --rate 11025 --channels 1 -P {stream.capture.sink=true} -"
 
 # ---- Look ----
@@ -98,3 +122,59 @@ hue_drift_secs = 900
 night_dim = 0        # fraction of brightness removed at night, e.g. 0.35 (0 = off)
 night_start = 22     # local hour
 night_end = 7
+
+# ---- Control socket (off by default): script the wallpaper with life-wallpaper-ctl ----
+ipc = false
+# ipc_path = ""          # default: $XDG_RUNTIME_DIR/life-wallpaper-<output|all>.sock
+
+# ---- Battery (off by default): calmer and dimmer when running on a low battery ----
+power = false
+battery_threshold = 40                                 # percent: low-power mode at or below this charge, on battery
+battery_dim = 0.15                                     # extra brightness removed (stacks with night_dim)
+battery_fps_scale = 0.5                                # multiply fps by this
+battery_disable = "traffic,guns,stamps,audio,patterns"
+
+# ---- Idle (off by default; Hyprland only): calmer after a while without pointer or window activity ----
+idle = false
+idle_secs = 300
+idle_fps_scale = 0.5
+idle_fastforward = true # calm boards fast-forward while idle
+idle_dim = 0.2
+idle_breathe = 0.6      # breathe depth while idle (if larger than breathe)
+
+# ---- Media player (off by default; needs playerctl) ----
+mpris = true
+# mpris_player = ""      # default: whichever player is active
+mpris_artist_colors = true # a new track blooms in a colour chosen by the artist (needs colonies)
+
+# ---- Diagnostics and scenes ----
+stats = false   # one status line per second on stderr
+verbose = false # audio levels, IPC commands, track changes
+# scenes_dir = ""  # default: ~/.local/state/life-wallpaper/scenes
+
+# Rules a rule shift may swap in (comma separated):
+# rule_shift_rules = "b34/s23,b3/s234,b3/s2345"
+
+# ---- Board topology and extras ----
+grid = "square"               # square | hex | von-neumann (hex is drawn with odd rows shifted; an even row count is used)
+overlay_sparkline = false     # population / settled sparkline above the overlay text (needs overlay)
+workspace_ripple = false      # a workspace switch sends a quick ripple of the alternative rule across the board
+audio_band_bass_bloom = false # sustained loud bass blooms a pulsar (needs audio)
+
+# ---- Pointer (off by default; Hyprland): leave cells where the mouse goes ----
+cursor = false
+cursor_mode = "trail"    # trail | sparkle | soup
+cursor_radius = 2
+cursor_interval_ms = 100
+
+# ---- Command: stdout lines of a command are events ----
+# Each line is a JSON object like {"inject":"glider","edge":"left"} or {"text":"hello"} / {"set":"glow","value":0.5},
+# or the control socket's own syntax (inject glider --edge left).
+command = ""
+command_interval_secs = 0 # 0 = a long-running process; N = run it every N seconds
+
+# ---- Weather (off by default): wttr.in-style JSON tints the palette and adds rain / snow ----
+weather = true
+weather_command = "curl -s -m 10 wttr.in/?format=j1"
+weather_interval_secs = 900
+weather_palette = true
