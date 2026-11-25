@@ -1566,11 +1566,11 @@ ShellRoot {
                                 onExited: kbdRow.hovered = false
                                 onWheel: wheel => {
                                     if (wheel.angleDelta.y > 0) {
-                                        shellCmd.command = ["sysctl", "kbd", "--inc", "10"];
+                                        shellCmd.command = ["sysctrl", "kbd", "--inc", "10"];
                                         shellCmd.running = false;
                                         shellCmd.running = true;
                                     } else {
-                                        shellCmd.command = ["sysctl", "kbd", "--dec", "10"];
+                                        shellCmd.command = ["sysctrl", "kbd", "--dec", "10"];
                                         shellCmd.running = false;
                                         shellCmd.running = true;
                                     }
@@ -1579,7 +1579,7 @@ ShellRoot {
                                     if (m.button === Qt.MiddleButton) {
                                         kbdRow.pinned = !kbdRow.pinned;
                                     } else if (m.button === Qt.LeftButton) {
-                                        shellCmd.command = ["sysctl", "kbd", "--toggle"];
+                                        shellCmd.command = ["sysctrl", "kbd", "--toggle"];
                                         shellCmd.running = false;
                                         shellCmd.running = true;
                                     }

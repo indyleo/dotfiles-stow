@@ -88,7 +88,7 @@ Item {
     function adjust(action) {
         if (!available)
             return;
-        adjustProc.command = ["sysctl", "kbd", action];
+        adjustProc.command = ["sysctrl", "kbd", action];
         adjustProc.running = false;
         adjustProc.running = true;
     }
