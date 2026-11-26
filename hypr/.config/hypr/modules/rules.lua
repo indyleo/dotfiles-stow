@@ -157,7 +157,10 @@ place("steam-workspace", "^steam$", 9, MON_MAIN)
 place("mocktail-multi", "^mocktail-multi", 10, MON_MAIN)
 
 -- Roblox -> Workspace 10, main monitor
-place("space.bigrat.mocktail", "space.bigrat.mocktail", 10, MON_MAIN)
+place("space.bigrat.mocktail", "^space.bigrat.mocktail$", 10, MON_MAIN)
+
+-- Faugus Launcher -> Workspace 10, main monitor
+place("io.github.Faugus.faugus-launcher", "^io.github.Faugus.faugus-launcher$", 10, MON_MAIN)
 
 -- LibreWolf -> Workspace 6, main monitor
 place("librewolf-workspace", "^librewolf$", 6, MON_MAIN)
