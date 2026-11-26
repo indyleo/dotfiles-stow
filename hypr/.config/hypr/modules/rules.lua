@@ -74,7 +74,7 @@ hl.window_rule({
 		class = "^(feishin)$",
 	},
 	monitor = MON_TOUCH,
-	workspace = ws(11, MON_TOUCH),
+	workspace = ws(13, MON_TOUCH),
 	fullscreen = false,
 })
 
