@@ -8,20 +8,9 @@
 
 -- ========================= MONITORS ================================ --
 
-local MON_TOP = "HDMI-A-1" -- monitor 0: workspaces 1-5
-local MON_MAIN = "DP-1" -- monitor 1: workspaces 6-10
-local MON_TOUCH = "HDMI-A-4" -- monitor 2: workspaces 11-15
-
--- ========================= WORKSPACE MAP =========================== --
--- hyprsplit gives each monitor 5 workspaces (num_workspaces = 5), so the
--- rules below use global workspace IDs:
---
---   1   btop                     (top monitor)
---   6   LibreWolf                (main monitor)
---   7   Vesktop / Discord        (main monitor)
---   8   Terminal, indy terminal  (main monitor)
---   9   Steam client             (main monitor)
---   11  Feishin                  (touch monitor)
+local MON_TOP = "HDMI-A-1"
+local MON_MAIN = "DP-1"
+local MON_TOUCH = "HDMI-A-4"
 
 -- ========================= HELPERS ================================= --
 
@@ -153,14 +142,14 @@ place("vesktop-workspace", "^vesktop$", 8, MON_MAIN)
 -- Steam client -> Workspace 10, main monitor
 place("steam-workspace", "^steam$", 10, MON_MAIN)
 
--- Mocktail Multi -> Workspace 11, main monitor
-place("mocktail-multi", "^mocktail-multi", 11, MON_MAIN)
+-- Mocktail Multi -> Workspace 12, main monitor
+place("mocktail-multi", "^mocktail-multi", 12, MON_MAIN)
 
--- Roblox -> Workspace 11, main monitor
-place("space.bigrat.mocktail", "^space.bigrat.mocktail$", 11, MON_MAIN)
+-- Roblox -> Workspace 12, main monitor
+place("space.bigrat.mocktail", "^space.bigrat.mocktail$", 12, MON_MAIN)
 
--- Faugus Launcher -> Workspace 12, main monitor
-place("io.github.Faugus.faugus-launcher", "^io.github.Faugus.faugus-launcher$", 12, MON_MAIN)
+-- Faugus Launcher -> Workspace 11, main monitor
+place("io.github.Faugus.faugus-launcher", "^io.github.Faugus.faugus-launcher$", 11, MON_MAIN)
 
 -- LibreWolf -> Workspace 6, main monitor
 place("librewolf-workspace", "^librewolf$", 7, MON_MAIN)
