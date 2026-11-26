@@ -71,6 +71,7 @@ _load_gen_completion gh "completion -s zsh"
 _load_gen_completion rustup "completions zsh"
 _load_gen_completion rbw "gen-completions zsh"
 _load_gen_completion tldr "--print-completion zsh"
+_load_gen_completion atuin "gen-completions --shell zsh"
 unfunction _load_gen_completion
 
 # vi mode
