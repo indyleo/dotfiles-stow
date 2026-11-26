@@ -147,23 +147,23 @@ hl.window_rule({
 -- btop -> Workspace 1, top monitor
 place("btop-workspace", "^btop$", 1, MON_TOP)
 
--- Discord / Vesktop -> Workspace 7, main monitor
-place("vesktop-workspace", "^vesktop$", 7, MON_MAIN)
+-- Discord / Vesktop -> Workspace 8, main monitor
+place("vesktop-workspace", "^vesktop$", 8, MON_MAIN)
 
--- Steam client -> Workspace 9, main monitor
-place("steam-workspace", "^steam$", 9, MON_MAIN)
+-- Steam client -> Workspace 10, main monitor
+place("steam-workspace", "^steam$", 10, MON_MAIN)
 
--- Mocktail Multi -> Workspace 10, main monitor
-place("mocktail-multi", "^mocktail-multi", 10, MON_MAIN)
+-- Mocktail Multi -> Workspace 11, main monitor
+place("mocktail-multi", "^mocktail-multi", 11, MON_MAIN)
 
--- Roblox -> Workspace 10, main monitor
-place("space.bigrat.mocktail", "^space.bigrat.mocktail$", 10, MON_MAIN)
+-- Roblox -> Workspace 11, main monitor
+place("space.bigrat.mocktail", "^space.bigrat.mocktail$", 11, MON_MAIN)
 
--- Faugus Launcher -> Workspace 10, main monitor
-place("io.github.Faugus.faugus-launcher", "^io.github.Faugus.faugus-launcher$", 10, MON_MAIN)
+-- Faugus Launcher -> Workspace 12, main monitor
+place("io.github.Faugus.faugus-launcher", "^io.github.Faugus.faugus-launcher$", 12, MON_MAIN)
 
 -- LibreWolf -> Workspace 6, main monitor
-place("librewolf-workspace", "^librewolf$", 6, MON_MAIN)
+place("librewolf-workspace", "^librewolf$", 7, MON_MAIN)
 
 -- ========================= LAYER RULES ============================== --
 

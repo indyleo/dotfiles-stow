@@ -101,7 +101,7 @@ hl.bind(mainMod .. " + ALT + O", hl.dsp.exec_cmd("qs ipc call screenshot ocr"))
 hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("qs ipc call wallpaper random"))
 
 -- --- Workspaces (hyprsplit) ---
-for i = 1, 5 do
+for i = 1, 6 do
 	hl.bind(mainMod .. " + " .. i, hs.dsp.focus({ workspace = i }))
 	hl.bind(mainMod .. " + SHIFT + " .. i, hs.dsp.window.move({ workspace = i, follow = false }))
 end
