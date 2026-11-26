@@ -142,14 +142,14 @@ place("vesktop-workspace", "^vesktop$", 8, MON_MAIN)
 -- Steam client -> Workspace 10, main monitor
 place("steam-workspace", "^steam$", 10, MON_MAIN)
 
--- Mocktail Multi -> Workspace 12, main monitor
-place("mocktail-multi", "^mocktail-multi", 12, MON_MAIN)
+-- Mocktail Multi -> Workspace 11, main monitor
+place("mocktail-multi", "^mocktail-multi", 11, MON_MAIN)
 
--- Roblox -> Workspace 12, main monitor
-place("space.bigrat.mocktail", "^space.bigrat.mocktail$", 12, MON_MAIN)
+-- Roblox -> Workspace 11, main monitor
+place("space.bigrat.mocktail", "^space.bigrat.mocktail$", 11, MON_MAIN)
 
--- Faugus Launcher -> Workspace 11, main monitor
-place("io.github.Faugus.faugus-launcher", "^io.github.Faugus.faugus-launcher$", 11, MON_MAIN)
+-- Faugus Launcher -> Workspace 10, main monitor
+place("io.github.Faugus.faugus-launcher", "^io.github.Faugus.faugus-launcher$", 10, MON_MAIN)
 
 -- LibreWolf -> Workspace 6, main monitor
 place("librewolf-workspace", "^librewolf$", 7, MON_MAIN)
