@@ -67,7 +67,7 @@ hl.window_rule({
 
 -- ========================= FEISHIN ================================= --
 
--- Feishin -> Workspace 11 (first workspace of the touch monitor)
+-- Feishin -> Workspace 13 (first workspace of the touch monitor)
 hl.window_rule({
 	name = "feishin-touch-display",
 	match = {
@@ -112,7 +112,7 @@ hl.window_rule({
 
 -- ========================= AUTO PLACEMENT ========================== --
 
--- Alacritty titled "indy" -> Workspace 8, main monitor
+-- Alacritty titled "indy" -> Workspace 9, main monitor
 hl.window_rule({
 	name = "indy-terminal",
 	match = {
