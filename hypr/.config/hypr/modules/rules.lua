@@ -122,7 +122,7 @@ hl.window_rule({
 	workspace = ws(9, MON_MAIN),
 })
 
--- Alacritty titled "Terminal" (the one startup-apps.sh opens) -> Workspace 8, main monitor
+-- Alacritty titled "Terminal" (the one startup-apps.sh opens) -> Workspace 9, main monitor
 -- Terminals with any other title open on whatever workspace you're on.
 hl.window_rule({
 	name = "main-terminal",
@@ -130,7 +130,7 @@ hl.window_rule({
 		class = "^Alacritty$",
 		title = "^Terminal$",
 	},
-	workspace = ws(8, MON_MAIN),
+	workspace = ws(9, MON_MAIN),
 })
 
 -- btop -> Workspace 1, top monitor
