@@ -119,7 +119,7 @@ hl.window_rule({
 		class = "^Alacritty$",
 		title = "^indy$",
 	},
-	workspace = ws(8, MON_MAIN),
+	workspace = ws(9, MON_MAIN),
 })
 
 -- Alacritty titled "Terminal" (the one startup-apps.sh opens) -> Workspace 8, main monitor
