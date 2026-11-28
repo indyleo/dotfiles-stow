@@ -13,6 +13,7 @@ local mainMod = "SUPER"
 hl.bind(mainMod .. " + Return", hl.dsp.exec_cmd(terminal))
 hl.bind(mainMod .. " + F", hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(browser))
+hl.bind(mainMod .. " + M", hl.dsp.exec_cmd(musicPlayer))
 hl.bind(mainMod .. " + SHIFT + D", hl.dsp.exec_cmd("vesktop"))
 hl.bind(mainMod .. " + SHIFT + G", hl.dsp.exec_cmd("signal-desktop"))
 hl.bind(mainMod .. " + SHIFT + N", hl.dsp.exec_cmd("feishin"))
@@ -34,8 +35,14 @@ hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd("hyprctl reload"))
 hl.bind(mainMod .. " + SHIFT + Space", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
 
--- Pin window
+-- Pin window across workspaces
 hl.bind(mainMod .. " + P", hl.dsp.window.pin())
+
+-- Cycle through windows
+hl.bind(mainMod .. " + Tab", hl.dsp.window.cycle_next())
+
+-- Toggle split (dwindle layout)
+hl.bind(mainMod .. " + SHIFT + J", hl.dsp.layout("togglesplit"))
 
 -- Focus & Layout
 hl.bind(mainMod .. " + H", hl.dsp.focus({ direction = "l" }))
@@ -46,6 +53,18 @@ hl.bind(mainMod .. " + SHIFT + equal", hl.dsp.layout("addmaster"))
 hl.bind(mainMod .. " + SHIFT + minus", hl.dsp.layout("removemaster"))
 hl.bind(mainMod .. " + SHIFT + S", hl.dsp.layout("swapwithmaster"))
 hl.bind(mainMod .. " + ALT + S", hl.dsp.layout("focusmaster"))
+
+-- Move windows with SUPER + CTRL + H/J/K/L
+hl.bind(mainMod .. " + CTRL + H", hl.dsp.window.move({ direction = "l" }))
+hl.bind(mainMod .. " + CTRL + L", hl.dsp.window.move({ direction = "r" }))
+hl.bind(mainMod .. " + CTRL + K", hl.dsp.window.move({ direction = "u" }))
+hl.bind(mainMod .. " + CTRL + J", hl.dsp.window.move({ direction = "d" }))
+
+-- Resize windows with SUPER + ALT + H/J/K/L
+hl.bind(mainMod .. " + ALT + H", hl.dsp.window.resize({ x = -30, y = 0, relative = true }), { repeating = true })
+hl.bind(mainMod .. " + ALT + L", hl.dsp.window.resize({ x = 30, y = 0, relative = true }), { repeating = true })
+hl.bind(mainMod .. " + ALT + K", hl.dsp.window.resize({ x = 0, y = -30, relative = true }), { repeating = true })
+hl.bind(mainMod .. " + ALT + J", hl.dsp.window.resize({ x = 0, y = 30, relative = true }), { repeating = true })
 
 -- --- System & Hardware ---
 hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("qs ipc call osd briUp"), { repeating = true })
@@ -110,10 +129,13 @@ for i = 1, 6 do
 	hl.bind(mainMod .. " + CTRL + " .. i, hs.dsp.window.move({ workspace = i, follow = true }))
 end
 
--- Move active window to the workspace you're switching to
-hl.bind(mainMod .. " + CTRL + SHIFT + Right", hl.dsp.window.move({ workspace = "r+1", follow = true }))
+-- Scroll through workspaces with SUPER + mouse wheel
+hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
+hl.bind(mainMod .. " + mouse_up", hl.dsp.focus({ workspace = "e-1" }))
 
-hl.bind(mainMod .. " + CTRL + SHIFT + Left", hl.dsp.window.move({ workspace = "r-1", follow = true }))
+-- Move active window to adjacent workspace and follow
+hl.bind(mainMod .. " + CTRL + SHIFT + Right", hl.dsp.window.move({ workspace = "r+ 1", follow = true }))
+hl.bind(mainMod .. " + CTRL + SHIFT + Left", hl.dsp.window.move({ workspace = "r- 1", follow = true }))
 
 hl.bind(mainMod .. " + CTRL + D", hs.dsp.workspace.swap_monitors({ monitor1 = "current", monitor2 = "+1" }))
 hl.bind(mainMod .. " + CTRL + G", hs.dsp.grab_rogue_windows())
@@ -126,7 +148,6 @@ hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(scratchpad .. " termsc $SHELL"))
 hl.bind(mainMod .. " + Y", hl.dsp.exec_cmd(scratchpad .. " lfsc lf"))
 hl.bind(mainMod .. " + Z", hl.dsp.exec_cmd(scratchpad .. " qalsc qalc"))
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd(scratchpad .. " wiremixsc wiremix"))
-hl.bind(mainMod .. " + M", hl.dsp.exec_cmd(scratchpad .. " musicsc subsonic-tui"))
 
 -- --- Mouse Mode ---
 hl.bind("F9", hl.dsp.exec_cmd("mouse_move"))
