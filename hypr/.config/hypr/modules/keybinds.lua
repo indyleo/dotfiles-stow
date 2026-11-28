@@ -34,6 +34,9 @@ hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd("hyprctl reload"))
 hl.bind(mainMod .. " + SHIFT + Space", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
 
+-- Pin window
+hl.bind(mainMod .. " + P", hl.dsp.window.pin())
+
 -- Focus & Layout
 hl.bind(mainMod .. " + H", hl.dsp.focus({ direction = "l" }))
 hl.bind(mainMod .. " + L", hl.dsp.focus({ direction = "r" }))
@@ -104,7 +107,13 @@ hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("qs ipc call wallpaper random
 for i = 1, 6 do
 	hl.bind(mainMod .. " + " .. i, hs.dsp.focus({ workspace = i }))
 	hl.bind(mainMod .. " + SHIFT + " .. i, hs.dsp.window.move({ workspace = i, follow = false }))
+	hl.bind(mainMod .. " + CTRL + " .. i, hs.dsp.window.move({ workspace = i, follow = true }))
 end
+
+-- Move active window to the workspace you're switching to
+hl.bind(mainMod .. " + CTRL + SHIFT + Right", hl.dsp.window.move({ workspace = "r+1", follow = true }))
+
+hl.bind(mainMod .. " + CTRL + SHIFT + Left", hl.dsp.window.move({ workspace = "r-1", follow = true }))
 
 hl.bind(mainMod .. " + CTRL + D", hs.dsp.workspace.swap_monitors({ monitor1 = "current", monitor2 = "+1" }))
 hl.bind(mainMod .. " + CTRL + G", hs.dsp.grab_rogue_windows())
